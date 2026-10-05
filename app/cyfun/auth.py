@@ -201,10 +201,15 @@ def current_user(request: Request, db: Session = Depends(get_db), s: Settings = 
     return user
 
 
+# Paths an account with a pending password change may still use; everything else redirects
+# to the password form, including the user-administration endpoints under /auth/users.
+PASSWORD_CHANGE_EXEMPT = {"/auth/password", "/auth/logout", "/auth/signed-out"}
+
+
 def require_user(request: Request, user: User | None = Depends(current_user)) -> User:
     if user is None:
         raise HTTPException(status_code=401, detail="Sign in required")
-    if user.must_change_password and not request.url.path.startswith("/auth/"):
+    if user.must_change_password and request.url.path not in PASSWORD_CHANGE_EXEMPT:
         raise PasswordChangeRequired()
     return user
 
@@ -225,6 +230,8 @@ def ensure_default_admin(s: Settings) -> None:
         exists = db.execute(select(User).where(User.auth_provider == "local")).first()
         if exists is None:
             username, password = DEFAULT_ADMIN
+            if s.auth_bootstrap_password.strip():
+                password = s.auth_bootstrap_password.strip()
             db.add(
                 User(
                     oid=f"local:{username}",
@@ -238,7 +245,11 @@ def ensure_default_admin(s: Settings) -> None:
                 )
             )
             db.commit()
-            log.warning("created the default local account '%s' with the default password; change it at first login", username)
+            log.warning(
+                "created the local account '%s' with the %s password; it must be changed at first login",
+                username,
+                "AUTH_BOOTSTRAP_PASSWORD" if s.auth_bootstrap_password.strip() else "default",
+            )
     finally:
         db.close()
 

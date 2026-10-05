@@ -30,6 +30,8 @@ class Settings(BaseSettings):
     # before single sign-on exists; a default "admin" account with password "admin" is
     # created on first start and must change its password at first login.
     auth_local_enabled: bool = Field(True, alias="AUTH_LOCAL_ENABLED")
+    # Optional: password of the first local admin instead of the default "admin". Still changed at first login.
+    auth_bootstrap_password: str = Field("", alias="AUTH_BOOTSTRAP_PASSWORD")
     # Microsoft Entra ID single sign-on (all three required to enable it).
     auth_tenant_id: str = Field("", alias="AUTH_TENANT_ID")
     auth_client_id: str = Field("", alias="AUTH_CLIENT_ID")

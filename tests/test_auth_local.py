@@ -54,8 +54,12 @@ def test_default_admin_must_change_password(app):
         r = c.post("/auth/local", data={"username": "admin", "password": "admin", "next": "/assessment"}, follow_redirects=False)
         assert r.status_code == 303
         assert r.headers["location"].startswith("/auth/password")
-        # every page redirects to the password form until it is changed
+        # every page redirects to the password form until it is changed, user administration included
         r = c.get("/assessment", follow_redirects=False)
+        assert r.status_code == 303 and r.headers["location"].startswith("/auth/password")
+        r = c.get("/auth/users", follow_redirects=False)
+        assert r.status_code == 303 and r.headers["location"].startswith("/auth/password")
+        r = c.post("/auth/users", data={"username": "sneaky", "role": "admin"}, follow_redirects=False)
         assert r.status_code == 303 and r.headers["location"].startswith("/auth/password")
         # weak password refused
         r = c.post("/auth/password", data={"current": "admin", "new": "admin", "confirm": "admin", "next": "/assessment"})
