@@ -2,14 +2,22 @@
 {% block title %}Self-assessment · {{ settings.app_name }}{% endblock %}
 {% block content %}
 <header class="page-head">
-  <div class="eyebrow">CyFun 2025 BASIC · {{ fw.requirements|length }} requirements · {{ fw.key_measures|length }} key measures</div>
+  <div class="eyebrow">CyFun 2025 {{ fw.level }} · {{ fw.requirements|length }} requirements · {{ fw.key_measures|length }} key measures · tool version {{ fw.tool_version }}</div>
   <h1>Self-assessment</h1>
   <p class="lead">
-    Total maturity <strong class="{{ summary.total_maturity|status_word }}">{{ summary.total_maturity|score }}</strong> (target 2,50) ·
+    Total maturity <strong class="{{ summary.total_maturity|status_word(summary.total_min) }}">{{ summary.total_maturity|score }}</strong> (target {{ summary.total_min|score }}) ·
     {{ summary.scored_count }} of {{ summary.total_count }} scored ·
-    {{ summary.key_measures_passing }} of {{ summary.key_measures|length }} key measures at target ·
-    {{ summary.na_count }} not applicable (max 1).
+    {{ summary.key_measures_passing }} of {{ summary.key_measures|length }} key measures ≥ {{ summary.km_min|score }} ·
+    {% if summary.cat_min %}{{ summary.categories|length - summary.categories_failing|length }} of {{ summary.categories|length }} categories ≥ {{ summary.cat_min|score }} · {% endif %}
+    {{ summary.na_count }} not applicable (max {{ summary.na_allowed }}).
   </p>
+  <nav class="tabs">
+    <a class="{{ 'on' if flt == 'all' }}" href="/assessment">All ({{ fw.requirements|length }})</a>
+    {% for lv in ('Basic', 'Important', 'Essential') %}{% if counts.get(lv) %}<a class="{{ 'on' if flt == lv }}" href="/assessment?level={{ lv }}">{{ lv }} ({{ counts[lv] }})</a>{% endif %}{% endfor %}
+    <a class="{{ 'on' if flt == 'km' }}" href="/assessment?level=km">Key measures ({{ fw.key_measures|length }})</a>
+    <a class="{{ 'on' if flt == 'unscored' }}" href="/assessment?level=unscored">Unscored ({{ summary.total_count - summary.scored_count }})</a>
+    <a class="{{ 'on' if flt == 'below' }}" href="/assessment?level=below">Below target ({{ summary.below_target|length }})</a>
+  </nav>
 </header>
 
 {% if summary.problems %}<section class="card warn-card"><ul>{% for p in summary.problems %}<li>{{ p }}</li>{% endfor %}</ul></section>{% endif %}
@@ -22,37 +30,51 @@
     </thead>
     <tbody>
     {% for f in fw.functions %}
+      {% set f_rows = f.requirements|selectattr("id", "in", shown)|list %}
+      {% if f_rows %}
       <tr class="function-row"><th colspan="8"><span class="mono">{{ f.id }}</span> {{ f.name }} <span class="muted">doc {{ summary.functions[f.id].doc|score }} · impl {{ summary.functions[f.id].impl|score }}</span></th></tr>
       {% for c in f.categories %}
+        {% set c_rows = c.requirements|selectattr("id", "in", shown)|list %}
+        {% if c_rows %}
         {% set g = summary.categories[c.id] %}
         <tr class="category-row">
           <th><span class="mono">{{ c.id }}</span> {{ c.name }}</th>
           <td class="num">{{ g.doc|score }}</td><td class="num">{{ g.impl|score }}</td>
-          <td class="num"><span class="chip {{ g.maturity|status_word }}">{{ g.maturity|score }}</span></td>
+          <td class="num"><span class="chip {{ g.maturity|status_word(summary.cat_min or summary.target) }}">{{ g.maturity|score }}</span></td>
           <td colspan="4"></td>
         </tr>
-        {% for s in c.subcategories %}{% for r in s.requirements %}
+        {% for s in c.subcategories %}{% for r in s.requirements if r.id in shown %}
           {% set res = summary.requirements[r.id] %}
           {% set ch = checks.get(r.id, []) %}
           {% set fails = ch|selectattr("status", "equalto", "fail")|list %}
           <tr>
             <td>
-              <a href="/assessment/{{ r.id }}" class="req-link"><span class="mono">{{ r.id }}</span>{% if r.key_measure %} <span class="tag km">KM</span>{% endif %}</a>
+              <a href="/assessment/{{ r.id }}" class="req-link"><span class="mono">{{ r.id }}</span></a>
+              <span class="tag level-{{ r.level|lower }}">{{ r.level }}</span>{% if r.key_measure %} <span class="tag km">KM</span>{% endif %}{% if r.management_aspect %} <span class="tag ma" title="{{ r.management_label }}">MA</span>{% endif %}
               <div class="req-text">{{ r.text }}</div>
             </td>
             <td class="num">{% if res.not_applicable %}<span class="chip">N/A</span>{% else %}{{ res.doc|score(0) if res.doc is not none else "·" }}{% endif %}</td>
             <td class="num">{% if res.not_applicable %}<span class="chip">N/A</span>{% else %}{{ res.impl|score(0) if res.impl is not none else "·" }}{% endif %}</td>
-            <td class="num">{% if res.maturity is not none %}<span class="chip {{ res.maturity|status_word }}">{{ res.maturity|score }}</span>{% else %}<span class="chip none">not scored</span>{% endif %}</td>
+            <td class="num">{% if res.maturity is not none %}<span class="chip {{ res.maturity|status_word(summary.km_min if r.key_measure else summary.target) }}">{{ res.maturity|score }}</span>{% else %}<span class="chip none">not scored</span>{% endif %}</td>
             <td class="num">{{ evidence.get(r.id, [])|length or "" }}</td>
             <td class="num">{{ documents.get(r.id, [])|length or "" }}</td>
             <td>{% if ch %}{% if fails %}<span class="chip bad">{{ fails|length }} fail</span>{% else %}<span class="chip ok">{{ ch|length }}</span>{% endif %}{% endif %}</td>
             <td class="num">{{ actions.get(r.id, [])|length or "" }}</td>
           </tr>
         {% endfor %}{% endfor %}
+        {% endif %}
       {% endfor %}
+      {% endif %}
     {% endfor %}
     </tbody>
   </table>
   </div>
+  {% if not shown %}<p class="muted">No requirements match this filter.</p>{% endif %}
+  <p class="muted small">Tags: level that introduces the requirement (Basic, Important, Essential), KM key measure, MA control linked to management aspects (reviewed at every ESSENTIAL audit; cannot be N/A at ESSENTIAL).</p>
+  {% if fw.quirks %}
+  <details class="small muted"><summary>Scoring follows the CCB {{ fw.level }} workbook formulas, including {{ fw.quirks|length }} places where they deviate from the subcategory structure</summary>
+    <ul>{% for q in fw.quirks %}<li>{{ q }}</li>{% endfor %}</ul>
+  </details>
+  {% endif %}
 </section>
 {% endblock %}

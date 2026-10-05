@@ -10,9 +10,9 @@ from sqlalchemy.orm import Session
 
 from ..auth import require_admin, require_user
 from ..db import get_db
-from ..framework import load_framework
+from ..framework import all_requirement_ids
 from ..models import Action, User
-from ..services import log_activity, parse_date
+from ..services import current_framework, log_activity, parse_date
 from ..views import redirect, render
 
 router = APIRouter(prefix="/actions", tags=["actions"])
@@ -21,14 +21,13 @@ PRIORITIES = ("high", "medium", "low")
 
 
 def _ctx(db: Session, status: str, edit: Action | None):
-    fw = load_framework()
     stmt = select(Action)
     if status in STATUSES:
         stmt = stmt.where(Action.status == status)
     elif status == "active":
         stmt = stmt.where(Action.status.in_(["open", "in_progress"]))
     items = db.execute(stmt.order_by(Action.status, Action.due_date.is_(None), Action.due_date, Action.priority)).scalars().all()
-    return {"active": "actions", "items": items, "fw": fw, "statuses": STATUSES, "priorities": PRIORITIES, "f_status": status, "edit": edit}
+    return {"active": "actions", "items": items, "fw": current_framework(db), "statuses": STATUSES, "priorities": PRIORITIES, "f_status": status, "edit": edit}
 
 
 @router.get("")
@@ -45,10 +44,9 @@ def edit_action(request: Request, action_id: int, user: User = Depends(require_u
 
 
 def _apply(a: Action, form) -> None:
-    fw = load_framework()
     a.title = (form.get("title") or "").strip()[:300] or a.title or "Untitled action"
     rid = form.get("requirement_id") or ""
-    a.requirement_id = rid if rid in fw.by_id else ""
+    a.requirement_id = rid if rid in all_requirement_ids() else ""
     a.description = (form.get("description") or "").strip()
     a.owner = (form.get("owner") or "").strip()[:200]
     a.priority = form.get("priority") if form.get("priority") in PRIORITIES else "medium"
@@ -70,7 +68,7 @@ async def create_action(request: Request, user: User = Depends(require_admin), d
     _apply(a, form)
     db.add(a)
     db.commit()
-    log_activity(db, user.email, "action_create", "action", str(a.id), {"title": a.title, "requirement": a.requirement_id})
+    log_activity(db, user.label, "action_create", "action", str(a.id), {"title": a.title, "requirement": a.requirement_id})
     return redirect("/actions", msg="Action added.")
 
 
@@ -82,7 +80,7 @@ async def update_action(request: Request, action_id: int, user: User = Depends(r
     form = await request.form()
     _apply(a, form)
     db.commit()
-    log_activity(db, user.email, "action_update", "action", str(a.id), {"title": a.title, "status": a.status})
+    log_activity(db, user.label, "action_update", "action", str(a.id), {"title": a.title, "status": a.status})
     back = form.get("back") or "/actions"
     if not back.startswith("/") or back.startswith("//"):
         back = "/actions"
@@ -95,5 +93,5 @@ def delete_action(request: Request, action_id: int, user: User = Depends(require
     if a is not None:
         db.delete(a)
         db.commit()
-        log_activity(db, user.email, "action_delete", "action", str(action_id), {"title": a.title})
+        log_activity(db, user.label, "action_delete", "action", str(action_id), {"title": a.title})
     return redirect("/actions", msg="Action deleted.")

@@ -2,25 +2,27 @@
 {% block title %}Dashboard · {{ settings.app_name }}{% endblock %}
 {% block content %}
 <header class="page-head">
-  <div class="eyebrow">{{ org.name or "Organisation not set" }} · CyFun 2025 BASIC</div>
+  <div class="eyebrow">{{ org.name or "Organisation not set" }} · CyFun 2025 {{ fw.level }}</div>
   <h1>Dashboard</h1>
   <p class="lead">
     {{ summary.scored_count }} of {{ summary.total_count }} requirements scored.
     {% if risk %}Assurance level from risk assessment: <strong>{{ risk.level }}</strong> (score {{ risk.total_score|score(1) }}).{% else %}Risk assessment not done.{% endif %}
-    Stage {{ done_stages }} of {{ stages|length }} completed.
+    Target level <strong>{{ fw.level }}</strong>. Stage {{ done_stages }} of {{ stages|length }} completed.
   </p>
 </header>
+
+{% if level_mismatch %}<div class="notice">The CCB risk method points to <strong>{{ risk.level }}</strong> while the target level is <strong>{{ fw.level }}</strong>. Record the reason in the risk assessment rationale, or change the target level on the Scope page.</div>{% endif %}
 
 <section class="grid stats">
   <div class="card stat {{ 'good' if summary.total_meets_target else 'bad' }}">
     <div class="stat-label">Total maturity</div>
     <div class="stat-value">{{ summary.total_maturity|score }}</div>
-    <div class="stat-sub">target ≥ 2,50 · {% if summary.complete %}{{ "meets target" if summary.total_meets_target else "below target" }}{% else %}incomplete{% endif %}</div>
+    <div class="stat-sub">target ≥ {{ summary.total_min|score }} · {% if summary.complete %}{{ "meets target" if summary.total_meets_target else "below target" }}{% else %}incomplete{% endif %}</div>
   </div>
   <div class="card stat {{ 'good' if summary.key_measures_passing == summary.key_measures|length else 'bad' }}">
-    <div class="stat-label">Key measures ≥ 2,50</div>
+    <div class="stat-label">Key measures ≥ {{ summary.km_min|score }}</div>
     <div class="stat-value">{{ summary.key_measures_passing }}<span class="of">/ {{ summary.key_measures|length }}</span></div>
-    <div class="stat-sub">{{ summary.key_measures_failing|length }} below target</div>
+    <div class="stat-sub">{{ summary.key_measures_failing|length }} below target{% if summary.cat_min %} · categories ≥ {{ summary.cat_min|score }}: {{ summary.categories_failing|length }} below{% endif %}</div>
   </div>
   <div class="card stat">
     <div class="stat-label">Evidence coverage</div>
@@ -54,16 +56,17 @@
       <tr class="group-row"><th colspan="3"><span class="mono">{{ f.id }}</span> {{ f.name }} <span class="muted">{{ summary.functions[f.id].maturity|score }}</span></th></tr>
       {% for c in f.categories %}
       {% set g = summary.categories[c.id] %}
+      {% set tgt = summary.cat_min or summary.target %}
       <tr>
         <td class="bar-label"><span class="mono">{{ c.id }}</span> {{ c.name }}</td>
         <td class="bar-cell">
-          <svg viewBox="0 0 100 10" preserveAspectRatio="none" class="bar {{ g.maturity|status_word }}" role="img" aria-label="{{ c.name }} {{ g.maturity|score }}">
+          <svg viewBox="0 0 100 10" preserveAspectRatio="none" class="bar {{ g.maturity|status_word(tgt) }}" role="img" aria-label="{{ c.name }} {{ g.maturity|score }}">
             <rect class="track" x="0" y="0" width="100" height="10"></rect>
             <rect class="fill" x="0" y="0" width="{{ g.maturity|pct }}" height="10"></rect>
-            <rect class="target" x="50" y="0" width="0.6" height="10"></rect>
+            <rect class="target" x="{{ tgt|pct }}" y="0" width="0.6" height="10"></rect>
           </svg>
         </td>
-        <td class="bar-value {{ g.maturity|status_word }}">{{ g.maturity|score }}</td>
+        <td class="bar-value {{ g.maturity|status_word(tgt) }}">{{ g.maturity|score }}</td>
       </tr>
       {% endfor %}
       {% endfor %}
@@ -72,10 +75,10 @@
 
   <div class="stack">
     <div class="card">
-      <div class="card-head"><h2>Key measures</h2><span class="muted">each ≥ 2,50</span></div>
+      <div class="card-head"><h2>Key measures</h2><span class="muted">each ≥ {{ summary.km_min|score }} · {{ summary.key_measures|length }} at {{ fw.level }}</span></div>
       <div class="km-grid">
         {% for k in summary.key_measures %}
-        <a class="km-tile {{ k.maturity|status_word }}" href="/assessment/{{ k.requirement.id }}" title="{{ k.requirement.text }}">
+        <a class="km-tile {{ k.maturity|status_word(summary.km_min) }}" href="/assessment/{{ k.requirement.id }}" title="{{ k.requirement.text }}">
           <span class="mono">{{ k.requirement.id }}</span>
           <strong>{{ k.maturity|score }}</strong>
         </a>

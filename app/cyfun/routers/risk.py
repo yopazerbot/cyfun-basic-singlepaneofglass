@@ -103,10 +103,10 @@ async def risk_save(request: Request, user: User = Depends(require_admin), db: S
     ra.rationale = (form.get("rationale") or "").strip()
     ra.total_score = result.total
     ra.level = result.level
-    ra.updated_by = user.email
+    ra.updated_by = user.label
     db.commit()
     log_activity(
-        db, user.email, "risk_assessment_save", "risk_assessment", str(ra.id), {"sector": sector_id, "size": size, "total": result.total, "level": result.level}
+        db, user.label, "risk_assessment_save", "risk_assessment", str(ra.id), {"sector": sector_id, "size": size, "total": result.total, "level": result.level}
     )
     return redirect("/risk", msg=f"Risk assessment saved. Score {result.total:g}, assurance level {result.level}.")
 
@@ -148,7 +148,7 @@ async def register_create(request: Request, user: User = Depends(require_admin),
     _apply(item, form)
     db.add(item)
     db.commit()
-    log_activity(db, user.email, "risk_item_create", "risk_item", str(item.id), {"title": item.title})
+    log_activity(db, user.label, "risk_item_create", "risk_item", str(item.id), {"title": item.title})
     return redirect("/risk/register", msg="Risk added.")
 
 
@@ -160,7 +160,7 @@ async def register_update(request: Request, item_id: int, user: User = Depends(r
     form = await request.form()
     _apply(item, form)
     db.commit()
-    log_activity(db, user.email, "risk_item_update", "risk_item", str(item.id), {"title": item.title, "status": item.status})
+    log_activity(db, user.label, "risk_item_update", "risk_item", str(item.id), {"title": item.title, "status": item.status})
     return redirect("/risk/register", msg="Risk updated.")
 
 
@@ -170,5 +170,5 @@ def register_delete(request: Request, item_id: int, user: User = Depends(require
     if item is not None:
         db.delete(item)
         db.commit()
-        log_activity(db, user.email, "risk_item_delete", "risk_item", str(item_id), {"title": item.title})
+        log_activity(db, user.label, "risk_item_delete", "risk_item", str(item_id), {"title": item.title})
     return redirect("/risk/register", msg="Risk deleted.")

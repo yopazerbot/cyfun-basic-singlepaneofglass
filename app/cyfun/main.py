@@ -12,7 +12,7 @@ from fastapi.staticfiles import StaticFiles
 
 from . import __version__, auth, db, scheduler
 from .config import Settings, get_settings
-from .framework import load_framework
+from .framework import LEVELS, load_framework
 from .security import SecurityMiddleware
 from .views import render
 
@@ -30,20 +30,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         settings.snapshots_dir.mkdir(parents=True, exist_ok=True)
         db.init_engine(f"sqlite:///{settings.db_path.as_posix()}")
         db.create_schema()
-        load_framework()
+        for level in LEVELS:
+            load_framework(level)
+        auth.ensure_default_admin(settings)
         if settings.scheduler_enabled:
             scheduler.start(settings)
         yield
         scheduler.shutdown()
 
-    app = FastAPI(
-        title=settings.app_name,
-        version=__version__,
-        docs_url=None,
-        redoc_url=None,
-        openapi_url=None,
-        lifespan=lifespan,
-    )
+    app = FastAPI(title=settings.app_name, version=__version__, docs_url=None, redoc_url=None, openapi_url=None, lifespan=lifespan)
     app.add_middleware(SecurityMiddleware, settings=settings)
     app.mount("/static", StaticFiles(directory=str(HERE / "static")), name="static")
 
@@ -56,6 +51,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @app.get("/healthz", include_in_schema=False)
     def healthz():
         return {"status": "ok"}
+
+    @app.exception_handler(auth.PasswordChangeRequired)
+    async def password_change_required(request: Request, exc: auth.PasswordChangeRequired):
+        if request.headers.get("hx-request"):
+            return JSONResponse({"detail": "Password change required"}, status_code=403, headers={"HX-Redirect": "/auth/password"})
+        nxt = request.url.path if request.method == "GET" else "/"
+        return RedirectResponse(f"/auth/password?next={nxt}", status_code=303)
 
     @app.exception_handler(HTTPException)
     async def http_exc(request: Request, exc: HTTPException):

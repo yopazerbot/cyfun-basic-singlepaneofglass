@@ -1,4 +1,4 @@
-"""Database models. Single organisation, single assurance level (BASIC)."""
+"""Database models. Single organisation; the target assurance level selects the requirement set."""
 
 from __future__ import annotations
 
@@ -24,6 +24,7 @@ class Organisation(Base):
     scope_description: Mapped[str] = mapped_column(Text, default="")
     scope_exclusions: Mapped[str] = mapped_column(Text, default="")
     cab_name: Mapped[str] = mapped_column(String(200), default="")
+    target_level: Mapped[str] = mapped_column(String(20), default="BASIC")  # BASIC | IMPORTANT | ESSENTIAL
     self_assessment_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     journey: Mapped[dict] = mapped_column(JSON, default=dict)  # stage -> {status, date, note}
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
@@ -32,12 +33,23 @@ class Organisation(Base):
 class User(Base):
     __tablename__ = "user"
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    oid: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    oid: Mapped[str] = mapped_column(String(64), unique=True, index=True)  # Entra object id, or "local:<username>"
     email: Mapped[str] = mapped_column(String(320), default="")
     display_name: Mapped[str] = mapped_column(String(200), default="")
     role: Mapped[str] = mapped_column(String(20), default="auditor")  # admin | auditor
+    auth_provider: Mapped[str] = mapped_column(String(10), default="entra")  # entra | local
+    username: Mapped[str | None] = mapped_column(String(64), unique=True, nullable=True, index=True)
+    password_hash: Mapped[str] = mapped_column(String(400), default="")
+    must_change_password: Mapped[bool] = mapped_column(Boolean, default=False)
+    disabled: Mapped[bool] = mapped_column(Boolean, default=False)
+    failed_logins: Mapped[int] = mapped_column(Integer, default=0)
+    locked_until: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+    @property
+    def label(self) -> str:
+        return self.display_name or self.username or self.email
 
 
 class LoginState(Base):
@@ -63,7 +75,7 @@ class SessionRow(Base):
 
 
 class Score(Base):
-    """One row per requirement. Scores 1..5; not_applicable overrides both."""
+    """One row per requirement id, shared across assurance levels. Scores 1..5; not_applicable overrides both."""
 
     __tablename__ = "score"
     requirement_id: Mapped[str] = mapped_column(String(20), primary_key=True)
@@ -79,6 +91,7 @@ class Snapshot(Base):
     __tablename__ = "snapshot"
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String(200))
+    level: Mapped[str] = mapped_column(String(20), default="BASIC")
     taken_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
     taken_by: Mapped[str] = mapped_column(String(320), default="")
     total_maturity: Mapped[float | None] = mapped_column(Float, nullable=True)

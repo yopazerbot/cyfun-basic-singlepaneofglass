@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 from pathlib import Path
 from urllib.parse import quote
 
@@ -11,6 +11,7 @@ from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 
 from . import __version__
+from . import db as database
 from .config import get_settings
 
 HERE = Path(__file__).parent
@@ -37,7 +38,7 @@ def fmt_date(value) -> str:
 def status_word(value: float | None, target: float = 2.5) -> str:
     if value is None:
         return "none"
-    return "ok" if value >= target else "low"
+    return "ok" if float(value) >= float(target) else "low"
 
 
 def pct(value: float | None, scale: float = 5.0) -> int:
@@ -60,6 +61,17 @@ templates.env.filters["nl2br"] = nl2br_safe
 templates.env.globals["version"] = __version__
 
 
+def _current_level() -> str:
+    try:
+        from .models import Organisation
+
+        with database.session() as s:
+            org = s.get(Organisation, 1)
+            return (org.target_level if org and org.target_level else "BASIC").upper()
+    except Exception:  # noqa: BLE001 - rendering must not fail because of a lookup
+        return "BASIC"
+
+
 def render(request: Request, name: str, context: dict | None = None, status_code: int = 200):
     ctx = {
         "user": getattr(request.state, "user", None),
@@ -68,6 +80,8 @@ def render(request: Request, name: str, context: dict | None = None, status_code
         "today": date.today(),
         "msg": request.query_params.get("msg", ""),
         "err": request.query_params.get("err", ""),
+        "level": _current_level(),
+        "now_utc": datetime.now(UTC).replace(tzinfo=None),
     }
     ctx.update(context or {})
     return templates.TemplateResponse(request, name, ctx, status_code=status_code)

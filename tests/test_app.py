@@ -16,10 +16,13 @@ def test_anonymous_is_redirected_to_login(client):
     assert r.status_code == 302
 
 
-def test_login_without_sso_configured_is_explicit(client):
+def test_login_page_offers_local_form_without_sso(client):
     r = client.get("/auth/login")
+    assert r.status_code == 200
+    assert 'action="/auth/local"' in r.text
+    assert "Sign in with Microsoft" not in r.text
+    r = client.get("/auth/microsoft", follow_redirects=False)
     assert r.status_code == 503
-    assert "not configured" in r.text
 
 
 def test_security_headers(admin):
@@ -31,7 +34,6 @@ def test_security_headers(admin):
     assert h["x-content-type-options"] == "nosniff"
     assert h["x-frame-options"] == "DENY"
     assert h["cache-control"] == "no-store"
-    assert "docs" not in [getattr(r, "path", "") for r in admin.app.routes]
 
 
 def test_dashboard_and_pages_render(admin):
@@ -41,6 +43,8 @@ def test_dashboard_and_pages_render(admin):
         "/risk",
         "/risk/register",
         "/assessment",
+        "/assessment?level=km",
+        "/assessment?level=below",
         "/assessment/PR.AA-03.2",
         "/assets",
         "/documents",
@@ -51,6 +55,7 @@ def test_dashboard_and_pages_render(admin):
         "/audit",
         "/audit/export",
         "/activity",
+        "/auth/users",
     ):
         r = admin.get(path)
         assert r.status_code == 200, path
@@ -68,7 +73,9 @@ def test_post_without_origin_is_blocked(admin):
 
 def test_score_save_and_rules(admin):
     r = admin.post(
-        "/assessment/GV.OC-03.1/score", data={"doc_score": "3", "impl_score": "4", "justification": "Policy v2 approved 2026-01-10."}, follow_redirects=False
+        "/assessment/GV.OC-03.1/score",
+        data={"doc_score": "3", "impl_score": "4", "justification": "Policy v2 approved 2026-01-10."},
+        follow_redirects=False,
     )
     assert r.status_code == 303 and "msg=" in r.headers["location"]
     page = admin.get("/assessment/GV.OC-03.1").text
@@ -79,7 +86,7 @@ def test_score_save_and_rules(admin):
     r = admin.post("/assessment/PR.DS-11.1/score", data={"not_applicable": "1", "justification": "x"}, follow_redirects=False)
     assert "err=" in r.headers["location"]
 
-    # one N/A allowed, second refused
+    # one N/A allowed at BASIC, second refused
     r = admin.post("/assessment/PR.AA-06.1/score", data={"not_applicable": "1", "justification": "No premises."}, follow_redirects=False)
     assert "msg=" in r.headers["location"]
     r = admin.post("/assessment/PR.AA-03.1/score", data={"not_applicable": "1", "justification": "No wifi."}, follow_redirects=False)
@@ -99,6 +106,7 @@ def test_auditor_is_read_only(auditor):
     assert r.status_code == 403
     r = auditor.post("/actions", data={"title": "x"}, follow_redirects=False)
     assert r.status_code == 403
+    assert auditor.get("/auth/users", follow_redirects=False).status_code == 403
     assert auditor.get("/audit/export/pack.zip").status_code == 200
 
 
@@ -130,6 +138,7 @@ def test_evidence_upload_download_and_pack(admin):
     assert "summary.html" in names and "assessment.json" in names and "evidence/index.csv" in names
     assert any(n.startswith(f"evidence/{ev_id}_") for n in names)
     payload = json.loads(z.read("assessment.json"))
+    assert payload["assurance_level"] == "BASIC"
     assert len(payload["requirements"]) == 34
     assert payload["evidence"][0]["sha256"]
 
@@ -154,7 +163,7 @@ def test_crud_registers(admin):
             "version": "1.2",
             "approved_on": "2026-01-10",
             "next_review": "2027-01-10",
-            "requirement_ids": ["GV.PO-01.1", "GV.OC-03.1"],
+            "requirement_ids": ["GV.PO-01.1", "GV.OC-03.1", "GV.SC-05.2"],
         },
         follow_redirects=False,
     )

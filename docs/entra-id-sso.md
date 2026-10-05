@@ -1,6 +1,6 @@
 # Microsoft Entra ID single sign-on
 
-The application authenticates users with OpenID Connect against one Entra ID tenant and takes the role from Entra app roles. Configuration is entirely through environment variables.
+The application authenticates users with OpenID Connect against one Entra ID tenant and takes the role from Entra app roles. Configuration is entirely through environment variables. Entra ID is optional: local accounts (`AUTH_LOCAL_ENABLED`, default on) work without it, and both can be active at the same time; the sign-in page then shows a Microsoft button and the local form.
 
 ## 1. App registration
 

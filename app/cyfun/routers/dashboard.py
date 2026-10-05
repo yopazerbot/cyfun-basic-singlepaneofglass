@@ -12,9 +12,8 @@ from ..auth import require_user
 from ..config import get_settings
 from ..connectors import registry
 from ..db import get_db
-from ..framework import load_framework
 from ..models import Activity, Document, Evidence, User
-from ..services import JOURNEY_STAGES, current_summary, documents_due, get_org, get_risk, latest_checks, latest_runs, open_actions
+from ..services import JOURNEY_STAGES, current_framework, current_summary, documents_due, get_org, get_risk, latest_checks, latest_runs, open_actions
 from ..views import render
 
 router = APIRouter(tags=["dashboard"])
@@ -22,7 +21,7 @@ router = APIRouter(tags=["dashboard"])
 
 @router.get("/")
 def dashboard(request: Request, user: User = Depends(require_user), db: Session = Depends(get_db)):
-    fw = load_framework()
+    fw = current_framework(db)
     summary = current_summary(db, fw)
     org = get_org(db)
     risk = get_risk(db)
@@ -40,9 +39,7 @@ def dashboard(request: Request, user: User = Depends(require_user), db: Session 
     check_counts = {s: sum(1 for c in checks if c.status == s) for s in ("pass", "fail", "warn", "info", "error")}
     runs = latest_runs(db)
     settings = get_settings()
-    conns = []
-    for key, c in registry(settings).items():
-        conns.append({"key": key, "name": c.name, "configured": c.configured(), "run": runs.get(key)})
+    conns = [{"key": key, "name": c.name, "configured": c.configured(), "run": runs.get(key)} for key, c in registry(settings).items()]
 
     actions = open_actions(db)
     today = date.today()
@@ -61,6 +58,7 @@ def dashboard(request: Request, user: User = Depends(require_user), db: Session 
             "summary": summary,
             "org": org,
             "risk": risk,
+            "level_mismatch": bool(risk and risk.level and risk.level != fw.level),
             "covered": covered,
             "coverage_pct": round(100 * len(covered) / len(fw.requirements)) if fw.requirements else 0,
             "checks": checks,

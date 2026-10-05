@@ -136,7 +136,7 @@ async def create_asset(request: Request, user: User = Depends(require_admin), db
     _apply(item, form, manual=True)
     db.add(item)
     db.commit()
-    log_activity(db, user.email, "asset_create", "asset", str(item.id), {"name": item.name, "kind": item.kind})
+    log_activity(db, user.label, "asset_create", "asset", str(item.id), {"name": item.name, "kind": item.kind})
     return redirect("/assets", msg="Asset added.")
 
 
@@ -148,7 +148,7 @@ async def update_asset(request: Request, asset_id: int, user: User = Depends(req
     form = await request.form()
     _apply(item, form, manual=item.source == "manual")
     db.commit()
-    log_activity(db, user.email, "asset_update", "asset", str(item.id), {"name": item.name})
+    log_activity(db, user.label, "asset_update", "asset", str(item.id), {"name": item.name})
     return redirect("/assets", msg="Asset updated.")
 
 
@@ -161,5 +161,5 @@ def delete_asset(request: Request, asset_id: int, user: User = Depends(require_a
         return redirect("/assets", err="Connector-synced assets cannot be deleted; they are retired automatically when they disappear from the source.")
     db.delete(item)
     db.commit()
-    log_activity(db, user.email, "asset_delete", "asset", str(asset_id), {"name": item.name})
+    log_activity(db, user.label, "asset_delete", "asset", str(asset_id), {"name": item.name})
     return redirect("/assets", msg="Asset deleted.")

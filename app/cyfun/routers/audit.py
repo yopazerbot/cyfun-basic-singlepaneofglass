@@ -16,17 +16,27 @@ from ..auth import require_admin, require_user
 from ..config import get_settings
 from ..db import get_db
 from ..export_xlsx import ExportError, ExportInput, fill_workbook
-from ..framework import load_framework
 from ..models import Document, Evidence, Snapshot, User
 from ..scoring import summary_to_dict
-from ..services import by_requirement, checks_by_requirement, current_summary, get_org, get_risk, latest_checks, latest_runs, log_activity, scores_by_id
+from ..services import (
+    by_requirement,
+    checks_by_requirement,
+    current_framework,
+    current_summary,
+    get_org,
+    get_risk,
+    latest_checks,
+    latest_runs,
+    log_activity,
+    scores_by_id,
+)
 from ..views import redirect, render, templates
 
 router = APIRouter(prefix="/audit", tags=["audit"])
 
 
-def _verification_context(request: Request, db: Session):
-    fw = load_framework()
+def _verification_context(db: Session):
+    fw = current_framework(db)
     return {
         "fw": fw,
         "summary": current_summary(db, fw),
@@ -48,26 +58,34 @@ def _slug(text: str) -> str:
 
 @router.get("")
 def verification(request: Request, user: User = Depends(require_user), db: Session = Depends(get_db)):
-    ctx = _verification_context(request, db)
+    ctx = _verification_context(db)
     ctx["active"] = "audit"
     return render(request, "audit.html", ctx)
 
 
 @router.post("/snapshot")
 def create_snapshot(request: Request, name: str = Form(""), user: User = Depends(require_admin), db: Session = Depends(get_db)):
-    fw = load_framework()
+    fw = current_framework(db)
     summary = current_summary(db, fw)
     payload = assessment_payload(db, fw)
     snap = Snapshot(
         name=name.strip()[:200] or f"Snapshot {date.today().isoformat()}",
-        taken_by=user.email,
+        level=fw.level,
+        taken_by=user.label,
         total_maturity=summary.total_maturity,
         passes=summary.passes,
         data=payload,
     )
     db.add(snap)
     db.commit()
-    log_activity(db, user.email, "snapshot_create", "snapshot", str(snap.id), {"name": snap.name, "total": summary.total_maturity, "passes": summary.passes})
+    log_activity(
+        db,
+        user.label,
+        "snapshot_create",
+        "snapshot",
+        str(snap.id),
+        {"name": snap.name, "level": fw.level, "total": summary.total_maturity, "passes": summary.passes},
+    )
     return redirect("/audit", msg=f"Snapshot '{snap.name}' stored.")
 
 
@@ -84,7 +102,7 @@ def snapshot_json(request: Request, snap_id: int, user: User = Depends(require_u
 
 @router.get("/export")
 def export_page(request: Request, user: User = Depends(require_user), db: Session = Depends(get_db)):
-    fw = load_framework()
+    fw = current_framework(db)
     summary = current_summary(db, fw)
     org = get_org(db)
     return render(request, "audit_export.html", {"active": "audit", "fw": fw, "summary": summary, "org": org})
@@ -92,10 +110,10 @@ def export_page(request: Request, user: User = Depends(require_user), db: Sessio
 
 @router.post("/export/workbook")
 def export_workbook(request: Request, template: UploadFile = File(...), user: User = Depends(require_user), db: Session = Depends(get_db)):
-    fw = load_framework()
+    fw = current_framework(db)
     settings = get_settings()
     if not (template.filename or "").lower().endswith(".xlsx"):
-        return redirect("/audit/export", err="Upload the official CCB BASIC self-assessment workbook (.xlsx).")
+        return redirect("/audit/export", err=f"Upload the official CCB {fw.level} self-assessment workbook (.xlsx).")
     data = template.file.read(settings.max_upload_mb * 1024 * 1024 + 1)
     if len(data) > settings.max_upload_mb * 1024 * 1024:
         return redirect("/audit/export", err="File too large.")
@@ -103,15 +121,15 @@ def export_workbook(request: Request, template: UploadFile = File(...), user: Us
     inputs = {
         rid: ExportInput(s.doc_score, s.impl_score, s.not_applicable, s.justification or "")
         for rid, s in scores.items()
-        if s.not_applicable or (s.doc_score is not None and s.impl_score is not None)
+        if rid in fw.by_id and (s.not_applicable or (s.doc_score is not None and s.impl_score is not None))
     }
     org = get_org(db)
     try:
         out, info = fill_workbook(data, fw, inputs, org.self_assessment_date or date.today())
     except ExportError as exc:
         return redirect("/audit/export", err=str(exc))
-    log_activity(db, user.email, "export_workbook", "assessment", "", info)
-    fname = f"{date.today().isoformat()}_CyFun2025_Self-Assessment_BASIC_{_slug(org.name)}.xlsx"
+    log_activity(db, user.label, "export_workbook", "assessment", "", {**info, "level": fw.level})
+    fname = f"{date.today().isoformat()}_CyFun2025_Self-Assessment_{fw.level}_{_slug(org.name)}.xlsx"
     return Response(
         out, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", headers={"Content-Disposition": f'attachment; filename="{fname}"'}
     )
@@ -119,24 +137,24 @@ def export_workbook(request: Request, template: UploadFile = File(...), user: Us
 
 @router.get("/export/pack.zip")
 def export_pack(request: Request, user: User = Depends(require_user), db: Session = Depends(get_db)):
-    fw = load_framework()
     settings = get_settings()
-    ctx = _verification_context(request, db)
+    ctx = _verification_context(db)
+    fw = ctx["fw"]
     ctx["generated"] = date.today()
     html = templates.get_template("audit_pack.html").render(**ctx)
     data = build_pack(db, fw, settings, html)
-    log_activity(db, user.email, "export_pack", "assessment", "", {"bytes": len(data)})
-    fname = f"{date.today().isoformat()}_CyFun-BASIC_audit-pack_{_slug(ctx['org'].name)}.zip"
+    log_activity(db, user.label, "export_pack", "assessment", "", {"bytes": len(data), "level": fw.level})
+    fname = f"{date.today().isoformat()}_CyFun-{fw.level}_audit-pack_{_slug(ctx['org'].name)}.zip"
     return Response(data, media_type="application/zip", headers={"Content-Disposition": f'attachment; filename="{fname}"'})
 
 
 @router.get("/export/assessment.json")
 def export_json(request: Request, user: User = Depends(require_user), db: Session = Depends(get_db)):
-    fw = load_framework()
+    fw = current_framework(db)
     payload = assessment_payload(db, fw)
     payload["summary"] = summary_to_dict(current_summary(db, fw))
     return Response(
         json.dumps(payload, indent=1, ensure_ascii=False),
         media_type="application/json",
-        headers={"Content-Disposition": f'attachment; filename="{date.today().isoformat()}_cyfun-basic-assessment.json"'},
+        headers={"Content-Disposition": f'attachment; filename="{date.today().isoformat()}_cyfun-{fw.level.lower()}-assessment.json"'},
     )

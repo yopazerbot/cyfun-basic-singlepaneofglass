@@ -1,23 +1,29 @@
-"""Maturity scoring exactly as the official CCB BASIC self-assessment workbook computes it.
+"""Maturity scoring exactly as the official CCB self-assessment workbooks compute it.
 
 Per requirement: a documentation score and an implementation score, each 1..5.
-If a requirement is marked not applicable (allowed once at BASIC, never on a key
-measure), both dimensions count as 2.5.
-Subcategory score = average of its requirements (per dimension).
-Category score = average of its subcategories (per dimension).
+A requirement marked not applicable counts the level's N/A value on both dimensions
+(2,5 at BASIC, 3 at IMPORTANT and ESSENTIAL). Each level allows a maximum number of
+N/A (1, 3, 5); key measures can never be N/A and, at ESSENTIAL, neither can controls
+linked to management aspects.
+
+Category score (per dimension) = average of the workbook's aggregation groups, each group
+being the average of its requirements. In the normal case one group is one subcategory;
+where a CCB workbook formula deviates from that (see the "quirks" in the framework JSON),
+the groups follow the workbook so the numbers match the submitted file.
 Category maturity = average of the two dimensions.
-Total maturity = average of the 17 category maturities.
-Key measure maturity = average of the two dimensions of that requirement.
-BASIC passes when total maturity >= 2.5 and every key measure maturity >= 2.5.
+Total maturity = average of the category maturities.
+
+Thresholds (from the Maturity Levels sheet of each workbook):
+    BASIC      key measures >= 2,5                       total >= 2,5
+    IMPORTANT  key measures >= 3                         total >= 3
+    ESSENTIAL  key measures >= 3   each category >= 3    total >= 3,5
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from .framework import Framework, Requirement
-
-TARGET = 2.5
+from .framework import Category, Framework, Requirement
 
 
 @dataclass
@@ -41,9 +47,8 @@ class ReqResult:
             return None
         return (self.doc + self.impl) / 2
 
-    @property
-    def meets_target(self) -> bool:
-        return self.maturity is not None and self.maturity >= TARGET
+    def meets(self, target: float) -> bool:
+        return self.maturity is not None and self.maturity >= target
 
 
 @dataclass
@@ -62,6 +67,11 @@ class GroupResult:
 
 @dataclass
 class Summary:
+    level: str
+    target: float  # requirement-level focus target (= total threshold)
+    km_min: float
+    cat_min: float | None
+    total_min: float
     requirements: dict[str, ReqResult]
     subcategories: dict[str, GroupResult]
     categories: dict[str, GroupResult]
@@ -71,16 +81,23 @@ class Summary:
     scored_count: int
     total_count: int
     na_count: int
+    na_allowed: int
     na_ids: list[str] = field(default_factory=list)
     problems: list[str] = field(default_factory=list)
 
     @property
     def key_measures_failing(self) -> list[ReqResult]:
-        return [k for k in self.key_measures if not k.meets_target]
+        return [k for k in self.key_measures if not k.meets(self.km_min)]
 
     @property
     def key_measures_passing(self) -> int:
-        return sum(1 for k in self.key_measures if k.meets_target)
+        return sum(1 for k in self.key_measures if k.meets(self.km_min))
+
+    @property
+    def categories_failing(self) -> list[GroupResult]:
+        if self.cat_min is None:
+            return []
+        return [c for c in self.categories.values() if c.maturity is None or c.maturity < self.cat_min]
 
     @property
     def complete(self) -> bool:
@@ -88,16 +105,16 @@ class Summary:
 
     @property
     def total_meets_target(self) -> bool:
-        return self.total_maturity is not None and self.total_maturity >= TARGET
+        return self.total_maturity is not None and self.total_maturity >= self.total_min
 
     @property
     def passes(self) -> bool:
-        return self.complete and self.total_meets_target and not self.key_measures_failing and not self.problems
+        return self.complete and self.total_meets_target and not self.key_measures_failing and not self.categories_failing and not self.problems
 
     @property
     def below_target(self) -> list[ReqResult]:
-        """Requirements whose own maturity is under 2.5 (remediation focus)."""
-        return [r for r in self.requirements.values() if r.maturity is not None and r.maturity < TARGET]
+        """Requirements whose own maturity is under the level's total threshold (remediation focus)."""
+        return [r for r in self.requirements.values() if r.maturity is not None and r.maturity < self.target]
 
 
 def _avg(values: list[float | None]) -> float | None:
@@ -107,19 +124,38 @@ def _avg(values: list[float | None]) -> float | None:
     return sum(vals) / len(vals)
 
 
+def na_blocked_reason(req: Requirement, thresholds: dict) -> str | None:
+    excludes = thresholds.get("na_excludes", ["key_measure"])
+    if req.key_measure and "key_measure" in excludes:
+        return "key measure"
+    if req.management_aspect and "management_aspect" in excludes:
+        return "control linked to management aspects"
+    return None
+
+
 def validate_input(req: Requirement, inp: ReqInput, thresholds: dict) -> list[str]:
     errors: list[str] = []
     lo, hi = thresholds["scale_min"], thresholds["scale_max"]
-    if inp.not_applicable and req.key_measure:
-        errors.append(f"{req.id} is a key measure and cannot be marked not applicable.")
+    if inp.not_applicable:
+        reason = na_blocked_reason(req, thresholds)
+        if reason:
+            errors.append(f"{req.id} is a {reason} and cannot be marked not applicable.")
     for label, v in (("documentation", inp.doc), ("implementation", inp.impl)):
         if v is not None and not (lo <= v <= hi):
             errors.append(f"{req.id}: {label} score must be between {lo} and {hi}.")
     return errors
 
 
+def _category_dimension(cat: Category, dimension: str, results: dict[str, ReqResult]) -> float | None:
+    groups = []
+    for group in cat.groups(dimension):
+        groups.append(_avg([getattr(results[i], dimension) for i in group if i in results]))
+    return _avg(groups)
+
+
 def compute(fw: Framework, inputs: dict[str, ReqInput]) -> Summary:
-    na_value = fw.thresholds["na_value"]
+    t = fw.thresholds
+    na_value = t["na_value"]
     req_results: dict[str, ReqResult] = {}
     na_ids: list[str] = []
     problems: list[str] = []
@@ -127,8 +163,9 @@ def compute(fw: Framework, inputs: dict[str, ReqInput]) -> Summary:
     for r in fw.requirements:
         inp = inputs.get(r.id, ReqInput())
         if inp.not_applicable:
-            if r.key_measure:
-                problems.append(f"Key measure {r.id} is marked not applicable; this is not permitted.")
+            reason = na_blocked_reason(r, t)
+            if reason:
+                problems.append(f"{r.id} is a {reason} and is marked not applicable; this is not permitted at {fw.level}.")
             na_ids.append(r.id)
             req_results[r.id] = ReqResult(r, na_value, na_value, True, True)
         else:
@@ -141,9 +178,9 @@ def compute(fw: Framework, inputs: dict[str, ReqInput]) -> Summary:
                 scored,
             )
 
-    if len(na_ids) > fw.thresholds["na_allowed"]:
+    if len(na_ids) > t["na_allowed"]:
         joined = ", ".join(na_ids)
-        problems.append(f"{len(na_ids)} requirements are marked not applicable; BASIC allows at most {fw.thresholds['na_allowed']} ({joined}).")
+        problems.append(f"{len(na_ids)} requirements are marked not applicable; {fw.level} allows at most {t['na_allowed']} ({joined}).")
 
     subs: dict[str, GroupResult] = {}
     cats: dict[str, GroupResult] = {}
@@ -153,8 +190,7 @@ def compute(fw: Framework, inputs: dict[str, ReqInput]) -> Summary:
             for s in c.subcategories:
                 rr = [req_results[q.id] for q in s.requirements]
                 subs[s.id] = GroupResult(s.id, s.title, _avg([x.doc for x in rr]), _avg([x.impl for x in rr]))
-            ss = [subs[s.id] for s in c.subcategories]
-            cats[c.id] = GroupResult(c.id, c.name, _avg([x.doc for x in ss]), _avg([x.impl for x in ss]))
+            cats[c.id] = GroupResult(c.id, c.name, _category_dimension(c, "doc", req_results), _category_dimension(c, "impl", req_results))
         cc = [cats[c.id] for c in f.categories]
         funcs[f.id] = GroupResult(f.id, f.name, _avg([x.doc for x in cc]), _avg([x.impl for x in cc]))
 
@@ -162,6 +198,11 @@ def compute(fw: Framework, inputs: dict[str, ReqInput]) -> Summary:
     kms = [req_results[k.id] for k in fw.key_measures]
     scored_count = sum(1 for x in req_results.values() if x.scored)
     return Summary(
+        level=fw.level,
+        target=float(t["total_min"]),
+        km_min=float(t["key_measure_min"]),
+        cat_min=float(t["category_min"]) if t.get("category_min") is not None else None,
+        total_min=float(t["total_min"]),
         requirements=req_results,
         subcategories=subs,
         categories=cats,
@@ -171,6 +212,7 @@ def compute(fw: Framework, inputs: dict[str, ReqInput]) -> Summary:
         scored_count=scored_count,
         total_count=len(fw.requirements),
         na_count=len(na_ids),
+        na_allowed=int(t["na_allowed"]),
         na_ids=na_ids,
         problems=problems,
     )
@@ -179,6 +221,8 @@ def compute(fw: Framework, inputs: dict[str, ReqInput]) -> Summary:
 def summary_to_dict(s: Summary) -> dict:
     """JSON-friendly form used for snapshots and exports."""
     return {
+        "level": s.level,
+        "thresholds": {"key_measure_min": s.km_min, "category_min": s.cat_min, "total_min": s.total_min, "na_allowed": s.na_allowed},
         "total_maturity": s.total_maturity,
         "passes": s.passes,
         "complete": s.complete,
@@ -186,6 +230,7 @@ def summary_to_dict(s: Summary) -> dict:
         "total": s.total_count,
         "not_applicable": s.na_ids,
         "problems": s.problems,
+        "categories_failing": [c.id for c in s.categories_failing],
         "functions": {k: {"doc": v.doc, "impl": v.impl, "maturity": v.maturity} for k, v in s.functions.items()},
         "categories": {k: {"doc": v.doc, "impl": v.impl, "maturity": v.maturity} for k, v in s.categories.items()},
         "subcategories": {k: {"doc": v.doc, "impl": v.impl, "maturity": v.maturity} for k, v in s.subcategories.items()},
@@ -196,8 +241,9 @@ def summary_to_dict(s: Summary) -> dict:
                 "maturity": v.maturity,
                 "not_applicable": v.not_applicable,
                 "key_measure": v.requirement.key_measure,
+                "level": v.requirement.level,
             }
             for k, v in s.requirements.items()
         },
-        "key_measures": [{"id": k.requirement.id, "maturity": k.maturity, "passes": k.meets_target} for k in s.key_measures],
+        "key_measures": [{"id": k.requirement.id, "maturity": k.maturity, "passes": k.meets(s.km_min)} for k in s.key_measures],
     }

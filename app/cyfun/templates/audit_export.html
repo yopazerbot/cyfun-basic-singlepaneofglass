@@ -2,7 +2,7 @@
 {% block title %}Export · {{ settings.app_name }}{% endblock %}
 {% block content %}
 <header class="page-head">
-  <div class="eyebrow">Exports · {{ org.name or "organisation not set" }}</div>
+  <div class="eyebrow">Exports · {{ org.name or "organisation not set" }} · CyFun 2025 {{ fw.level }}</div>
   <h1>Export</h1>
   <p class="lead">{{ summary.scored_count }} of {{ summary.total_count }} requirements scored{% if summary.na_count %}, {{ summary.na_count }} not applicable{% endif %}. Total maturity {{ summary.total_maturity|score }}.{% if not summary.complete %} Unscored requirements are left empty in the workbook.{% endif %}</p>
   <nav class="pager"><a href="/audit">← Audit view</a></nav>
@@ -11,10 +11,10 @@
 <section class="grid cards">
   <form class="card form" method="post" action="/audit/export/workbook" enctype="multipart/form-data">
     <div class="card-head"><h2>Official CCB self-assessment workbook</h2></div>
-    <p>Upload your copy of the CCB tool <span class="mono">CyFun2025 Self-Assessment tool BASIC</span> (version {{ fw.meta.source.tool_version }}, downloaded from cyfun.eu). The application returns the same file with the documentation and implementation scores in columns F and G, your justifications in column L, the completion date on the Introduction sheet and recalculated summary values. Protection, formulas, validations, chart and layout stay untouched.</p>
-    <label>CCB workbook (.xlsx)<input type="file" name="template" accept=".xlsx" required></label>
+    <p>Upload your copy of the CCB tool <span class="mono">CyFun2025 Self-Assessment tool {{ fw.level }}</span> (tool version {{ fw.tool_version }}, downloaded from cyfun.eu). The application returns the same file with the documentation and implementation scores, your justifications in the comments column, the completion date on the Introduction sheet and recalculated summary values. Protection, formulas, validations, chart and layout stay untouched.</p>
+    <label>CCB {{ fw.level }} workbook (.xlsx)<input type="file" name="template" accept=".xlsx" required></label>
     <div class="actions"><button class="btn" type="submit">Fill and download</button></div>
-    <p class="muted small">The CCB workbook is not bundled with this application; it is CCB material. Download it from <a href="https://www.cyfun.eu" rel="noopener noreferrer" target="_blank">cyfun.eu</a>.</p>
+    <p class="muted small">The CCB workbooks are not bundled with this application; they are CCB material. Download them from <a href="https://www.cyfun.eu" rel="noopener noreferrer" target="_blank">cyfun.eu</a>. Uploading the workbook of another level is refused with a message.</p>
   </form>
 
   <div class="card">

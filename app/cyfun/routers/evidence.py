@@ -12,9 +12,8 @@ from sqlalchemy.orm import Session
 from ..auth import require_admin, require_user
 from ..config import get_settings
 from ..db import get_db
-from ..framework import load_framework
 from ..models import Evidence, User
-from ..services import evidence_path, log_activity, parse_date, store_upload
+from ..services import current_framework, evidence_path, log_activity, parse_date, store_upload, valid_requirement_ids
 from ..views import redirect, render
 
 router = APIRouter(prefix="/evidence", tags=["evidence"])
@@ -22,7 +21,7 @@ router = APIRouter(prefix="/evidence", tags=["evidence"])
 
 @router.get("")
 def list_evidence(request: Request, requirement: str = "", user: User = Depends(require_user), db: Session = Depends(get_db)):
-    fw = load_framework()
+    fw = current_framework(db)
     items = db.execute(select(Evidence).order_by(Evidence.id.desc())).scalars().all()
     if requirement:
         items = [e for e in items if requirement in (e.requirement_ids or [])]
@@ -31,7 +30,7 @@ def list_evidence(request: Request, requirement: str = "", user: User = Depends(
 
 @router.get("/{ev_id}")
 def edit_evidence(request: Request, ev_id: int, user: User = Depends(require_user), db: Session = Depends(get_db)):
-    fw = load_framework()
+    fw = current_framework(db)
     ev = db.get(Evidence, ev_id)
     if ev is None:
         return redirect("/evidence", err="Evidence not found.")
@@ -52,16 +51,15 @@ def download(request: Request, ev_id: int, user: User = Depends(require_user), d
 
 @router.post("")
 async def create_evidence(request: Request, file: UploadFile | None = File(None), user: User = Depends(require_admin), db: Session = Depends(get_db)):
-    fw = load_framework()
     form = await request.form()
     settings = get_settings()
-    reqs = [r for r in form.getlist("requirement_ids") if r in fw.by_id]
+    reqs = valid_requirement_ids(form.getlist("requirement_ids"))
     ev = Evidence(
         title=(form.get("title") or "").strip()[:300],
         description=(form.get("description") or "").strip(),
         requirement_ids=reqs,
         collected_on=parse_date(form.get("collected_on")) or date.today(),
-        collected_by=user.email,
+        collected_by=user.label,
     )
     url = (form.get("url") or "").strip()
     if file is not None and file.filename:
@@ -81,27 +79,26 @@ async def create_evidence(request: Request, file: UploadFile | None = File(None)
         return redirect("/evidence", err="Provide a file or a link.")
     db.add(ev)
     db.commit()
-    log_activity(db, user.email, "evidence_add", "evidence", str(ev.id), {"title": ev.title, "requirements": reqs, "sha256": ev.sha256})
+    log_activity(db, user.label, "evidence_add", "evidence", str(ev.id), {"title": ev.title, "requirements": reqs, "sha256": ev.sha256})
     return redirect("/evidence", msg="Evidence added.")
 
 
 @router.post("/{ev_id}")
 async def update_evidence(request: Request, ev_id: int, user: User = Depends(require_admin), db: Session = Depends(get_db)):
-    fw = load_framework()
     ev = db.get(Evidence, ev_id)
     if ev is None:
         return redirect("/evidence", err="Evidence not found.")
     form = await request.form()
     ev.title = (form.get("title") or "").strip()[:300] or ev.title
     ev.description = (form.get("description") or "").strip()
-    ev.requirement_ids = [r for r in form.getlist("requirement_ids") if r in fw.by_id]
+    ev.requirement_ids = valid_requirement_ids(form.getlist("requirement_ids"))
     ev.collected_on = parse_date(form.get("collected_on")) or ev.collected_on
     if ev.kind == "link":
         url = (form.get("url") or "").strip()
         if url.lower().startswith(("https://", "http://")):
             ev.url = url[:1000]
     db.commit()
-    log_activity(db, user.email, "evidence_update", "evidence", str(ev.id), {"title": ev.title, "requirements": ev.requirement_ids})
+    log_activity(db, user.label, "evidence_update", "evidence", str(ev.id), {"title": ev.title, "requirements": ev.requirement_ids})
     return redirect("/evidence", msg="Evidence updated.")
 
 
@@ -117,5 +114,5 @@ def delete_evidence(request: Request, ev_id: int, user: User = Depends(require_a
             pass
     db.delete(ev)
     db.commit()
-    log_activity(db, user.email, "evidence_delete", "evidence", str(ev_id), {"title": ev.title, "sha256": ev.sha256})
+    log_activity(db, user.label, "evidence_delete", "evidence", str(ev_id), {"title": ev.title, "sha256": ev.sha256})
     return redirect("/evidence", msg="Evidence deleted.")

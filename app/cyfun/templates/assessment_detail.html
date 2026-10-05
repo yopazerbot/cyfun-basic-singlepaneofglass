@@ -2,9 +2,10 @@
 {% block title %}{{ req.id }} · {{ settings.app_name }}{% endblock %}
 {% block content %}
 {% set admin = user.role == 'admin' %}
+{% set target = summary.km_min if req.key_measure else summary.target %}
 <header class="page-head">
   <div class="eyebrow"><span class="mono">{{ req.function_id }}</span> {{ req.function_name }} · <span class="mono">{{ req.category_id }}</span> {{ req.category_name }} · <span class="mono">{{ req.subcategory_id }}</span> {{ req.subcategory_title }}</div>
-  <h1><span class="mono">{{ req.id }}</span>{% if req.key_measure %} <span class="tag km">Key measure</span>{% endif %}</h1>
+  <h1><span class="mono">{{ req.id }}</span> <span class="tag level-{{ req.level|lower }}">{{ req.level }}</span>{% if req.key_measure %} <span class="tag km">Key measure</span>{% endif %}{% if req.management_aspect %} <span class="tag ma">{{ req.management_label }}</span>{% endif %}</h1>
   <p class="req-statement">{{ req.text }}</p>
   <nav class="pager">
     {% if prev %}<a href="/assessment/{{ prev.id }}">← {{ prev.id }}</a>{% endif %}
@@ -17,7 +18,7 @@
   <div class="stack">
     <form class="card form" method="post" action="/assessment/{{ req.id }}/score">
       <div class="card-head"><h2>Maturity scores</h2>
-        <span>{% if res.maturity is not none %}<span class="chip {{ res.maturity|status_word }}">{{ res.maturity|score }}</span>{% else %}<span class="chip none">not scored</span>{% endif %}</span>
+        <span>{% if res.maturity is not none %}<span class="chip {{ res.maturity|status_word(target) }}">{{ res.maturity|score }}</span>{% else %}<span class="chip none">not scored</span>{% endif %} <span class="muted small">target ≥ {{ target|score }}</span></span>
       </div>
       <fieldset class="scores" {{ 'disabled' if not admin }}>
         <div class="score-row">
@@ -28,8 +29,10 @@
           <div class="score-title">Implementation</div>
           <div class="radios">{% for v in (1,2,3,4,5) %}<label class="radio"><input type="radio" name="impl_score" value="{{ v }}" {{ 'checked' if score and score.impl_score == v and not score.not_applicable }}><span>{{ v }}</span></label>{% endfor %}</div>
         </div>
-        {% if not req.key_measure %}
-        <label class="check {{ 'muted' if not na_available }}"><input type="checkbox" name="not_applicable" value="1" {{ 'checked' if score and score.not_applicable }} {{ 'disabled' if not na_available }}> Not applicable (counts as 2,5 for both; allowed for one requirement at BASIC){% if not na_available %} · already used by another requirement{% endif %}</label>
+        {% if not na_blocked %}
+        <label class="check {{ 'muted' if not na_available }}"><input type="checkbox" name="not_applicable" value="1" {{ 'checked' if score and score.not_applicable }} {{ 'disabled' if not na_available }}> Not applicable (counts as {{ fw.thresholds.na_value|score(1) }} for both; {{ fw.level }} allows {{ summary.na_allowed }}){% if not na_available %} · limit reached by other requirements{% endif %}</label>
+        {% else %}
+        <p class="muted small">Not applicable is not available: this is a {{ na_blocked }}.</p>
         {% endif %}
         <label>Justification and comments (exported to the CCB workbook, column "Comments and/or additional information")
           <textarea name="justification" rows="5" placeholder="State what exists, where it is documented, how it is implemented and what evidence shows it.">{{ score.justification if score }}</textarea>
@@ -93,11 +96,12 @@
 
   <div class="stack">
     <div class="card">
-      <div class="card-head"><h2>Guidance</h2><span class="muted">summary</span></div>
-      <ul class="guidance">{% for g in req.guidance %}<li>{{ g }}</li>{% endfor %}</ul>
-      <h3>Typical evidence</h3>
-      <ul class="guidance">{% for g in req.evidence_examples %}<li>{{ g }}</li>{% endfor %}</ul>
-      <p class="muted small">Authoritative text: CCB booklet CyberFundamentals 2025 BASIC, <a href="https://www.cyfun.eu" rel="noopener noreferrer" target="_blank">cyfun.eu</a>.</p>
+      <div class="card-head"><h2>Guidance</h2><span class="muted">{{ "summary" if req.guidance else "CCB booklet" }}</span></div>
+      {% if req.goal %}<p class="goal">{{ req.goal }}</p>{% endif %}
+      {% if req.guidance %}<ul class="guidance">{% for g in req.guidance %}<li>{{ g }}</li>{% endfor %}</ul>{% endif %}
+      {% if req.evidence_examples %}<h3>Typical evidence</h3><ul class="guidance">{% for g in req.evidence_examples %}<li>{{ g }}</li>{% endfor %}</ul>{% endif %}
+      {% if not req.goal and not req.guidance %}<p class="muted">See the CCB booklet for this requirement.</p>{% endif %}
+      <p class="muted small">Authoritative text and full implementation guidance: CCB booklet CyberFundamentals 2025 {{ fw.level }}, <a href="https://www.cyfun.eu" rel="noopener noreferrer" target="_blank">cyfun.eu</a>.{% if req.goal %} The goal statement above is quoted from that booklet.{% endif %}</p>
     </div>
 
     <div class="card">

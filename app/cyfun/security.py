@@ -35,10 +35,10 @@ UNSAFE = {"POST", "PUT", "PATCH", "DELETE"}
 
 
 class SecurityMiddleware(BaseHTTPMiddleware):
-    def __init__(self, app, settings: Settings, auth_rate: int = 30, window: int = 60):
+    def __init__(self, app, settings: Settings, auth_rate: int | None = None, window: int = 60):
         super().__init__(app)
         self.settings = settings
-        self.auth_rate = auth_rate
+        self.auth_rate = auth_rate or settings.auth_rate_per_minute
         self.window = window
         self._hits: dict[str, deque] = defaultdict(deque)
 

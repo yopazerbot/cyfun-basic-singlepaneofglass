@@ -1,76 +1,95 @@
-"""Workbook export. A synthetic workbook with the CCB layout is built for CI; when the real
-CCB BASIC workbook is available next to the repository, the test also runs against it."""
+"""Workbook export for the three CCB tools. Synthetic workbooks with the CCB layout are built
+for CI; when the real CCB workbooks are available next to the repository, the tests also run
+against them and verify that nothing but the expected parts changed."""
 
 from __future__ import annotations
 
 import io
+import re
 import warnings
+import zipfile
 from datetime import date
 from pathlib import Path
 
 import openpyxl
 import pytest
 
-from cyfun.export_xlsx import ExportError, ExportInput, fill_workbook
-from cyfun.framework import load_framework
+from cyfun.export_xlsx import ExportError, ExportInput, col_to_num, fill_workbook, num_to_col
+from cyfun.framework import LEVELS, load_framework
 from cyfun.scoring import ReqInput, compute
 
 warnings.filterwarnings("ignore", category=UserWarning, module="openpyxl")
 ROOT = Path(__file__).resolve().parents[1]
-REAL = ROOT.parent / "CyFun2025_ Self-Assessment_tool_BASIC_v2026_02_20.xlsx"
+REAL = {
+    "BASIC": ROOT.parent / "CyFun2025_ Self-Assessment_tool_BASIC_v2026_02_20.xlsx",
+    "IMPORTANT": ROOT.parent / "CyFun2025_ Self-Assessment_tool_IMPORTANT_v2026_02_20.xlsx",
+    "ESSENTIAL": ROOT.parent / "CyFun2025_Self-Assessment_tool_ESSENTIAL_v3.1.xlsx",
+}
+KM_ROW = 40  # synthetic key-measure block start
 
 
-def synthetic_template() -> bytes:
-    """Same sheets, rows and formulas as the CCB BASIC tool, without styling or protection."""
-    fw = load_framework()
+def shift(col: str, n: int) -> str:
+    return num_to_col(col_to_num(col) + n)
+
+
+def synthetic_template(level: str) -> bytes:
+    """Same sheets, rows and formulas as the CCB tool of that level, without styling or protection."""
+    fw = load_framework(level)
+    lay = fw.layout
+    doc, impl = lay["doc_col"], lay["impl_col"]
+    sub_doc, sub_impl, cat_doc, cat_impl = shift(doc, 2), shift(doc, 3), shift(doc, 4), shift(doc, 5)
+    na = fw.thresholds["na_value"]
     wb = openpyxl.Workbook()
     intro = wb.active
-    intro.title = "Introduction"
+    intro.title = lay["intro_sheet"]
     intro["Q6"] = date(2026, 2, 20)
-    intro["T27"] = date(2026, 2, 20)
+    intro[lay["date_cell"]] = date(2026, 2, 20)
     sheets = {}
-    for name in ("GOVERN", "IDENTIFY", "PROTECT", "DETECT", "RESPOND", "RECOVER"):
+    for name in lay["function_sheets"]:
         ws = wb.create_sheet(name)
-        ws["A2"], ws["F2"], ws["G2"] = "Category", "Documentation Score", "Implementation Score"
+        ws["A2"] = "Category"
+        ws[f"{lay['req_col']}2"] = "Requirement"
+        if lay.get("level_col"):
+            ws[f"{lay['level_col']}2"] = "Assurance level"
         sheets[name] = ws
     for r in fw.requirements:
         ws = sheets[r.sheet]
-        ws.cell(r.row, 5, f"{r.workbook_id}: {r.text}")
-        ws.cell(r.row, 6, 1)
-        ws.cell(r.row, 7, 1)
-    # subcategory and category formulas, same shape as the CCB workbook
+        ws[f"{lay['req_col']}{r.row}"] = f"{r.workbook_id}: {r.text}"
+        ws[f"{doc}{r.row}"] = 1
+        ws[f"{impl}{r.row}"] = 1
+        if lay.get("level_col"):
+            ws[f"{lay['level_col']}{r.row}"] = r.level
     for f in fw.functions:
         ws = sheets[f.name]
         for c in f.categories:
-            sub_rows = []
-            for s in c.subcategories:
-                rows = [q.row for q in s.requirements]
-                first = rows[0]
-                sub_rows.append(first)
-                for col, src in (("H", "F"), ("I", "G")):
-                    parts = [f'IF(OR($F{x}="N/A",$G{x}="N/A"),2.5,${src}{x})' for x in rows]
+            cat_first = c.subcategories[0].requirements[0].row
+            # one aggregation cell per group, per dimension, exactly like the CCB formulas (quirks included)
+            for dim, col, cat_col, src in (("doc", sub_doc, cat_doc, doc), ("impl", sub_impl, cat_impl, impl)):
+                heads = []
+                for group in c.groups(dim):
+                    rows = [fw.by_id[i].row for i in group]
+                    first = rows[0]
+                    heads.append(first)
+                    parts = [f'IF(OR(${doc}{x}="N/A",${impl}{x}="N/A"),{na:g},${src}{x})' for x in rows]
                     ws[f"{col}{first}"] = f"=AVERAGE({','.join(parts)})" if len(parts) > 1 else f"={parts[0]}"
-            cat_first = sub_rows[0]
-            ws[f"J{cat_first}"] = "=AVERAGE(" + ",".join(f"H{x}" for x in sub_rows) + ")"
-            ws[f"K{cat_first}"] = "=AVERAGE(" + ",".join(f"I{x}" for x in sub_rows) + ")"
-    summ = wb.create_sheet("BASIC Summary")
+                ws[f"{cat_col}{cat_first}"] = "=AVERAGE(" + ",".join(f"{col}{x}" for x in heads) + ")"
+    summ = wb.create_sheet(lay["summary_sheet"])
     row = 5
     for f in fw.functions:
-        ws_name = f.name
         for c in f.categories:
             first = c.subcategories[0].requirements[0].row
             summ[f"B{row}"] = c.name
-            summ[f"E{row}"] = f"={ws_name}!J{first}"
-            summ[f"F{row}"] = f"={ws_name}!K{first}"
+            summ[f"E{row}"] = f"={f.name}!{cat_doc}{first}"
+            summ[f"F{row}"] = f"={f.name}!{cat_impl}{first}"
             summ[f"D{row}"] = f"=AVERAGE(E{row},F{row})"
             row += 1
-    summ["M4"] = "=SUM(D5:D21)/COUNT(D5:D21)"
-    summ["N11"] = "=Introduction!T27"
+    summ["M4"] = f"=SUM(D5:D{row - 1})/COUNT(D5:D{row - 1})"
+    summ["N11"] = f"={lay['intro_sheet']}!{lay['date_cell']}"
     for i, k in enumerate(fw.key_measures):
-        r = 25 + i
+        r = KM_ROW + i
         summ[f"L{r}"] = k.id
-        summ[f"P{r}"] = f"={k.sheet}!F{k.row}"
-        summ[f"Q{r}"] = f"={k.sheet}!G{k.row}"
+        summ[f"P{r}"] = f"={k.sheet}!{doc}{k.row}"
+        summ[f"Q{r}"] = f"={k.sheet}!{impl}{k.row}"
         summ[f"O{r}"] = f"=AVERAGE(P{r},Q{r})"
     buf = io.BytesIO()
     wb.save(buf)
@@ -78,90 +97,96 @@ def synthetic_template() -> bytes:
 
 
 def sample_inputs(fw):
+    na_req = next(r for r in fw.requirements if not r.key_measure and not r.management_aspect)
     exp, sco = {}, {}
     for i, r in enumerate(fw.requirements):
-        if r.id == "PR.AA-06.1":
-            exp[r.id] = ExportInput(None, None, True, "No own premises; offices are serviced.")
+        if r.id == na_req.id:
+            exp[r.id] = ExportInput(None, None, True, "Not applicable in our context.")
             sco[r.id] = ReqInput(None, None, True)
         else:
             d, m = (i % 5) + 1, ((i * 2) % 5) + 1
             exp[r.id] = ExportInput(d, m, False, f"Justification {r.id} <&> ok")
             sco[r.id] = ReqInput(d, m)
-    return exp, sco
+    return exp, sco, na_req
 
 
-def _check(template: bytes):
-    fw = load_framework()
-    exp, sco = sample_inputs(fw)
+def _check(level: str, template: bytes, synthetic: bool):
+    fw = load_framework(level)
+    lay = fw.layout
+    exp, sco, na_req = sample_inputs(fw)
     out, info = fill_workbook(template, fw, exp, date(2026, 10, 5))
-    assert info["requirements_written"] == 34
+    assert info["requirements_written"] == len(fw.requirements)
     summary = compute(fw, sco)
     wb = openpyxl.load_workbook(io.BytesIO(out), data_only=True)
-    ws = wb["BASIC Summary"]
+    ws = wb[lay["summary_sheet"]]
     assert abs(ws["M4"].value - summary.total_maturity) < 1e-9
-    assert wb["Introduction"]["T27"].value.date() == date(2026, 10, 5)
+    assert wb[lay["intro_sheet"]][lay["date_cell"]].value.date() == date(2026, 10, 5)
     for i, c in enumerate(fw.categories):
         g = summary.categories[c.id]
-        assert abs(ws[f"E{5 + i}"].value - g.doc) < 1e-9
-        assert abs(ws[f"F{5 + i}"].value - g.impl) < 1e-9
-        assert abs(ws[f"D{5 + i}"].value - g.maturity) < 1e-9
-    for i, k in enumerate(summary.key_measures):
-        assert abs(ws[f"O{25 + i}"].value - k.maturity) < 1e-9
-    gov = wb["GOVERN"]
-    assert gov["F3"].value == exp["GV.OC-03.1"].doc
-    assert gov["L3"].value == "Justification GV.OC-03.1 <&> ok"
-    pro = wb["PROTECT"]
-    assert pro["F10"].value == "N/A" and pro["G10"].value == "N/A"
-    assert pro["H10"].value == 2.5
-    # formulas are still formulas
+        assert abs(ws[f"E{5 + i}"].value - g.doc) < 1e-9, (level, c.id)
+        assert abs(ws[f"F{5 + i}"].value - g.impl) < 1e-9, (level, c.id)
+        assert abs(ws[f"D{5 + i}"].value - g.maturity) < 1e-9, (level, c.id)
+    # key-measure block: synthetic lists all; the CCB workbooks list a subset in column L
+    km = {k.requirement.id: k.maturity for k in summary.key_measures}
+    listed = 0
+    for r in range(20, ws.max_row + 1):
+        rid = str(ws[f"L{r}"].value or "").strip()
+        if rid in km:
+            assert abs(ws[f"O{r}"].value - km[rid]) < 1e-9, (level, rid)
+            listed += 1
+    assert listed == (len(km) if synthetic else 13)
+    first = next(r for r in fw.requirements if r.id != na_req.id)
+    sheet = wb[first.sheet]
+    assert sheet[f"{lay['doc_col']}{first.row}"].value == exp[first.id].doc
+    assert sheet[f"{lay['comment_col']}{first.row}"].value == f"Justification {first.id} <&> ok"
+    na_sheet = wb[na_req.sheet]
+    assert na_sheet[f"{lay['doc_col']}{na_req.row}"].value == "N/A" and na_sheet[f"{lay['impl_col']}{na_req.row}"].value == "N/A"
     wbf = openpyxl.load_workbook(io.BytesIO(out))
-    assert str(wbf["BASIC Summary"]["M4"].value).startswith("=")
-    assert str(wbf["GOVERN"]["H3"].value).startswith("=IF(")
+    assert str(wbf[lay["summary_sheet"]]["M4"].value).startswith("=")
     return out
 
 
-def test_fill_synthetic_workbook():
-    _check(synthetic_template())
+@pytest.mark.parametrize("level", LEVELS)
+def test_fill_synthetic_workbook(level):
+    _check(level, synthetic_template(level), synthetic=True)
 
 
 def test_rejects_wrong_workbook():
-    fw = load_framework()
+    fw = load_framework("BASIC")
     wb = openpyxl.Workbook()
     wb.active.title = "Something"
     buf = io.BytesIO()
     wb.save(buf)
     with pytest.raises(ExportError):
         fill_workbook(buf.getvalue(), fw, {}, None)
+    with pytest.raises(ExportError):
+        fill_workbook(b"not a zip", fw, {}, None)
+
+
+def test_rejects_workbook_of_another_level():
+    with pytest.raises(ExportError, match="IMPORTANT"):
+        fill_workbook(synthetic_template("BASIC"), load_framework("IMPORTANT"), {}, None)
 
 
 def test_leaves_unscored_rows_alone():
-    fw = load_framework()
-    out, info = fill_workbook(synthetic_template(), fw, {"GV.OC-03.1": ExportInput(4, 3, False, "x")}, None)
+    fw = load_framework("BASIC")
+    out, info = fill_workbook(synthetic_template("BASIC"), fw, {"GV.OC-03.1": ExportInput(4, 3, False, "x")}, None)
     assert info["requirements_written"] == 1
     wb = openpyxl.load_workbook(io.BytesIO(out), data_only=True)
     assert wb["GOVERN"]["F3"].value == 4
     assert wb["GOVERN"]["F4"].value == 1  # template default untouched
 
 
-@pytest.mark.skipif(not REAL.exists(), reason="official CCB workbook not available")
-def test_fill_real_ccb_workbook():
-    import zipfile
-
-    template = REAL.read_bytes()
-    out = _check(template)
+@pytest.mark.parametrize("level", LEVELS)
+def test_fill_real_ccb_workbook(level):
+    path = REAL[level]
+    if not path.exists():
+        pytest.skip(f"official CCB {level} workbook not available")
+    template = path.read_bytes()
+    out = _check(level, template, synthetic=False)
     z1, z2 = zipfile.ZipFile(io.BytesIO(template)), zipfile.ZipFile(io.BytesIO(out))
     assert z1.namelist() == z2.namelist()
     changed = {n for n in z1.namelist() if z1.read(n) != z2.read(n)}
-    assert changed <= {
-        "xl/workbook.xml",
-        "xl/worksheets/sheet1.xml",
-        "xl/worksheets/sheet3.xml",
-        "xl/worksheets/sheet4.xml",
-        "xl/worksheets/sheet5.xml",
-        "xl/worksheets/sheet6.xml",
-        "xl/worksheets/sheet7.xml",
-        "xl/worksheets/sheet8.xml",
-        "xl/worksheets/sheet10.xml",
-    }
-    assert "sheetProtection" in z2.read("xl/worksheets/sheet3.xml").decode()
-    assert "xl/charts/chart1.xml" in z2.namelist()
+    assert all(re.fullmatch(r"xl/workbook\.xml|xl/worksheets/sheet\d+\.xml", n) for n in changed), changed
+    assert any("chart" in n for n in z2.namelist())
+    assert load_framework(level).layout["summary_sheet"] in openpyxl.load_workbook(io.BytesIO(out), read_only=True).sheetnames

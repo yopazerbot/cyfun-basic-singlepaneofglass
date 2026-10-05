@@ -27,6 +27,7 @@ os.environ.update(
         "AUTH_CLIENT_ID": "",
         "AUTH_CLIENT_SECRET": "",
         "LOG_LEVEL": "WARNING",
+        "AUTH_RATE_LIMIT_PER_MINUTE": "100000",
     }
 )
 

@@ -1,15 +1,35 @@
 {% extends "base.html" %}
-{% block title %}Scope and journey · {{ settings.app_name }}{% endblock %}
+{% block title %}Scope, level and journey · {{ settings.app_name }}{% endblock %}
 {% block content %}
 <header class="page-head">
-  <div class="eyebrow">Scope · Organisation · Label journey</div>
-  <h1>Scope and journey</h1>
-  <p class="lead">The organisation details and scope statement appear in the audit pack. The journey stages are internal planning and stay out of exports.</p>
+  <div class="eyebrow">Scope · Organisation · Target assurance level · Label journey</div>
+  <h1>Scope, level and journey</h1>
+  <p class="lead">The organisation details, scope statement and target level appear in the audit pack. The journey stages are internal planning and stay out of exports.</p>
 </header>
+
+<section class="card form">
+  <div class="card-head"><h2>Target assurance level</h2>{% if risk %}<span class="muted">CCB risk method points to <strong>{{ risk.level }}</strong> (score {{ risk.total_score|score(1) }})</span>{% else %}<a class="link" href="/risk">Run the risk assessment first</a>{% endif %}</div>
+  <div class="level-cards">
+    {% for lv in levels %}
+    <div class="level-card {{ 'on' if lv.level == target }}">
+      <strong>{{ lv.level }}</strong>
+      <span class="muted">{{ lv.requirements }} requirements · {{ lv.key_measures }} key measures</span>
+      <span class="muted">key measures ≥ {{ lv.km_min|score }}{% if lv.cat_min %} · categories ≥ {{ lv.cat_min|score }}{% endif %} · total ≥ {{ lv.total_min|score }}</span>
+      <span class="muted">up to {{ lv.na_allowed }} N/A · CCB tool {{ lv.tool_version }}</span>
+    </div>
+    {% endfor %}
+  </div>
+  <p class="muted small">Scores are stored per requirement and kept when the level changes. A higher level adds requirements and raises the thresholds; the BASIC requirements are part of IMPORTANT, and both are part of ESSENTIAL.</p>
+</section>
 
 <section class="grid two">
   <form class="card form" method="post" action="/journey/organisation">
     <div class="card-head"><h2>Organisation and scope</h2></div>
+    <label>Target assurance level
+      <select name="target_level" {{ 'disabled' if user.role != 'admin' }}>
+        {% for lv in levels %}<option value="{{ lv.level }}" {{ 'selected' if lv.level == target }}>{{ lv.level }}{% if risk and risk.level == lv.level %} (suggested by the risk assessment){% endif %}</option>{% endfor %}
+      </select>
+    </label>
     <label>Organisation name<input name="name" value="{{ org.name }}" maxlength="200" required></label>
     <div class="row">
       <label>Legal entity<input name="legal_entity" value="{{ org.legal_entity }}" maxlength="200"></label>
@@ -26,7 +46,7 @@
   </form>
 
   <div class="card">
-    <div class="card-head"><h2>Journey to the BASIC label</h2></div>
+    <div class="card-head"><h2>Journey to the {{ target }} label</h2></div>
     <table class="list stages">
       {% for s in stages %}
       <tr>
@@ -44,7 +64,7 @@
       </tr>
       {% endfor %}
     </table>
-    <p class="muted small">Typical order: define scope, run the risk assessment to confirm BASIC, score the 34 requirements, remediate gaps below 2,50, collect evidence, fill the CCB workbook, verification by a CAB, label.</p>
+    <p class="muted small">Typical order: define scope and level, confirm the level with the risk assessment, score the requirements, remediate gaps below the thresholds, collect evidence, fill the CCB workbook, verification by a CAB, label.</p>
   </div>
 </section>
 {% endblock %}

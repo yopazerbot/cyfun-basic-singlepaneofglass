@@ -53,6 +53,8 @@ def assessment_payload(db: Session, fw: Framework) -> dict:
                 "subcategory": f"{r.subcategory_id}: {r.subcategory_title}",
                 "requirement": r.text,
                 "key_measure": r.key_measure,
+                "level": r.level,
+                "management_aspect": r.management_aspect,
                 "documentation_score": None if (s is None or s.not_applicable) else s.doc_score,
                 "implementation_score": None if (s is None or s.not_applicable) else s.impl_score,
                 "not_applicable": bool(s and s.not_applicable),
@@ -69,7 +71,8 @@ def assessment_payload(db: Session, fw: Framework) -> dict:
         )
     return {
         "generated_at": datetime.now(UTC).isoformat(),
-        "framework": fw.meta,
+        "assurance_level": fw.level,
+        "framework": {k: v for k, v in fw.meta.items() if k in ("framework", "level", "owner", "source", "thresholds", "counts")},
         "organisation": {
             "name": org.name,
             "legal_entity": org.legal_entity,

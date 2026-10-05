@@ -12,9 +12,8 @@ from ..auth import require_admin, require_user
 from ..config import get_settings
 from ..connectors import registry
 from ..db import get_db
-from ..framework import load_framework
 from ..models import Asset, CheckResult, ConnectorRun, User
-from ..services import latest_runs, log_activity
+from ..services import current_framework, latest_runs, log_activity
 from ..views import redirect, render
 
 router = APIRouter(prefix="/connectors", tags=["connectors"])
@@ -50,7 +49,7 @@ def connector_detail(request: Request, key: str, user: User = Depends(require_us
     c = registry(settings).get(key)
     if c is None:
         return redirect("/connectors", err="Unknown connector.")
-    fw = load_framework()
+    fw = current_framework(db)
     runs = db.execute(select(ConnectorRun).where(ConnectorRun.connector == key).order_by(ConnectorRun.id.desc()).limit(20)).scalars().all()
     latest_ok = next((r for r in runs if r.status == "ok"), None)
     checks = (
@@ -75,8 +74,8 @@ def run_now(request: Request, key: str, user: User = Depends(require_admin), db:
     running = db.execute(select(ConnectorRun).where(ConnectorRun.connector == key, ConnectorRun.status == "running")).scalars().first()
     if running:
         return redirect(f"/connectors/{key}", err="A run is already in progress.")
-    log_activity(db, user.email, "connector_trigger", "connector", key, {})
-    scheduler.trigger(settings, key, user.email)
+    log_activity(db, user.label, "connector_trigger", "connector", key, {})
+    scheduler.trigger(settings, key, user.label)
     return redirect(f"/connectors/{key}", msg="Run started. Refresh in a moment to see the results.")
 
 

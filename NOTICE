@@ -1,13 +1,16 @@
-CyFun Basic Single Pane of Glass
+CyFun Single Pane of Glass
 
 The CyberFundamentals Framework (CyFun) is owned by the Centre for Cybersecurity
 Belgium (CCB), https://www.cyfun.eu. The requirement identifiers and requirement
-statements in app/cyfun/framework/basic_2025.json, and the assurance level risk
-model in app/cyfun/framework/risk_model.json, are extracted from the CCB's
-published self-assessment tool (BASIC, tool version 2026-02-20) and from the CCB
-risk assessment workbook "CyFun-Selection" (version 2024-01-08). The CCB allows
+statements in app/cyfun/framework/basic_2025.json, important_2025.json and
+essential_2025.json, the goal statements in goals_2025.json, and the assurance
+level risk model in app/cyfun/framework/risk_model.json, are extracted from the
+CCB's published self-assessment tools (BASIC and IMPORTANT tool version
+2026-02-20, ESSENTIAL v3.1), the CCB booklets CyberFundamentals 2025 (version
+2025-10-01) and the CCB risk assessment workbook "CyFun-Selection" (version
+2024-01-08). The CCB allows
 reproduction of extracts for non-commercial purposes with acknowledgement of the
-source. The CCB workbooks themselves are not redistributed in this repository.
+source. The CCB workbooks and booklets themselves are not redistributed in this repository.
 
 The implementation guidance summaries in guidance_basic_2025.json are written for
 this project and are not CCB text.

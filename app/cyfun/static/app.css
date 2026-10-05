@@ -141,7 +141,7 @@ pre.details { font-family: var(--mono); font-size: 11.5px; background: var(--pap
 .details-cell { max-width: 480px; word-break: break-all; color: var(--slate); }
 
 /* ---------- key measures grid ---------- */
-.km-tile-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; }
+.km-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; }
 .km-tile { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border-radius: var(--radius-s); border: 1px solid var(--fog); color: var(--ink); background: var(--paper); transition: transform 150ms var(--ease); }
 .km-tile:hover { text-decoration: none; transform: translateY(-1px); border-color: var(--sky); }
 .km-tile .mono { font-size: 11px; color: var(--slate); }
@@ -248,3 +248,31 @@ body.plain { display: grid; place-items: center; min-height: 100vh; }
   .main { padding: 0; }
   .card { break-inside: avoid; }
 }
+
+/* ---------- assurance levels, management aspects ---------- */
+.tag.level-basic { border: 1px solid var(--fog); color: var(--slate); }
+.tag.level-important { border: 1px solid var(--warn); color: var(--warn); }
+.tag.level-essential { border: 1px solid var(--bad); color: var(--bad); }
+.tag.ma { border: 1px solid var(--steel); color: var(--steel); }
+.level-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 8px 0 12px; }
+.level-card { border: 1px solid var(--fog); border-radius: var(--radius-s); padding: 12px 14px; font-size: 13px; }
+.level-card.on { border-color: var(--azure); box-shadow: 0 0 0 2px rgba(59,141,245,0.18); }
+.level-card strong { display: block; font-size: 15px; color: var(--midnight); font-family: var(--mono); letter-spacing: 0.06em; margin-bottom: 4px; }
+.level-card .muted { display: block; }
+.notice { background: var(--info-bg); border-left: 3px solid var(--azure); padding: 8px 12px; border-radius: 0 var(--radius-s) var(--radius-s) 0; margin-bottom: 12px; font-size: 14px; }
+
+/* ---------- sign-in ---------- */
+.login-card { background: var(--white); border: 1px solid var(--fog); border-radius: var(--radius); padding: 36px; width: min(420px, 100%); }
+.login-card h1 { font-size: 22px; margin: 12px 0 4px; }
+.login-card .form label { margin-bottom: 10px; }
+.login-card .or { display: flex; align-items: center; gap: 10px; color: var(--slate); font-size: 12.5px; margin: 16px 0; }
+.login-card .or::before, .login-card .or::after { content: ""; flex: 1; border-top: 1px solid var(--fog); }
+.btn.wide { width: 100%; }
+.btn.ms { background: var(--white); color: var(--midnight); border-color: var(--midnight); }
+.btn.ms:hover { background: var(--fog); }
+.ms-logo { display: inline-grid; grid-template-columns: 1fr 1fr; gap: 1px; width: 14px; height: 14px; }
+.ms-logo i { display: block; }
+.ms-logo i:nth-child(1) { background: #F25022; } .ms-logo i:nth-child(2) { background: #7FBA00; } .ms-logo i:nth-child(3) { background: #00A4EF; } .ms-logo i:nth-child(4) { background: #FFB900; }
+.temp-pw { font-family: var(--mono); font-size: 16px; background: var(--paper); border: 1px dashed var(--azure); padding: 8px 12px; border-radius: var(--radius-s); display: inline-block; user-select: all; }
+.goal { border-left: 3px solid var(--sky); padding: 6px 12px; color: var(--ink); margin-bottom: 10px; background: var(--paper); border-radius: 0 var(--radius-s) var(--radius-s) 0; }
+@media (max-width: 900px) { .level-cards { grid-template-columns: 1fr; } }

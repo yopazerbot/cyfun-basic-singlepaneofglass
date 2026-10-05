@@ -10,11 +10,33 @@
   },
   "thresholds": {
     "key_measure_min": 2.5,
+    "category_min": null,
     "total_min": 2.5,
     "na_allowed": 1,
     "na_value": 2.5,
+    "na_excludes": [
+      "key_measure"
+    ],
     "scale_min": 1,
     "scale_max": 5
+  },
+  "layout": {
+    "level_col": null,
+    "req_col": "E",
+    "doc_col": "F",
+    "impl_col": "G",
+    "comment_col": "L",
+    "date_cell": "T27",
+    "intro_sheet": "Introduction",
+    "summary_sheet": "BASIC Summary",
+    "function_sheets": [
+      "GOVERN",
+      "IDENTIFY",
+      "PROTECT",
+      "DETECT",
+      "RESPOND",
+      "RECOVER"
+    ]
   },
   "maturity_levels": [
     {
@@ -53,7 +75,13 @@
     "categories": 17,
     "subcategories": 28,
     "requirements": 34,
-    "key_measures": 13
+    "key_measures": 13,
+    "management_aspects": 1,
+    "by_level": {
+      "BASIC": 34,
+      "IMPORTANT": 0,
+      "ESSENTIAL": 0
+    }
   },
   "key_measures": [
     "ID.AM-08.2",
@@ -70,6 +98,7 @@
     "DE.CM-01.2",
     "DE.AE-03.1"
   ],
+  "quirks": [],
   "functions": [
     {
       "id": "GV",
@@ -88,13 +117,28 @@
                   "id": "GV.OC-03.1",
                   "workbook_id": "GV.OC-03.1",
                   "text": "Legal and regulatory requirements regarding information and cybersecurity shall be identified and implemented.",
+                  "level": "Basic",
                   "key_measure": false,
+                  "management_aspect": false,
+                  "management_label": "",
                   "sheet": "GOVERN",
                   "row": 3
                 }
               ]
             }
-          ]
+          ],
+          "score_groups": {
+            "doc": [
+              [
+                "GV.OC-03.1"
+              ]
+            ],
+            "impl": [
+              [
+                "GV.OC-03.1"
+              ]
+            ]
+          }
         },
         {
           "id": "GV.RM",
@@ -109,13 +153,28 @@
                   "id": "GV.RM-03.1",
                   "workbook_id": "GV.RM-03.1",
                   "text": "As part of the organisation-wide risk management strategy, a comprehensive strategy to manage information and cybersecurity risks shall be developed and updated when changes occur.",
+                  "level": "Basic",
                   "key_measure": false,
+                  "management_aspect": false,
+                  "management_label": "",
                   "sheet": "GOVERN",
                   "row": 4
                 }
               ]
             }
-          ]
+          ],
+          "score_groups": {
+            "doc": [
+              [
+                "GV.RM-03.1"
+              ]
+            ],
+            "impl": [
+              [
+                "GV.RM-03.1"
+              ]
+            ]
+          }
         },
         {
           "id": "GV.RR",
@@ -130,13 +189,28 @@
                   "id": "GV.RR-04.1",
                   "workbook_id": "GV.RR-04.1",
                   "text": "Personnel with access to the organisation’s most critical information or technology shall be authenticated.",
+                  "level": "Basic",
                   "key_measure": false,
+                  "management_aspect": false,
+                  "management_label": "",
                   "sheet": "GOVERN",
                   "row": 5
                 }
               ]
             }
-          ]
+          ],
+          "score_groups": {
+            "doc": [
+              [
+                "GV.RR-04.1"
+              ]
+            ],
+            "impl": [
+              [
+                "GV.RR-04.1"
+              ]
+            ]
+          }
         },
         {
           "id": "GV.PO",
@@ -151,13 +225,28 @@
                   "id": "GV.PO-01.1",
                   "workbook_id": "GV.PO-01.1",
                   "text": "Policies and procedures for managing information and cybersecurity shall be established, documented, reviewed, approved, updated when changes occur, communicated and enforced.",
+                  "level": "Basic",
                   "key_measure": false,
+                  "management_aspect": false,
+                  "management_label": "",
                   "sheet": "GOVERN",
                   "row": 6
                 }
               ]
             }
-          ]
+          ],
+          "score_groups": {
+            "doc": [
+              [
+                "GV.PO-01.1"
+              ]
+            ],
+            "impl": [
+              [
+                "GV.PO-01.1"
+              ]
+            ]
+          }
         }
       ]
     },
@@ -178,7 +267,10 @@
                   "id": "ID.AM-01.1",
                   "workbook_id": "ID.AM-01.1",
                   "text": "An inventory of physical and virtual infrastructure assets—such as hardware, network devices, and cloud-hosted environments—that support information processing shall be documented, reviewed, and updated as changes occur.",
+                  "level": "Basic",
                   "key_measure": false,
+                  "management_aspect": false,
+                  "management_label": "",
                   "sheet": "IDENTIFY",
                   "row": 3
                 }
@@ -192,7 +284,10 @@
                   "id": "ID.AM-02.1",
                   "workbook_id": "ID.AM-02.1",
                   "text": "An inventory of software, digital services, and business systems used within the organisation shall be documented, reviewed, and updated as changes occur.",
+                  "level": "Basic",
                   "key_measure": false,
+                  "management_aspect": false,
+                  "management_label": "",
                   "sheet": "IDENTIFY",
                   "row": 4
                 }
@@ -206,7 +301,10 @@
                   "id": "ID.AM-05.1",
                   "workbook_id": "ID.AM-5.1",
                   "text": "The organisation’s assets shall be prioritised based on classification, criticality, and business value.",
+                  "level": "Basic",
                   "key_measure": false,
+                  "management_aspect": false,
+                  "management_label": "",
                   "sheet": "IDENTIFY",
                   "row": 5
                 }
@@ -220,7 +318,10 @@
                   "id": "ID.AM-07.1",
                   "workbook_id": "ID.AM-07.1",
                   "text": "Data that the organisation stores and uses shall be identified.",
+                  "level": "Basic",
                   "key_measure": false,
+                  "management_aspect": false,
+                  "management_label": "",
                   "sheet": "IDENTIFY",
                   "row": 6
                 }
@@ -234,13 +335,52 @@
                   "id": "ID.AM-08.2",
                   "workbook_id": "ID.AM-08.2",
                   "text": "Patches and security updates for operating systems and critical system components shall be installed.",
+                  "level": "Basic",
                   "key_measure": true,
+                  "management_aspect": false,
+                  "management_label": "",
                   "sheet": "IDENTIFY",
                   "row": 7
                 }
               ]
             }
-          ]
+          ],
+          "score_groups": {
+            "doc": [
+              [
+                "ID.AM-01.1"
+              ],
+              [
+                "ID.AM-02.1"
+              ],
+              [
+                "ID.AM-05.1"
+              ],
+              [
+                "ID.AM-07.1"
+              ],
+              [
+                "ID.AM-08.2"
+              ]
+            ],
+            "impl": [
+              [
+                "ID.AM-01.1"
+              ],
+              [
+                "ID.AM-02.1"
+              ],
+              [
+                "ID.AM-05.1"
+              ],
+              [
+                "ID.AM-07.1"
+              ],
+              [
+                "ID.AM-08.2"
+              ]
+            ]
+          }
         },
         {
           "id": "ID.RA",
@@ -255,7 +395,10 @@
                   "id": "ID.RA-01.1",
                   "workbook_id": "ID.RA-01.1",
                   "text": "Threats and vulnerabilities shall be identified in all relevant assets, including software, network and system architectures, and facilities that house critical computing assets.",
+                  "level": "Basic",
                   "key_measure": false,
+                  "management_aspect": false,
+                  "management_label": "",
                   "sheet": "IDENTIFY",
                   "row": 8
                 }
@@ -269,13 +412,34 @@
                   "id": "ID.RA-05.1",
                   "workbook_id": "ID.RA-05.1",
                   "text": "The organisation shall conduct risk assessments in which risk is determined by threats, vulnerabilities and the impact on business processes and assets.",
+                  "level": "Basic",
                   "key_measure": false,
+                  "management_aspect": false,
+                  "management_label": "",
                   "sheet": "IDENTIFY",
                   "row": 9
                 }
               ]
             }
-          ]
+          ],
+          "score_groups": {
+            "doc": [
+              [
+                "ID.RA-01.1"
+              ],
+              [
+                "ID.RA-05.1"
+              ]
+            ],
+            "impl": [
+              [
+                "ID.RA-01.1"
+              ],
+              [
+                "ID.RA-05.1"
+              ]
+            ]
+          }
         },
         {
           "id": "ID.IM",
@@ -290,13 +454,28 @@
                   "id": "ID.IM-03.1",
                   "workbook_id": "ID.IM-03.1",
                   "text": "The organisation shall conduct post-incident evaluations to analyse lessons learned from incident response and recovery, and consequently improve processes / procedures / technologies to enhance its cyber-resilience.",
+                  "level": "Basic",
                   "key_measure": false,
+                  "management_aspect": false,
+                  "management_label": "",
                   "sheet": "IDENTIFY",
                   "row": 10
                 }
               ]
             }
-          ]
+          ],
+          "score_groups": {
+            "doc": [
+              [
+                "ID.IM-03.1"
+              ]
+            ],
+            "impl": [
+              [
+                "ID.IM-03.1"
+              ]
+            ]
+          }
         }
       ]
     },
@@ -317,7 +496,10 @@
                   "id": "PR.AA-01.1",
                   "workbook_id": "PR.AA-01.1",
                   "text": "Identities and credentials for authorised users, services, and hardware shall be managed.",
+                  "level": "Basic",
                   "key_measure": true,
+                  "management_aspect": false,
+                  "management_label": "",
                   "sheet": "PROTECT",
                   "row": 3
                 }
@@ -331,7 +513,10 @@
                   "id": "PR.AA-03.1",
                   "workbook_id": "PR.AA-03.1",
                   "text": "All wireless access points used by the organisation, including those providing guest access, shall be securely configured, managed, and monitored to prevent unauthorised access and ensure network integrity.",
+                  "level": "Basic",
                   "key_measure": false,
+                  "management_aspect": false,
+                  "management_label": "",
                   "sheet": "PROTECT",
                   "row": 4
                 },
@@ -339,7 +524,10 @@
                   "id": "PR.AA-03.2",
                   "workbook_id": "PR.AA-03.2",
                   "text": "Multi-Factor Authentication (MFA) shall be required to access the organisation's networks remotely.",
+                  "level": "Basic",
                   "key_measure": true,
+                  "management_aspect": false,
+                  "management_label": "",
                   "sheet": "PROTECT",
                   "row": 5
                 }
@@ -353,7 +541,10 @@
                   "id": "PR.AA-05.1",
                   "workbook_id": "PR.AA-05.1",
                   "text": "Access permissions, rights, and authorisations shall be defined, managed, enforced and reviewed.",
+                  "level": "Basic",
                   "key_measure": true,
+                  "management_aspect": false,
+                  "management_label": "",
                   "sheet": "PROTECT",
                   "row": 6
                 },
@@ -361,7 +552,10 @@
                   "id": "PR.AA-05.2",
                   "workbook_id": "PR.AA-05.2",
                   "text": "It shall be determined who needs access to the organisation's business-critical information and technology and the means to gain access.",
+                  "level": "Basic",
                   "key_measure": true,
+                  "management_aspect": false,
+                  "management_label": "",
                   "sheet": "PROTECT",
                   "row": 7
                 },
@@ -369,7 +563,10 @@
                   "id": "PR.AA-05.3",
                   "workbook_id": "PR.AA-05.3",
                   "text": "Access rights, privileges and authorisations shall be restricted to the systems and specific information needed to perform the tasks (the principle of Least Privilege).",
+                  "level": "Basic",
                   "key_measure": true,
+                  "management_aspect": false,
+                  "management_label": "",
                   "sheet": "PROTECT",
                   "row": 8
                 },
@@ -377,7 +574,10 @@
                   "id": "PR.AA-05.4",
                   "workbook_id": "PR.AA-05.4",
                   "text": "No-one shall have administrative privileges for routine day-to-day tasks.",
+                  "level": "Basic",
                   "key_measure": true,
+                  "management_aspect": false,
+                  "management_label": "",
                   "sheet": "PROTECT",
                   "row": 9
                 }
@@ -391,13 +591,54 @@
                   "id": "PR.AA-06.1",
                   "workbook_id": "PR.AA-06.1",
                   "text": "Physical access to all organisational assets, including critical zones, shall be managed, monitored, and enforced based on risk.",
+                  "level": "Basic",
                   "key_measure": false,
+                  "management_aspect": false,
+                  "management_label": "",
                   "sheet": "PROTECT",
                   "row": 10
                 }
               ]
             }
-          ]
+          ],
+          "score_groups": {
+            "doc": [
+              [
+                "PR.AA-01.1"
+              ],
+              [
+                "PR.AA-03.1",
+                "PR.AA-03.2"
+              ],
+              [
+                "PR.AA-05.1",
+                "PR.AA-05.2",
+                "PR.AA-05.3",
+                "PR.AA-05.4"
+              ],
+              [
+                "PR.AA-06.1"
+              ]
+            ],
+            "impl": [
+              [
+                "PR.AA-01.1"
+              ],
+              [
+                "PR.AA-03.1",
+                "PR.AA-03.2"
+              ],
+              [
+                "PR.AA-05.1",
+                "PR.AA-05.2",
+                "PR.AA-05.3",
+                "PR.AA-05.4"
+              ],
+              [
+                "PR.AA-06.1"
+              ]
+            ]
+          }
         },
         {
           "id": "PR.AT",
@@ -412,13 +653,28 @@
                   "id": "PR.AT-01.1",
                   "workbook_id": "PR.AT-01.1",
                   "text": "The organisation shall establish and maintain a cybersecurity awareness and training programme to ensure that all personnel understand how to perform their tasks securely and responsibly.",
+                  "level": "Basic",
                   "key_measure": false,
+                  "management_aspect": false,
+                  "management_label": "",
                   "sheet": "PROTECT",
                   "row": 11
                 }
               ]
             }
-          ]
+          ],
+          "score_groups": {
+            "doc": [
+              [
+                "PR.AT-01.1"
+              ]
+            ],
+            "impl": [
+              [
+                "PR.AT-01.1"
+              ]
+            ]
+          }
         },
         {
           "id": "PR.DS",
@@ -433,7 +689,10 @@
                   "id": "PR.DS-01.9",
                   "workbook_id": "PR.DS-01.9",
                   "text": "Enterprise assets shall be disposed of safely.",
+                  "level": "Basic",
                   "key_measure": false,
+                  "management_aspect": false,
+                  "management_label": "",
                   "sheet": "PROTECT",
                   "row": 12
                 }
@@ -447,13 +706,34 @@
                   "id": "PR.DS-11.1",
                   "workbook_id": "PR.DS-11.1",
                   "text": "Backups for the organisation's business-critical data shall be performed and stored on a different system from the device on which the original data resides.",
+                  "level": "Basic",
                   "key_measure": true,
+                  "management_aspect": false,
+                  "management_label": "",
                   "sheet": "PROTECT",
                   "row": 13
                 }
               ]
             }
-          ]
+          ],
+          "score_groups": {
+            "doc": [
+              [
+                "PR.DS-01.9"
+              ],
+              [
+                "PR.DS-11.1"
+              ]
+            ],
+            "impl": [
+              [
+                "PR.DS-01.9"
+              ],
+              [
+                "PR.DS-11.1"
+              ]
+            ]
+          }
         },
         {
           "id": "PR.PS",
@@ -468,7 +748,10 @@
                   "id": "PR.PS-04.1",
                   "workbook_id": "PR.PS-04.1",
                   "text": "Logs shall be maintained, documented, and monitored.",
+                  "level": "Basic",
                   "key_measure": true,
+                  "management_aspect": true,
+                  "management_label": "Governance Measure",
                   "sheet": "PROTECT",
                   "row": 14
                 }
@@ -482,13 +765,34 @@
                   "id": "PR.PS-05.1",
                   "workbook_id": "PR.PS-05.1",
                   "text": "Web and e-mail filters shall be installed and used.",
+                  "level": "Basic",
                   "key_measure": false,
+                  "management_aspect": false,
+                  "management_label": "",
                   "sheet": "PROTECT",
                   "row": 15
                 }
               ]
             }
-          ]
+          ],
+          "score_groups": {
+            "doc": [
+              [
+                "PR.PS-04.1"
+              ],
+              [
+                "PR.PS-05.1"
+              ]
+            ],
+            "impl": [
+              [
+                "PR.PS-04.1"
+              ],
+              [
+                "PR.PS-05.1"
+              ]
+            ]
+          }
         },
         {
           "id": "PR.IR",
@@ -503,7 +807,10 @@
                   "id": "PR.IR-01.1",
                   "workbook_id": "PR.IR-01.1",
                   "text": "Firewalls shall be installed, configured, and actively maintained on all networks used by the organisation to protect against unauthorised access and cyber threats.",
+                  "level": "Basic",
                   "key_measure": true,
+                  "management_aspect": false,
+                  "management_label": "",
                   "sheet": "PROTECT",
                   "row": 16
                 },
@@ -511,13 +818,30 @@
                   "id": "PR.IR-01.2",
                   "workbook_id": "PR.IR-01.2",
                   "text": "To safeguard critical systems, organisations shall implement network segmentation and segregation aligned with trust boundaries and asset criticality, thereby limiting threat propagation and enforcing strict access control.",
+                  "level": "Basic",
                   "key_measure": true,
+                  "management_aspect": false,
+                  "management_label": "",
                   "sheet": "PROTECT",
                   "row": 17
                 }
               ]
             }
-          ]
+          ],
+          "score_groups": {
+            "doc": [
+              [
+                "PR.IR-01.1",
+                "PR.IR-01.2"
+              ]
+            ],
+            "impl": [
+              [
+                "PR.IR-01.1",
+                "PR.IR-01.2"
+              ]
+            ]
+          }
         }
       ]
     },
@@ -538,7 +862,10 @@
                   "id": "DE.CM-01.1",
                   "workbook_id": "DE.CM-01.1",
                   "text": "Firewalls shall be installed and operated at the network boundaries, including endpoint firewalls.",
+                  "level": "Basic",
                   "key_measure": false,
+                  "management_aspect": false,
+                  "management_label": "",
                   "sheet": "DETECT",
                   "row": 3
                 },
@@ -546,7 +873,10 @@
                   "id": "DE.CM-01.2",
                   "workbook_id": "DE.CM-01.2",
                   "text": "Anti-virus, -spyware, and other -malware programs shall be installed and updated.",
+                  "level": "Basic",
                   "key_measure": true,
+                  "management_aspect": false,
+                  "management_label": "",
                   "sheet": "DETECT",
                   "row": 4
                 }
@@ -560,13 +890,36 @@
                   "id": "DE.CM-03.1",
                   "workbook_id": "DE.CM-03-1",
                   "text": "End point and network protection tools to monitor end-user behaviour for dangerous activity shall be implemented.",
+                  "level": "Basic",
                   "key_measure": false,
+                  "management_aspect": false,
+                  "management_label": "",
                   "sheet": "DETECT",
                   "row": 5
                 }
               ]
             }
-          ]
+          ],
+          "score_groups": {
+            "doc": [
+              [
+                "DE.CM-01.1",
+                "DE.CM-01.2"
+              ],
+              [
+                "DE.CM-03.1"
+              ]
+            ],
+            "impl": [
+              [
+                "DE.CM-01.1",
+                "DE.CM-01.2"
+              ],
+              [
+                "DE.CM-03.1"
+              ]
+            ]
+          }
         },
         {
           "id": "DE.AE",
@@ -581,13 +934,28 @@
                   "id": "DE.AE-03.1",
                   "workbook_id": "DE.AE-03.1",
                   "text": "The logging functionality of protection and detection tools shall be enabled. Logs shall be backed up and kept for a predefined period, and regularly reviewed to identify unusual or potentially harmful activity.",
+                  "level": "Basic",
                   "key_measure": true,
+                  "management_aspect": false,
+                  "management_label": "",
                   "sheet": "DETECT",
                   "row": 6
                 }
               ]
             }
-          ]
+          ],
+          "score_groups": {
+            "doc": [
+              [
+                "DE.AE-03.1"
+              ]
+            ],
+            "impl": [
+              [
+                "DE.AE-03.1"
+              ]
+            ]
+          }
         }
       ]
     },
@@ -608,13 +976,28 @@
                   "id": "RS.MA-01.1",
                   "workbook_id": "RS.MA-01.1",
                   "text": "An incident response plan, including defined roles, responsibilities, and authorities, shall be executed during or after a cybersecurity event affecting the organisation's critical systems.",
+                  "level": "Basic",
                   "key_measure": false,
+                  "management_aspect": false,
+                  "management_label": "",
                   "sheet": "RESPOND",
                   "row": 3
                 }
               ]
             }
-          ]
+          ],
+          "score_groups": {
+            "doc": [
+              [
+                "RS.MA-01.1"
+              ]
+            ],
+            "impl": [
+              [
+                "RS.MA-01.1"
+              ]
+            ]
+          }
         },
         {
           "id": "RS.CO",
@@ -629,13 +1012,28 @@
                   "id": "RS.CO-02.1",
                   "workbook_id": "RS.CO-02.1",
                   "text": "Information about cybersecurity incidents shall be communicated to employees in a way that is clear and easy to understand.",
+                  "level": "Basic",
                   "key_measure": false,
+                  "management_aspect": false,
+                  "management_label": "",
                   "sheet": "RESPOND",
                   "row": 4
                 }
               ]
             }
-          ]
+          ],
+          "score_groups": {
+            "doc": [
+              [
+                "RS.CO-02.1"
+              ]
+            ],
+            "impl": [
+              [
+                "RS.CO-02.1"
+              ]
+            ]
+          }
         }
       ]
     },
@@ -656,13 +1054,28 @@
                   "id": "RC.RP-01.1",
                   "workbook_id": "RC.RP-01.1",
                   "text": "A recovery process for disasters and information/cybersecurity incidents shall be developed and executed.",
+                  "level": "Basic",
                   "key_measure": false,
+                  "management_aspect": false,
+                  "management_label": "",
                   "sheet": "RECOVER",
                   "row": 3
                 }
               ]
             }
-          ]
+          ],
+          "score_groups": {
+            "doc": [
+              [
+                "RC.RP-01.1"
+              ]
+            ],
+            "impl": [
+              [
+                "RC.RP-01.1"
+              ]
+            ]
+          }
         }
       ]
     }

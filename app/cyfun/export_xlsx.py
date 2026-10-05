@@ -30,10 +30,17 @@ from xml.sax.saxutils import escape
 
 from .framework import Framework
 
-FUNCTION_SHEETS = ("GOVERN", "IDENTIFY", "PROTECT", "DETECT", "RESPOND", "RECOVER")
-SUMMARY_SHEET = "BASIC Summary"
-INTRO_SHEET = "Introduction"
-DATE_CELL = "T27"
+DEFAULT_LAYOUT = {
+    "level_col": None,
+    "req_col": "E",
+    "doc_col": "F",
+    "impl_col": "G",
+    "comment_col": "L",
+    "date_cell": "T27",
+    "intro_sheet": "Introduction",
+    "summary_sheet": "BASIC Summary",
+    "function_sheets": ["GOVERN", "IDENTIFY", "PROTECT", "DETECT", "RESPOND", "RECOVER"],
+}
 
 _CELL_RE_TMPL = r'<c r="{ref}"((?:\s[^>]*?)?)(?:/>|>(.*?)</c>)'
 
@@ -486,17 +493,23 @@ def _recalculate(pkg: Package, sheets: list[str]) -> int:
 
 
 # --------------------------------------------------------------------------- public API
+def layout_of(fw: Framework) -> dict:
+    return {**DEFAULT_LAYOUT, **(getattr(fw, "layout", None) or {})}
+
+
 def validate_template(pkg: Package, fw: Framework) -> list[str]:
+    lay = layout_of(fw)
     problems: list[str] = []
-    for name in (INTRO_SHEET, SUMMARY_SHEET, *FUNCTION_SHEETS):
+    for name in (lay["intro_sheet"], lay["summary_sheet"], *lay["function_sheets"]):
         if name not in pkg.sheet_part:
-            problems.append(f"Sheet '{name}' is missing.")
+            problems.append(f"Sheet '{name}' is missing (expected the CCB {fw.level} tool, version {fw.tool_version}).")
     if problems:
         return problems
+    col = lay["req_col"]
     for req in fw.requirements:
-        text = pkg.cell_text(req.sheet, f"E{req.row}")
+        text = pkg.cell_text(req.sheet, f"{col}{req.row}")
         if not text.strip().startswith(req.workbook_id):
-            problems.append(f"{req.sheet}!E{req.row} should hold {req.workbook_id}; found: {text[:60]!r}")
+            problems.append(f"{req.sheet}!{col}{req.row} should hold {req.workbook_id}; found: {text[:60]!r}")
     return problems
 
 
@@ -512,31 +525,33 @@ def fill_workbook(
         raise ExportError("The uploaded file is not an Excel workbook (.xlsx).") from exc
     problems = validate_template(pkg, fw)
     if problems:
-        raise ExportError("The uploaded file is not the supported CCB BASIC workbook: " + " ".join(problems[:3]))
+        raise ExportError(f"The uploaded file is not the supported CCB {fw.level} workbook: " + " ".join(problems[:3]))
+    lay = layout_of(fw)
+    doc_col, impl_col, comment_col = lay["doc_col"], lay["impl_col"], lay["comment_col"]
 
     written = 0
-    for sheet in FUNCTION_SHEETS:
+    for sheet in lay["function_sheets"]:
         xml = pkg.sheet_xml(sheet)
         for req in [r for r in fw.requirements if r.sheet == sheet]:
             inp = inputs.get(req.id)
             if inp is None:
                 continue
             if inp.not_applicable:
-                xml = _set_cell(xml, f"F{req.row}", "N/A")
-                xml = _set_cell(xml, f"G{req.row}", "N/A")
+                xml = _set_cell(xml, f"{doc_col}{req.row}", "N/A")
+                xml = _set_cell(xml, f"{impl_col}{req.row}", "N/A")
             else:
-                xml = _set_cell(xml, f"F{req.row}", inp.doc)
-                xml = _set_cell(xml, f"G{req.row}", inp.impl)
-            xml = _set_cell(xml, f"L{req.row}", inp.comment.strip() or None)
+                xml = _set_cell(xml, f"{doc_col}{req.row}", inp.doc)
+                xml = _set_cell(xml, f"{impl_col}{req.row}", inp.impl)
+            xml = _set_cell(xml, f"{comment_col}{req.row}", inp.comment.strip() or None)
             written += 1
         pkg.set_sheet_xml(sheet, xml)
 
     if completion_date:
-        intro = pkg.sheet_xml(INTRO_SHEET)
-        intro = _set_cell(intro, DATE_CELL, excel_serial(completion_date))
-        pkg.set_sheet_xml(INTRO_SHEET, intro)
+        intro = pkg.sheet_xml(lay["intro_sheet"])
+        intro = _set_cell(intro, lay["date_cell"], excel_serial(completion_date))
+        pkg.set_sheet_xml(lay["intro_sheet"], intro)
 
-    recalculated = _recalculate(pkg, [INTRO_SHEET, *FUNCTION_SHEETS, SUMMARY_SHEET])
+    recalculated = _recalculate(pkg, [lay["intro_sheet"], *lay["function_sheets"], lay["summary_sheet"]])
 
     wb = pkg.parts["xl/workbook.xml"].decode("utf-8")
     if "fullCalcOnLoad" not in wb:

@@ -1,4 +1,4 @@
-"""Shared application services: activity log, evidence storage, current assessment state."""
+"""Shared application services: activity log, evidence storage, current framework and assessment state."""
 
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from .config import Settings
-from .framework import Framework
+from .framework import Framework, all_requirement_ids, load_framework, normalise_level
 from .models import Action, Activity, CheckResult, ConnectorRun, Document, Evidence, Organisation, RiskAssessment, Score
 from .scoring import ReqInput, Summary, compute
 
@@ -44,14 +44,14 @@ ALLOWED_EXTENSIONS = {
 }
 
 JOURNEY_STAGES = [
-    ("scope", "Scope and organisation"),
+    ("scope", "Scope, organisation and target level"),
     ("risk", "Risk assessment and assurance level"),
     ("assessment", "Self-assessment"),
     ("remediation", "Remediation"),
     ("evidence", "Evidence collection"),
     ("declaration", "Self-declaration (CCB workbook)"),
     ("verification", "Verification by the CAB"),
-    ("label", "CyFun BASIC label"),
+    ("label", "CyFun label"),
 ]
 
 
@@ -61,7 +61,7 @@ def log_activity(db: Session, actor: str, action: str, entity: str = "", entity_
     db.commit()
 
 
-# --------------------------------------------------------------------------- organisation
+# --------------------------------------------------------------------------- organisation and framework
 def get_org(db: Session) -> Organisation:
     org = db.get(Organisation, 1)
     if org is None:
@@ -69,6 +69,19 @@ def get_org(db: Session) -> Organisation:
         db.add(org)
         db.commit()
     return org
+
+
+def current_level(db: Session) -> str:
+    return normalise_level(get_org(db).target_level)
+
+
+def current_framework(db: Session) -> Framework:
+    return load_framework(current_level(db))
+
+
+def valid_requirement_ids(ids: list[str]) -> list[str]:
+    known = all_requirement_ids()
+    return [r for r in ids if r in known]
 
 
 def get_risk(db: Session) -> RiskAssessment | None:

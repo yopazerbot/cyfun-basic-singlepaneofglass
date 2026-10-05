@@ -1,0 +1,834 @@
+{
+ "DE.AE-02.1": {
+  "goal": "The goal of this control is to ensure that cybersecurity and information security events are reviewed and analysed to detect attack targets and methods. This enables organisations to respond effectively to threats while maintaining compliance with legal, regulatory, and policy requirements.",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "DE.AE-02.2": {
+  "goal": "The goal of this control is to ensure that the organisation uses automation, where practical, to support the efficient and consistent review and analysis of detected cybersecurity events. This helps reduce the risk of human error, speeds up threat detection and response, and allows limited security resources (especially in smaller organisations) to focus on higher-value tasks like investigating complex incidents or improving defences.",
+  "source": "CyFun2025_Booklet_ESSENTIAL_E.pdf"
+ },
+ "DE.AE-03.1": {
+  "goal": "The goal of this control is to make sure security tools have logging turned on, logs are kept for a set time, and regularly checked to spot unusual or harmful activity. This helps to detect threats early and take action. Examples of such tools include firewalls, antivirus software, endpoint detection, and intrusion detection systems.",
+  "source": "CyFun2025_Booklet_BASIC_E.pdf"
+ },
+ "DE.AE-03.2": {
+  "goal": "The goal of this control is to enable the organisation to detect complex or distributed threats by combining and analysing event data from different systems and sources. Correlating this data helps identify patterns that may not be visible when systems are monitored in isolation. The achieve this goal, the following should be considered: · Relevant sources of event data can include system logs, audit logs, network monitoring tools, physical access records, and reports from users or administrators. · Log data should be sent continuously, ideally in real-time or near real-time, to a centralised system for storage and analysis. This improves the ability to detect patterns and respond quickly to potential issues. ·",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "DE.AE-03.3": {
+  "goal": "The goal of this control is to strengthen the organisation’s ability to detect complex or hidden threats by combining event analysis with other relevant data sources. This broader view supports more accurate and timely identification of suspicious activity, and the following should be considered to achieve the goal of this control: · Tools that collect and link data from different systems (such as SIEM, XDR, or SOAR) should be used to support this integration. · Security issues reported by suppliers or trusted sources should be collected quickly and reviewed for",
+  "source": "CyFun2025_Booklet_ESSENTIAL_E.pdf"
+ },
+ "DE.AE-04.1": {
+  "goal": "The goal of this control is to ensure that the organisation understands how detected events could cause harm, and uses this understanding to guide risk-based decisions and responses.",
+  "source": "CyFun2025_Booklet_ESSENTIAL_E.pdf"
+ },
+ "DE.AE-06.1": {
+  "goal": "The goal of this control is to ensure that information about adverse events is delivered promptly to the right people and systems, so that appropriate action can be taken without delay. This supports faster detection, investigation, and response to potential threats or disruptions.",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "DE.AE-08.1": {
+  "goal": "This control ensures that adverse events are identified and reported when they meet clearly defined and documented incident criteria. It emphasises the importance of having consistent thresholds and guidelines in place",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "DE.CM-01.1": {
+  "goal": "The goal of this control is to enhance visibility and detection of threats at the device level, particularly those that may bypass traditional network perimeter defences. This control focuses on the use of host-based firewalls to detect threats that may bypass the network perimeter, by monitoring and controlling traffic to and from individual devices (focus: visibility and detection). In contrast, control PR.IR-01.1 addresses network-based firewalls, which are designed to prevent unauthorised access by managing traffic entering or leaving the network (focus: control and prevention).",
+  "source": "CyFun2025_Booklet_BASIC_E.pdf"
+ },
+ "DE.CM-01.2": {
+  "goal": "The goal of this control is to ensure that all organisational devices (IT and OT assets) are protected against malicious software, by deploying and regularly updating anti-malware tools.",
+  "source": "CyFun2025_Booklet_BASIC_E.pdf"
+ },
+ "DE.CM-01.3": {
+  "goal": "The goal of this control is to ensure that the organisation can detect and respond to unauthorised access or misuse of its business-critical systems. This includes identifying suspicious local, network, or remote connections that could indicate a security breach or misuse of sensitive systems.",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "DE.CM-01.4": {
+  "goal": "The aim of this control is to ensure that the organisation continuously monitors its network and systems to detect signs of cyber threats or unusual activity. This is done using clearly defined rules that help identify what qualifies as a potential security incident.",
+  "source": "CyFun2025_Booklet_ESSENTIAL_E.pdf"
+ },
+ "DE.CM-02.1": {
+  "goal": "The purpose of this control is to ensure that the physical spaces where critical systems and data are located are monitored for signs of suspicious or harmful activity. This helps detect potential threats such as unauthorised access, tampering, or other unusual events in the physical environment.",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "DE.CM-02.2": {
+  "goal": "The purpose of this control is to strengthen the protection of critical systems and devices by supplementing basic physical access monitoring with active intrusion detection, surveillance technologies, and independent monitoring capabilities. This helps ensure timely detection and response to physical security threats.",
+  "source": "CyFun2025_Booklet_ESSENTIAL_E.pdf"
+ },
+ "DE.CM-03.2": {
+  "goal": "This control builds on DE.CM-03.1 by shifting the focus from implementation to ongoing management of monitoring tools. The goal of this control is to ensure that tools used to monitor user behaviour and detect harmful activity on devices and networks are properly maintained and actively managed. This supports the continued effectiveness of the tools as threats evolve, and ensures that the alerts they produce are accurate, relevant, and helpful for identifying real security risks.",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "DE.CM-06.1": {
+  "goal": "The goal of this control is to ensure that activities performed by external service providers, whether remote or onsite, are securely managed and continuously monitored. This helps detect any unusual or harmful actions that could affect the organisation’s systems, data, or services. The achieve this goal, the following should be considered: · External providers may include contractors, cloud service vendors, IT support teams, software developers, and other third parties involved in system maintenance, development, or security. · Monitoring should focus on: · Access and login activity, including how and when external users connect to systems.",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "DE.CM-06.2": {
+  "goal": "The goal of this control is to ensure that external service providers follow the organisation’s personnel security policies and contract requirements, especially when they have access to sensitive systems or data. This helps reduce the risk of security incidents caused by third-party staff and ensures that providers are held to the same standards as internal personnel.",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "DE.CM-09.1": {
+  "goal": "This control aims to ensure that organisations continuously monitor their computing systems and data to detect potentially harmful events early. This helps maintain visibility, support timely responses, and reduce the risk of security incidents.",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "DE.CM-09.2": {
+  "goal": "The goal of this control is to ensure that critical hardware components are protected against unauthorised tampering. By implementing integrity checks that match the organisation’s risk level and operational capacity, it becomes possible to detect physical or firmware-level changes that could compromise security.",
+  "source": "CyFun2025_Booklet_ESSENTIAL_E.pdf"
+ },
+ "DE.CM-09.3": {
+  "goal": "The goal of this control is to ensure that the organisation’s incident response plan includes steps to detect and respond to unauthorised tampering of critical hardware. This helps the organisation react quickly and effectively if someone tries to physically or digitally compromise important systems. This control can be implemented in a practical and scalable manner. 150 Version 2025-10-01 By considering the below measures, also small organisations can effectively include hardware tampering detection in their incident response capabilities, without requiring extensive resources: · Incident Response Plan",
+  "source": "CyFun2025_Booklet_ESSENTIAL_E.pdf"
+ },
+ "DE.CM-09.4": {
+  "goal": "The goal of this control is to ensure that the organisation can accurately identify real threats while avoiding unnecessary alerts caused by false positives. This helps improve the effectiveness of detecting and removing malicious code, while reducing wasted time and resources responding to harmless activity.",
+  "source": "CyFun2025_Booklet_ESSENTIAL_E.pdf"
+ },
+ "GV.OC-01.1": {
+  "goal": "The goal of this control is to ensure that the organisation’s mission is clearly defined and communicated, and that it serves as the foundation for managing information and cybersecurity risks. Understanding the mission helps identify which risks could interfere with achieving strategic objectives.",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "GV.OC-02.1": {
+  "goal": "The goal of this control is to ensure that the organisation understands and takes into account the needs and expectations of both internal and external stakeholders when managing information and cybersecurity risks. This helps to align cybersecurity efforts with business priorities, legal obligations, and stakeholder trust.",
+  "source": "CyFun2025_Booklet_ESSENTIAL_E.pdf"
+ },
+ "GV.OC-03.1": {
+  "goal": "The goal of this control is to ensure that legal, regulatory, and contractual requirements related to information security and cybersecurity are identified, monitored, and implemented.",
+  "source": "CyFun2025_Booklet_BASIC_E.pdf"
+ },
+ "GV.OC-03.2": {
+  "goal": "The goal of this control is to ensure that legal and regulatory requirements related to information and cybersecurity are continuously managed, kept up to date, and effectively applied across the organisation.",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "GV.OC-04.1": {
+  "goal": "The goal of this control is to ensure that the organisation understands which critical services, capabilities, and objectives are essential to external stakeholders, prioritises them based on their importance, and includes them in the risk assessment process.",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "GV.OC-04.2": {
+  "goal": "The goal of this control is to ensure that essential operations are protected by clearly defined and tested security measures, and that these measures remain effective and up to date as risks evolve.",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "GV.OC-04.3": {
+  "goal": "The goal of this control is to ensure that critical systems and services remain available by implementing redundancy in line with organisational, legal, and regulatory availability requirements.",
+  "source": "CyFun2025_Booklet_ESSENTIAL_E.pdf"
+ },
+ "GV.OC-04.4": {
+  "goal": "The goal of this control is to ensure that the organisation defines and monitors clear Recovery Time Objectives (RTO) and Recovery Point Objectives (RPO) for restoring essential ICT and OT system processes after a disruption.",
+  "source": "CyFun2025_Booklet_ESSENTIAL_E.pdf"
+ },
+ "GV.OC-05.1": {
+  "goal": "The goal of this control is to ensure the organisation identifies, documents, and communicates its role within the supply chain by understanding the external capabilities, services, and dependencies it relies on (upstream), while also recognising its interactions with downstream stakeholders. This control focuses primarily on the upstream supply chain, what the organisation depends on from others, while maintaining alignment with GV.OC-04, which addresses what the organisation delivers to others. Together, they provide a complete view of supply chain dependencies and responsibilities.",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "GV.OV-02.1": {
+  "goal": "The goal of this control is to ensure that the information and cybersecurity risk management strategy is regularly reviewed and updated to reflect organisational needs, evolving risks, and compliance requirements.",
+  "source": "CyFun2025_Booklet_ESSENTIAL_E.pdf"
+ },
+ "GV.OV-03.1": {
+  "goal": "The goal of this control is to ensure that an organisation's cybersecurity risk management performance is continuously evaluated, reviewed, and adjusted as necessary.",
+  "source": "CyFun2025_Booklet_ESSENTIAL_E.pdf"
+ },
+ "GV.PO-01.1": {
+  "goal": "This control sets the foundation for how all information and cybersecurity policies and procedures should be managed. It emphasises the governance lifecycle, from creation to enforcement, and ensures alignment with the organisation's strategic direction.",
+  "source": "CyFun2025_Booklet_BASIC_E.pdf"
+ },
+ "GV.RM-01.1": {
+  "goal": "To support this objective, organisations should: · Follow the risk management principles outlined in ISO/IEC 27005, which provide guidance on identifying, assessing, and mitigating information security risks. Specifically: · Clause 6.1 should be used to establish a structured risk assessment process. · Clause 6.3 should guide the definition of appropriate risk treatment strategies. · Update near-term and long-term information and cybersecurity objectives during annual strategic planning and in response to major organisational changes.",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "GV.RM-02.1": {
+  "goal": "The goal of GV.RM-02.1 is to ensure that an organisation has a clear and actionable understanding of its risk boundaries, which helps guide decision-making and risk management practices.",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "GV.RM-03.1": {
+  "goal": "This control focuses on the creation and maintenance of a specific strategy for managing information and cybersecurity risks. It ensures that the organisation has a dedicated, actionable plan that evolves with the threat landscape.",
+  "source": "CyFun2025_Booklet_BASIC_E.pdf"
+ },
+ "GV.RM-03.2": {
+  "goal": "This control should ensure that the strategy is put into action through structured processes. It focuses on operational and governance level, ensures accountability and traceability of risks, and emphasises formal processes and oversight.",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "GV.RM-04.1": {
+  "goal": "The aim of this control is to set the strategic foundation for risk management, including: · Risk tolerance and appetite, · Strategic direction for managing risks (e.g., mitigate, transfer, accept), · Ensuring alignment across departments. · Ensuring that everyone in the organisation understands the big picture of how risks are approached and managed IMPORTANT CyFun® 2025",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "GV.RM-05.1": {
+  "goal": "The aim of this control is to ensure that cybersecurity and information security risk information is shared effectively across the organisation and with external parties. This control focus on operational and tactical communication is specific to cybersecurity risks and emphasises communication channels (e.g., reporting, escalation, coordination), including external risks from suppliers and third parties.",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "GV.RR-01.1": {
+  "goal": "The goal of this control is to ensure top management is accountable for cybersecurity risk and promotes a risk-aware and continuously-improving culture.",
+  "source": "CyFun2025_Booklet_ESSENTIAL_E.pdf"
+ },
+ "GV.RR-02.1": {
+  "goal": "The goal of this control is to ensure all internal and external parties understand and fulfil their cybersecurity roles, responsibilities and authorities, reducing gaps, overlaps, and delays in incident response and compliance. It should be considered to: · Describe security roles, responsibilities, and authorities: who in the organisation should be consulted, informed, held responsible and accountable for all or part of the enterprise assets. Use of the RACI model can be considered. Guidance can also be found in the ENISA European Cybersecurity Skills Framework Role Profiles \b (https://www.enisa.europa.eu/publications/european-cybersecurity-skills-framework-role-profiles). · Include risk management roles, responsibilities, and authorities. ·",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "GV.RR-02.2": {
+  "goal": "The goal of this control is to establish clear executive accountability for cybersecurity by appointing a senior leader to drive strategy, oversight, and alignment with business objectives.",
+  "source": "CyFun2025_Booklet_ESSENTIAL_E.pdf"
+ },
+ "GV.RR-04.1": {
+  "goal": "The goal of this control is protecting critical assets by ensuring only authenticated personnel can access them.",
+  "source": "CyFun2025_Booklet_BASIC_E.pdf"
+ },
+ "GV.RR-04.2": {
+  "goal": "The goal of this control is to ensure cybersecurity risks are managed throughout the employee lifecycle by integrating security into HR processes, from hiring to termination.",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "GV.SC-01.1": {
+  "goal": "The goal of this control is to ensure supply chain cybersecurity risks are proactively managed through a documented, stakeholder-approved, and regularly updated risk management program. The steps below should be considered for organisations to establish a cybersecurity supply chain risk management (C-SCRM) program that is aligned with their strategic objectives and supported by all relevant stakeholders: Define the Program and Strategy · Identify Objectives: Clearly define what the organisation aims to achieve with its C-SCRM program. Objectives might include protecting against supply chain attacks, ensuring compliance with regulations, and maintaining business continuity. ·",
+  "source": "CyFun2025_Booklet_ESSENTIAL_E.pdf"
+ },
+ "GV.SC-02.1": {
+  "goal": "The goal of this control is to ensure continuity and security of critical systems by requiring third-party providers",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "GV.SC-03.1": {
+  "goal": "The goal of this control is to ensure supply chain cybersecurity risks are consistently identified, assessed, and mitigated by embedding them into enterprise risk assessments, control reviews, and continuous improvement cycles.",
+  "source": "CyFun2025_Booklet_ESSENTIAL_E.pdf"
+ },
+ "GV.SC-05.1": {
+  "goal": "The goal of this control is to establish and enforce cybersecurity and sensitive data handling requirements in supply chain agreements, by integrating them into contracts and prioritising them based on risk.",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "GV.SC-05.2": {
+  "goal": "The goal of this control, which is related to GV.SC-09.1, is to embed enforceable requirements in supplier contracts to guarantee timely flaw remediation and resolution of cybersecurity issues identified through testing and evaluation.",
+  "source": "CyFun2025_Booklet_ESSENTIAL_E.pdf"
+ },
+ "GV.SC-05.3": {
+  "goal": "The goal of this control is to ensure that the organisation can assess and verify the information/cybersecurity practices of suppliers and third-party partners through contractual agreements.",
+  "source": "CyFun2025_Booklet_ESSENTIAL_E.pdf"
+ },
+ "GV.SC-06.1": {
+  "goal": "The goal of this control is to reduce cybersecurity and operational risks by ensuring that appropriate planning and due diligence are conducted before entering into formal relationships with suppliers or third parties.",
+  "source": "CyFun2025_Booklet_ESSENTIAL_E.pdf"
+ },
+ "GV.SC-07.1": {
+  "goal": "The goal of this control is to ensure that risks related to suppliers, their products and services, and other third parties are continuously identified, assessed, prioritised, and managed throughout the relationship, especially when changes occur in critical systems. 24 Version 2025-10-01",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "GV.SC-07.2": {
+  "goal": "The goal of this control is to ensure that a reliable, up-to-date list of critical suppliers, vendors, and partners is maintained and accessible, both online and offline, to support rapid response during major incidents, while safeguarding confidentiality and security.",
+  "source": "CyFun2025_Booklet_ESSENTIAL_E.pdf"
+ },
+ "GV.SC-07.3": {
+  "goal": "The goal of this control is to ensure that business-critical third-party service providers are regularly audited",
+  "source": "CyFun2025_Booklet_ESSENTIAL_E.pdf"
+ },
+ "GV.SC-07.4": {
+  "goal": "The goal of this control is to ensure that suppliers and third-party partners conform to contractual information and cybersecurity obligations through regular reviews of independent audits, assessments, and third-party evaluations.",
+  "source": "CyFun2025_Booklet_ESSENTIAL_E.pdf"
+ },
+ "GV.SC-08.1": {
+  "goal": "The goal of this control is to strengthen incident preparedness and recovery by ensuring that key personnel from critical suppliers and third parties are identified and actively integrated into response planning and execution.",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "GV.SC-09.1": {
+  "goal": "The goal of this control is to ensure that supply chain security practices are embedded into the organisation’s information security, cybersecurity, and enterprise risk management programs, with performance monitored and improved throughout the lifecycle of products and services.",
+  "source": "CyFun2025_Booklet_ESSENTIAL_E.pdf"
+ },
+ "GV.SC-10.1": {
+  "goal": "The goal of this control is to ensure that residual cybersecurity and information security risks are effectively addressed after supplier relationships end, thereby preventing disruptions, data exposure, and vulnerabilities in operational and OT environments.",
+  "source": "CyFun2025_Booklet_ESSENTIAL_E.pdf"
+ },
+ "ID.AM-01.1": {
+  "goal": "The goal of this control is to ensure that critical systems and services remain available by implementing redundancy in line with organisational, legal, and regulatory availability requirements. While ID.AM-01.1 focuses on the infrastructure layer, this control is closely linked to ID.AM-02.1 which tracks the software and services that run on top of it, such as applications, platforms, and digital tools. Together, they provide a full picture of the organisation’s technology environment.",
+  "source": "CyFun2025_Booklet_BASIC_E.pdf"
+ },
+ "ID.AM-01.2": {
+  "goal": "The goal of this control is to ensure that asset inventories support operational transparency, enable responsible ownership, and adapt to changes in the organisation’s structure, technology, and risk landscape.",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "ID.AM-01.3": {
+  "goal": "The goal of this control is to reduce security risks by ensuring that Unauthorised hardware is promptly identified, isolated, and addressed, while maintaining an accurate and accountable asset inventory.",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "ID.AM-01.4": {
+  "goal": "The goal of this control is to proactively identify unauthorised hardware and firmware components within ICT and OT environments, thereby enabling timely response and reducing the risk of compromise or operational disruption.",
+  "source": "CyFun2025_Booklet_ESSENTIAL_E.pdf"
+ },
+ "ID.AM-02.1": {
+  "goal": "This control ensures that all software, digital services, and business systems used within the organisation are identified, tracked, and regularly updated. It focuses on the functional and intangible parts of the technology environment, such as applications, platforms, and cloud services, that operate on or interact with the underlying infrastructure. Keeping this inventory up-to-date supports operational continuity, strengthens security, and helps meet compliance requirements. It is closely linked to ID.AM-01.1, which covers the physical and virtual infrastructure (such as servers, network devices, and cloud environments) that supports these systems. Together, both controls provide a complete view of the organisation’s technology landscape, from the foundational infrastructure to the applications and services that deliver business value.",
+  "source": "CyFun2025_Booklet_BASIC_E.pdf"
+ },
+ "ID.AM-02.2": {
+  "goal": "The goal of this control is to ensure that inventories of software, services, and systems remain current and complete, enabling traceability, responsible ownership, and alignment with changes in the organisation’s operational and risk context.",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "ID.AM-02.3": {
+  "goal": "The goal of this control is to ensure that software platforms and applications are properly managed, by clearly identifying who is responsible for day-to-day operations and who is accountable for overall oversight and outcomes.",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "ID.AM-02.4": {
+  "goal": "The goal of this control is to minimise security, operational, and compliance risks by ensuring that unauthorised software is promptly identified, handled appropriately, and reflected in the organisation’s software inventory.",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "ID.AM-02.5": {
+  "goal": "The goal of this control is to ensure that mechanisms are in place to detect unauthorised software across ICT and OT environments, thereby enabling timely response and maintaining an accurate software inventory.",
+  "source": "CyFun2025_Booklet_ESSENTIAL_E.pdf"
+ },
+ "ID.AM-04.1": {
+  "goal": "The goal of this control is to ensure that all external services used by the organisation are clearly identified, reviewed, and kept up to date to reduce the risk of unauthorised access, unmanaged third-party dependencies, or service disruption across ICT and OT environments.",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "ID.AM-04.2": {
+  "goal": "The goal of this control is to ensure that the flow of information to and from external systems is clearly understood, securely managed, and kept up to date to reduce the risk of data leakage, unauthorised access, or disruption across ICT and OT environments.",
+  "source": "CyFun2025_Booklet_ESSENTIAL_E.pdf"
+ },
+ "ID.AM-05.1": {
+  "goal": "The goal of this control is to ensure that all organisational assets, such as devices, systems, services, data, and business processes, are prioritised based on their classification, criticality, and business value. This prioritisation helps direct protection efforts toward the most important assets, supporting operational continuity, security, and compliance.",
+  "source": "CyFun2025_Booklet_BASIC_E.pdf"
+ },
+ "ID.AM-07.1": {
+  "goal": "The goal of this control is to ensure that all data stored and used by the organisation is clearly identified. This supports proper data management, protection, and alignment with business and regulatory requirements.",
+  "source": "CyFun2025_Booklet_BASIC_E.pdf"
+ },
+ "ID.AM-07.2": {
+  "goal": "The goal of this control is to ensure that inventories of data and their associated metadata are maintained for all data types explicitly selected or designated by policy or guidelines (for example, customer data, financial information, or production data). This supports secure data management, regulatory compliance, and operational integrity across ICT and OT environments.",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "ID.AM-08.10": {
+  "goal": "The goal of this control is to ensure that security controls remain effective after maintenance, repairs, or patching activities. In OT environments, even small configuration changes can have significant safety or operational consequences, making post-maintenance verification critical.",
+  "source": "CyFun2025_Booklet_ESSENTIAL_E.pdf"
+ },
+ "ID.AM-08.11": {
+  "goal": "The goal of this control is to ensure that remote maintenance and diagnostic activities are authorised, traceable, and secure. In OT environments, remote maintenance must be tightly controlled, as unauthorised changes can directly affect the safety and stability of physical systems.",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "ID.AM-08.12": {
+  "goal": "The goal of this control is to ensure that non-local maintenance and diagnostic sessions are securely established and properly terminated to prevent unauthorised access or lingering connections. In OT environments, secure session setup and termination are essential to prevent persistent access paths that could be exploited",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "ID.AM-08.13": {
+  "goal": "The goal of this control is to ensure that remote maintenance and diagnostic services are performed from systems that implement security features equivalent to those of the organisation’s critical systems. In Operational Technology (OT) environments, this alignment is essential to maintain a consistent security posture, prevent the introduction of vulnerabilities, and protect the safety, reliability, and continuity of physical operations.",
+  "source": "CyFun2025_Booklet_ESSENTIAL_E.pdf"
+ },
+ "ID.AM-08.2": {
+  "goal": "The goal of this control is to ensure that operating systems and critical system components are kept secure and up-to-date by installing patches and security updates in a timely and controlled manner.",
+  "source": "CyFun2025_Booklet_BASIC_E.pdf"
+ },
+ "ID.AM-08.3": {
+  "goal": "The goal of this control is to ensure accountability for all business-critical assets throughout their lifecycle, including deployment, movement, and disposal, to reduce the risk of unauthorised access, data leakage, or operational disruption across ICT and OT environments.",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "ID.AM-08.4": {
+  "goal": "The goal of this control is to ensure that appropriate measures are in place to prevent and respond to the loss, misuse, damage, or theft of assets, in order to protect business operations and reduce security risks across ICT and OT environments.",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "ID.AM-08.5": {
+  "goal": "The goal of this control is to ensure that all disposal actions involving information systems, data, or physical assets are properly authorised, traceable, and verifiable to reduce risks, maintain compliance, and protect sensitive information, especially in operational technology (OT) environments.",
+  "source": "CyFun2025_Booklet_ESSENTIAL_E.pdf"
+ },
+ "ID.AM-08.6": {
+  "goal": "The goal of this control is to ensure that preventive maintenance and repairs on critical system components are planned, performed, and documented in a secure and consistent manner to maintain system reliability and reduce operational risks across ICT and OT environments.",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "ID.AM-08.7": {
+  "goal": "The goal of this control is to prevent unauthorised removal of maintenance equipment that may contain critical system information, reducing the risk of data leakage or theft, especially in operational technology (OT) environments.",
+  "source": "CyFun2025_Booklet_ESSENTIAL_E.pdf"
+ },
+ "ID.AM-08.8": {
+  "goal": "The goal of this control is to ensure that maintenance tools used on critical systems are pre-approved, monitored, and enforced to protect system integrity, safety, and operational continuity. In OT environments, improper tool use can interfere with physical processes, making control over tool approval and usage essential for operational safety and reliability.",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "ID.AM-08.9": {
+  "goal": "The goal of this control is to prevent the introduction of malicious code into organisational systems, by ensuring that all maintenance tools and portable storage devices are inspected and scanned before use. In OT environments, introducing unverified tools or storage devices can compromise system integrity and disrupt critical physical operations.",
+  "source": "CyFun2025_Booklet_ESSENTIAL_E.pdf"
+ },
+ "ID.IM-02.1": {
+  "goal": "The goal of this control is to identify opportunities for improving security, incident response, and resilience by conducting security tests and exercises — internally and in collaboration with suppliers and third parties. In Operational Technology (OT) environments, these activities are essential to ensure preparedness for incidents that could impact physical operations, safety, or service continuity.",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "ID.IM-03.1": {
+  "goal": "The goal of this control is to enhance cyber resilience by learning from incidents. After each incident, the organisation should analyse what happened, how it was handled, and what can be improved in processes, procedures, or technologies.",
+  "source": "CyFun2025_Booklet_BASIC_E.pdf"
+ },
+ "ID.IM-03.2": {
+  "goal": "The goal of this control is to improve the organisation’s incident handling capabilities by incorporating lessons learned from past incidents into updated or new processes and procedures. In Operational Technology (OT) environments, where incidents can directly affect physical systems and operational continuity, applying realworld insights helps strengthen response effectiveness and reduce the likelihood of repeated failures.",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "ID.IM-03.3": {
+  "goal": "The goal of this control is to enhance the organisation’s cyber resilience by identifying improvements from monitoring, measurements, assessments, and lessons learned, and translating them into updated processes, procedures, or technologies. In Operational Technology (OT) environments, where system reliability and safety are tightly linked to cyber performance, continuous improvement helps maintain operational integrity and adapt to evolving threats.",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "ID.IM-03.4": {
+  "goal": "The goal of this control is to strengthen cyber resilience by sharing information about security incidents and mitigation measures related to critical systems with designated partners. In Operational Technology (OT) environments, timely and coordinated information exchange helps prevent the spread of threats, supports faster recovery, and enhances collective defence across interconnected systems.",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "ID.IM-03.5": {
+  "goal": "The goal of this control is to ensure that the effectiveness of protection technologies is clearly communicated to relevant stakeholders. In Operational Technology (OT) environments, where protection tools safeguard critical physical systems, meaningful communication supports informed decisions, risk awareness, and alignment across technical and non-technical teams.",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "ID.IM-03.6": {
+  "goal": "The goal of this control is to improve the efficiency, accuracy, and security of information sharing and collaboration by implementing automated mechanisms where feasible. In Operational Technology (OT) environments, automation helps reduce manual errors, enforce access controls, and support timely decision-making across interconnected systems.",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "ID.IM-03.7": {
+  "goal": "The goal of this control is to strengthen the protection of critical systems and assets by ensuring objective assessments of organisational processes, practices, and technologies. In Operational Technology (OT) environments, independent evaluations help identify vulnerabilities, reduce bias, and support continuous improvement in system resilience and safety.",
+  "source": "CyFun2025_Booklet_ESSENTIAL_E.pdf"
+ },
+ "ID.IM-03.8": {
+  "goal": "The goal of this control is to ensure that the organisation’s security plan for critical systems supports regular review, testing, and continuous improvement of protection measures. In Operational Technology (OT) environments, this helps maintain system integrity, adapt to evolving threats, and align with broader risk management efforts.",
+  "source": "CyFun2025_Booklet_ESSENTIAL_E.pdf"
+ },
+ "ID.IM-03.9": {
+  "goal": "The goal of this control is to strengthen the security posture of critical systems by conducting specialised assessments that uncover vulnerabilities, evaluate performance, and test defences against insider and external threats. In Operational Technology (OT) environments, these assessments help validate protections and support continuous improvement.",
+  "source": "CyFun2025_Booklet_ESSENTIAL_E.pdf"
+ },
+ "ID.IM-04.1": {
+  "goal": "The goal of this control is to ensure organisational resilience by establishing, maintaining, and improving contingency and continuity plans that enable effective response and recovery from disruptions.",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "ID.IM-04.2": {
+  "goal": "The goal of this control is to ensure that Incident Response Plans and other cybersecurity plans affecting operations are aligned with organisational goals and enhance resilience through coordinated development and testing with relevant stakeholders.",
+  "source": "CyFun2025_Booklet_ESSENTIAL_E.pdf"
+ },
+ "ID.RA-01.1": {
+  "goal": "The goal of this control is to help organisations mitigate cybersecurity risks by identifying threats and vulnerabilities in their critical assets. This includes software, networks, systems, and physical locations that support essential computing operations.",
+  "source": "CyFun2025_Booklet_BASIC_E.pdf"
+ },
+ "ID.RA-01.2": {
+  "goal": "The goal of this control is to ensure that vulnerabilities in business-critical systems are continuously identified, monitored, and documented to support timely risk mitigation and maintain operational resilience.",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "ID.RA-01.3": {
+  "goal": "The goal of this control is to ensure that vulnerabilities are continuously reviewed, analysed, and remediated through a documented process that also supports information sharing where applicable.",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "ID.RA-01.4": {
+  "goal": "The goal of this control is to ensure that performance/load testing and penetration testing are conducted carefully to avoid disrupting operations or compromising system stability, especially in environments with business-critical or safety-critical systems.",
+  "source": "CyFun2025_Booklet_ESSENTIAL_E.pdf"
+ },
+ "ID.RA-01.5": {
+  "goal": "The goal of this control is to ensure that vulnerability scanning does not disrupt or degrade the performance of business-­critical systems, particularly in Operational Technology (OT) environments where system stability and availability are critical.",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "ID.RA-01.6": {
+  "goal": "The goal of this control is to ensure that vulnerabilities are systematically identified and managed across all relevant assets, including software, network and system architectures, and physical facilities. This builds on control ID.RA-01.1, which focuses on identifying both threats and vulnerabilities to support risk reduction.",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "ID.RA-02.1": {
+  "goal": "The goal of this control is to strengthen the organisation’s ability to anticipate and respond to cyber threats by implementing a threat and vulnerability awareness program that includes cross-organisational information sharing.",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "ID.RA-02.2": {
+  "goal": "The goal of this control is to ensure that security alerts and advisories are delivered promptly and reliably to relevant stakeholders through automated mechanisms, enabling timely awareness and response across the organisation.",
+  "source": "CyFun2025_Booklet_ESSENTIAL_E.pdf"
+ },
+ "ID.RA-03.1": {
+  "goal": "The goal of this control is to ensure that threats are systematically identified and assessed in relation to all relevant assets, including software, network and system architectures, and facilities. This builds on ID.RA-01.1, which establishes the foundation for identifying both threats and vulnerabilities across critical assets.",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "ID.RA-05.1": {
+  "goal": "The goal of this control is to ensure that risk assessments are conducted by evaluating threats, vulnerabilities, and their potential impact on business processes and assets. This supports informed decision-making and effective risk mitigation.",
+  "source": "CyFun2025_Booklet_BASIC_E.pdf"
+ },
+ "ID.RA-05.2": {
+  "goal": "The goal of this control is to ensure that risk assessments are conducted and documented using a structured approach that considers threats, vulnerabilities, business impact, and likelihood. This supports informed decision-­ making and prioritisation of cybersecurity efforts across both IT and OT environments.",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "ID.RA-05.3": {
+  "goal": "The goal of this control is to ensure that risk assessment results are communicated effectively to relevant stakeholders, enabling informed decisions and coordinated responses across the organisation.",
+  "source": "CyFun2025_Booklet_ESSENTIAL_E.pdf"
+ },
+ "ID.RA-06.1": {
+  "goal": "The goal of this control is to ensure that risk responses are clearly identified, prioritised, planned, tracked, and communicated to support effective risk mitigation and informed decision-making across the organisation.",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "ID.RA-08.1": {
+  "goal": "The goal of this control is to ensure that all types of vulnerabilities are systematically identified, analysed, assessed, mitigated, and communicated through a documented vulnerability management plan. This includes handling disclosures in line with Coordinated Vulnerability Disclosure (CVD) practices and applicable legal requirements.",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "ID.RA-08.2": {
+  "goal": "The goal of this control is to ensure that vulnerability-related information is automatically collected, disseminated, tracked, and acted upon through a documented and automated vulnerability management process. This includes enabling continuous monitoring, reporting, and accountability to support timely and effective remediation.",
+  "source": "CyFun2025_Booklet_ESSENTIAL_E.pdf"
+ },
+ "PR.AA-01.1": {
+  "goal": "The goal of this control is to ensure that identities and credentials for authorised users, services, and hardware are properly managed to prevent unauthorised access and support secure operations in both ICT and OT environments.",
+  "source": "CyFun2025_Booklet_BASIC_E.pdf"
+ },
+ "PR.AA-01.2": {
+  "goal": "The goal of this control is to reduce the risk of credential misuse and unauthorised access by automating identity and credential management processes, ensuring consistency, scalability, and security across IT and OT environments.",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "PR.AA-01.3": {
+  "goal": "The goal of this control is to ensure that system credentials are deactivated after a defined period of inactivity, unless doing so would compromise the safe operation of critical processes. This helps reduce the risk of unauthorised access while maintaining operational continuity.",
+  "source": "CyFun2025_Booklet_ESSENTIAL_E.pdf"
+ },
+ "PR.AA-01.4": {
+  "goal": "The goal of this control is to ensure that strong authentication mechanisms are applied to transactions within critical systems. This includes using Multi-Factor Authentication (MFA – PR.AA-03.2), cryptographic credentials, and other secure methods to protect sensitive operations and data exchanges.",
+  "source": "CyFun2025_Booklet_ESSENTIAL_E.pdf"
+ },
+ "PR.AA-01.5": {
+  "goal": "The goal of this control is to detect and respond to abnormal or high-risk use of system credentials in critical systems, helping to prevent unauthorised access, insider threats, and credential-based attacks.",
+  "source": "CyFun2025_Booklet_ESSENTIAL_E.pdf"
+ },
+ "PR.AA-02.1": {
+  "goal": "The goal of this control, which builds further on GV.RR-04.1, is to ensure that only verified individuals are granted access credentials, thereby reducing the risk of identity fraud, unauthorised access, and insider threats.",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "PR.AA-02.2": {
+  "goal": "The goal of this control is to ensure that each user, device, and process interacting with critical systems is uniquely identifiable and authenticated. This supports accountability, traceability, and secure access, while allowing for controlled exceptions in emergencies.",
+  "source": "CyFun2025_Booklet_ESSENTIAL_E.pdf"
+ },
+ "PR.AA-03.1": {
+  "goal": "The goal of this control is to ensure that all wireless access points, including those for guest use, are securely configured, managed, and monitored to prevent unauthorised access and protect network integrity.",
+  "source": "CyFun2025_Booklet_BASIC_E.pdf"
+ },
+ "PR.AA-03.2": {
+  "goal": "The goal of this control is to protect the organisation’s networks by requiring multi-factor authentication (MFA) for all remote access, thereby reducing the risk of unauthorised access and credential-based attacks.",
+  "source": "CyFun2025_Booklet_BASIC_E.pdf"
+ },
+ "PR.AA-03.3": {
+  "goal": "The goal of this control is to ensure that remote access to critical systems is tightly controlled through defined usage restrictions, secure connection methods, and formal authorisation procedures. This helps prevent unauthorised access and limits exposure to cyber threats.",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "PR.AA-03.4": {
+  "goal": "The goal of this control is to ensure that remote access to critical systems is not only restricted and approved (as defined in PR.AA-03.3), but also actively monitored and protected using cryptographic mechanisms to prevent unauthorised access and data compromise.",
+  "source": "CyFun2025_Booklet_ESSENTIAL_E.pdf"
+ },
+ "PR.AA-03.5": {
+  "goal": "The goal of this control is to ensure that all connections with external systems are secured through verified security controls and governed by documented agreements. This reduces the risk of unauthorised access, data leakage, and supply chain compromise.",
+  "source": "CyFun2025_Booklet_ESSENTIAL_E.pdf"
+ },
+ "PR.AA-04.1": {
+  "goal": "The goal of this control is to ensure that identity assertions — claims about the identity of a user, device, or process — are protected against tampering, securely transmitted, and reliably verified before granting access",
+  "source": "CyFun2025_Booklet_ESSENTIAL_E.pdf"
+ },
+ "PR.AA-05.1": {
+  "goal": "The goal of this control is to ensure that access permissions, rights, and authorisations are clearly defined, properly managed, consistently enforced, and regularly reviewed to protect systems and data from unauthorised access.",
+  "source": "CyFun2025_Booklet_BASIC_E.pdf"
+ },
+ "PR.AA-05.2": {
+  "goal": "The goal of this control is to determine who requires access to the organisation’s business-critical information and technology, and to define the secure means by which this access is granted.",
+  "source": "CyFun2025_Booklet_BASIC_E.pdf"
+ },
+ "PR.AA-05.3": {
+  "goal": "The goal of this control is to ensure that access rights, privileges, and authorisations are restricted to only the systems and specific information needed to perform assigned tasks, following the principle of least privilege.",
+  "source": "CyFun2025_Booklet_BASIC_E.pdf"
+ },
+ "PR.AA-05.4": {
+  "goal": "The goal of this control is to prevent the use of administrative privileges for routine, day-to-day tasks, thereby reducing the risk of misuse or exploitation by attackers.",
+  "source": "CyFun2025_Booklet_BASIC_E.pdf"
+ },
+ "PR.AA-05.5": {
+  "goal": "The goal of this control is to ensure that user accounts on critical ICT and OT systems are managed securely, efficiently, and consistently through automated mechanisms — where technically, operationally, and economically feasible — without compromising system integrity, safety, or compliance.",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "PR.AA-05.6": {
+  "goal": "The goal of this control is to ensure that no single individual has full control over critical systems or processes by enforcing Separation of Duties (SoD). This should reduce the risk of errors, fraud, and misuse of access rights.",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "PR.AA-05.7": {
+  "goal": "The goal of this control is to reduce the risk of unauthorised access, data breaches, and operational disruption by ensuring that privileged users, who have elevated access to critical systems, are subject to strict management and continuous oversight.",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "PR.AA-05.8": {
+  "goal": "The goal of this control is to reduce the risk of unauthorised access by ensuring that account usage is restricted based on time, location, device, and user context. These restrictions should be defined in the organisation’s security access policy and applied consistently across ICT and OT environments.",
+  "source": "CyFun2025_Booklet_ESSENTIAL_E.pdf"
+ },
+ "PR.AA-05.9": {
+  "goal": "The goal of this control is to ensure that privileged user accounts, those with elevated access to critical systems, are tightly controlled, continuously monitored, and independently audited. This should reduce the risk of misuse, ensure accountability, and protect critical Information Technology (IT), Operational Technology (OT), and Internet of Things (IoT) environments.",
+  "source": "CyFun2025_Booklet_ESSENTIAL_E.pdf"
+ },
+ "PR.AA-06.1": {
+  "goal": "The goal of this control is to ensure that physical access to all organisational assets, especially in critical zones, is managed, monitored, and enforced based on risk to prevent unauthorised entry and protect sensitive systems.",
+  "source": "CyFun2025_Booklet_BASIC_E.pdf"
+ },
+ "PR.AA-06.2": {
+  "goal": "The goal of this control is to ensure that physical access controls remain effective and adaptable during emergency situations. This includes maintaining security over critical and non-critical assets while enabling safe, authorised, and traceable access for emergency response, recovery, or containment actions — especially in environments where physical and operational safety are tightly linked, such as Operational Technology (OT) and Internet of Things (IoT) systems.",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "PR.AA-06.3": {
+  "goal": "The goal of this control is to reduce the risk of unauthorised physical access to areas essential for operational continuity, data integrity, and personnel and equipment safety by applying stricter access measures than those used in general facility areas.",
+  "source": "CyFun2025_Booklet_ESSENTIAL_E.pdf"
+ },
+ "PR.AT-01.1": {
+  "goal": "The goal of control PR.AT-01.1 is to ensure everyone in the organisation understands how to work securely by providing regular, clear, and practical cybersecurity training that reduces human risk and supports safe behaviour in both IT and OT environments.",
+  "source": "CyFun2025_Booklet_BASIC_E.pdf"
+ },
+ "PR.AT-01.2": {
+  "goal": "The goal of this control is to ensure that all personnel are trained to recognise and report potential insider threats, thereby reducing the risk of internal cybersecurity incidents. This control builds on the general awareness from PR.AT-01.1 by introducing specific threat scenarios and response actions. The implementation should consider: · Training should include how to recognise behavioural signs of insider threats, such as unusual access patterns, data hoarding, or sudden changes in behaviour. · The organisation should define insider threats clearly (e.g. malicious, negligent, or compromised insiders, including employees and contractors).",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "PR.AT-01.3": {
+  "goal": "The goal of this control is to ensure that all personnel understand their specific roles, responsibilities, and priorities during a cybersecurity or information security incident, enabling them to respond effectively and in coordination with the organisation’s incident response and contingency plans. This control builds on the threat-specific awareness from PR.AT-01.2 by introducing role-based training and incident response readiness. The implementation should consider the following: · Training should be tailored to different roles (e.g., IT, HR, executives) so that each group understands its specific responsibilities during an incident. · Personnel should be familiar with their objectives, recovery priorities, and the correct order of actions to take during an incident.",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "PR.AT-01.4": {
+  "goal": "The goal of this control is to ensure that cybersecurity awareness training leads to measurable improvements in personnel knowledge, secure behaviour, and readiness to respond to cyber threats across all levels of the organisation. This control builds on the threat-specific awareness from PR.AT-01.2 and the role-based training from PR.AT-01.3 by introducing a structured approach to measure the impact of awareness efforts. The implementation should consider the following: · The organisation should assess whether awareness training is accessible to all relevant personnel and whether it effectively influences their cybersecurity behaviour, awareness, and attitudes. · If the organisation lacks experience in evaluation, it should consider using existing evaluated frameworks or tools, such as ENISA’s AR-in-a-Box, which includes guidance on setting goals, selecting KPIs, and measuring",
+  "source": "CyFun2025_Booklet_ESSENTIAL_E.pdf"
+ },
+ "PR.AT-02.1": {
+  "goal": "The goal of this control is to ensure that members of management bodies are equipped to make informed decisions on cybersecurity risks and mitigation strategies by developing a foundational understanding of information security, cyber threats, and risk management principles relevant to their leadership roles.",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "PR.AT-02.2": {
+  "goal": "The goal of this control is to ensure that individuals in specialised roles receive cybersecurity awareness and training before privileged access is granted, enabling them to perform their tasks with a strong understanding of cybersecurity risks.",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "PR.AT-02.3": {
+  "goal": "The goal of this control is to ensure that individuals granted privileged access, whether in IT or OT environments, are demonstrably competent and fully aware of the cybersecurity responsibilities, risks, and authority boundaries tied to their role. This reduces the likelihood of accidental misuse or exploitation of elevated privileges, especially in critical systems where operational continuity and safety are at stake.",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "PR.DS-01.1": {
+  "goal": "The goal of this control is to ensure the integrity and trustworthiness of critical system components, such as software, firmware, and configuration data, by detecting unauthorised modifications that could compromise operational safety, reliability, or security across all lifecycle stages, including storage, transport, and start-up.",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "PR.DS-01.2": {
+  "goal": "The goal of this control is to ensure that discrepancies in system or data integrity are detected and reported automatically, enabling timely response and reducing the risk of undetected tampering, especially in environments where operational continuity and safety are critical.",
+  "source": "CyFun2025_Booklet_ESSENTIAL_E.pdf"
+ },
+ "PR.DS-01.3": {
+  "goal": "The goal of this control is to minimise the impact of integrity violations by enabling timely, proportionate, and automated responses that help contain threats, preserve system stability, and support forensic analysis, especially in environments where manual intervention may be delayed or impractical.",
+  "source": "CyFun2025_Booklet_ESSENTIAL_E.pdf"
+ },
+ "PR.DS-01.4": {
+  "goal": "The goal of this control is to reduce the risk of data leakage, unauthorised access, and malware introduction by defining and enforcing clear policies and safeguards for the use of portable storage media.",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "PR.DS-01.5": {
+  "goal": "The goal of this control is to minimise the attack surface in operational and IT environments by strictly limiting the use of removable media and preventing automatic execution of potentially harmful files.",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "PR.DS-01.9": {
+  "goal": "The goal of this control is to ensure that all enterprise assets are disposed of in a secure and controlled manner,",
+  "source": "CyFun2025_Booklet_BASIC_E.pdf"
+ },
+ "PR.DS-02.1": {
+  "goal": "The goal of this control is to prevent unauthorised access, tampering, or loss of critical system data when portable storage devices are moved between locations or stored outside secure environments. In OT environments, where data may be transferred between isolated systems or remote sites using physical media, protecting these devices is essential to maintain system integrity and confidentiality.",
+  "source": "CyFun2025_Booklet_ESSENTIAL_E.pdf"
+ },
+ "PR.DS-02.2": {
+  "goal": "The goal of this control is to ensure that critical and sensitive information remains confidential and unaltered while being transmitted across networks or between systems, especially in environments where data flows between IT and OT layers or across remote sites. In OT contexts, where data may traverse less secure or legacy communication channels (e.g. between control systems, field devices, or remote monitoring stations), protection in transit is essential to prevent interception, manipulation, or leakage. This control builds further on PR.DS-01.1.",
+  "source": "CyFun2025_Booklet_ESSENTIAL_E.pdf"
+ },
+ "PR.DS-10.1": {
+  "goal": "The goal of this control is to ensure that critical systems remain available and operational even when targeted by denial-of-service (DoS) attacks, which aim to overload or disrupt services.",
+  "source": "CyFun2025_Booklet_ESSENTIAL_E.pdf"
+ },
+ "PR.DS-11.1": {
+  "goal": "The goal of this control is to ensure that business-critical data is regularly backed up and securely stored on a separate system to protect against data loss, system failure, or cyberattacks such as ransomware.",
+  "source": "CyFun2025_Booklet_BASIC_E.pdf"
+ },
+ "PR.DS-11.2": {
+  "goal": "The goal of this control is to ensure that backup data can be trusted and successfully restored when needed, supporting operational continuity and resilience.",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "PR.DS-11.3": {
+  "goal": "The goal of this control is to ensure that the organisation can reliably recover its business-critical data in two key scenarios: · Natural disasters or physical damage to the primary site (requiring offsite or cloud-based backups). · Advanced cyberattacks, including ransomware or insider threats, where attackers may attempt to corrupt or delete backups (requiring isolated or tamper-proof backups). This control helps ensure that an organisation can recover its critical data if something goes wrong. It focuses on keeping backups separate and just as secure as the original data, making it especially useful for organisations that are still building up their cybersecurity capabilities (organisations with less mature security posture). ·",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "PR.DS-11.4": {
+  "goal": "This control is an evolution of PR.DS-11.3 and ensures that backup systems are not only in place but are regularly tested and aligned with the organisation’s broader recovery and continuity plans. It highlights the importance of coordination across teams and proactive planning, helping the organisation stay prepared to recover quickly and effectively from serious incidents.",
+  "source": "CyFun2025_Booklet_ESSENTIAL_E.pdf"
+ },
+ "PR.DS-11.5": {
+  "goal": "The goal of this control is to support faster and more reliable recovery by separating backups of critical systems (e.g. operating systems, configurations, applications) from backups of critical information (e.g. business data, documents, databases).",
+  "source": "CyFun2025_Booklet_ESSENTIAL_E.pdf"
+ },
+ "PR.IR-01.1": {
+  "goal": "The goal of this control is to ensure that all networks used by the organisation are protected against unauthorised access and cyber threats through the installation, configuration, and active maintenance of firewalls. This control focuses on the installation, configuration, and maintenance of network-based firewalls to prevent unauthorised access by monitoring and controlling traffic entering or leaving the network (focus: control and prevention). In contrast, control DE.CM-01.1 addresses host-based firewalls, which help detect threats that bypass the network perimeter by monitoring traffic to and from individual devices (focus: visibility and detection).",
+  "source": "CyFun2025_Booklet_BASIC_E.pdf"
+ },
+ "PR.IR-01.2": {
+  "goal": "The goal of this control is to limit the spread of cyber threats and enforce strict access control by implementing network segmentation and segregation based on trust boundaries and the criticality of systems.",
+  "source": "CyFun2025_Booklet_BASIC_E.pdf"
+ },
+ "PR.IR-01.4": {
+  "goal": "The goal of this control is to ensure secure and reliable operations by actively monitoring and controlling communications at key network boundaries — especially where critical systems interface with external networks or less trusted internal zones. In OT environments, where legacy systems often lack built-in security, boundary protection is essential to prevent unauthorised access, contain potential threats, and maintain process integrity across IT and OT domains.",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "PR.IR-01.5": {
+  "goal": "The goal of this control is to reduce the risk of cyber threats entering critical systems, by filtering and inspecting outbound and inbound communications through authenticated proxies or firewalls.",
+  "source": "CyFun2025_Booklet_ESSENTIAL_E.pdf"
+ },
+ "PR.IR-01.6": {
+  "goal": "The goal of this control is to ensure that critical systems remain protected and do not become exposed or vulnerable if a firewall, proxy, or other boundary protection device fails. In OT environments, where availability and safety are paramount, systems should be designed to fail securely, for example, by defaulting to a deny-all state, isolating affected segments, or triggering alerts, so that a failure in one component does not compromise the entire system or allow unauthorised access.",
+  "source": "CyFun2025_Booklet_ESSENTIAL_E.pdf"
+ },
+ "PR.IR-01.7": {
+  "goal": "The goal of this control is to prevent unintended disruptions, safety risks, or security breaches by ensuring that development and testing activities do not interfere with live operational systems. In OT environments, such as Industrial Control Systems (ICS), even minor crossovers between test and production can lead to unsafe conditions, process interruptions, or exposure of sensitive configurations. Strict separation helps maintain system integrity, supports change control, and reduces the risk of accidental or malicious actions affecting critical operations.",
+  "source": "CyFun2025_Booklet_ESSENTIAL_E.pdf"
+ },
+ "PR.IR-01.8": {
+  "goal": "This requirement builds on PR.IR-01.3 (control of system connections) and PR.IR-01.4 (boundary protection), but goes further by focusing on what data is allowed to move, where, and under what conditions — not just how systems are connected or segmented. It also complements ID.AM-03.2, which requires that network communication and internal data flows be mapped, documented, authorised, and updated. PR.IR-01.8 ensures that these documented flows are also actively enforced and monitored. Controlling information and data flows is especially critical in ICS/OT environments, where any unauthorised or unintended exchange of data can compromise health, safety, and environmental protection, and must therefore be strictly governed.",
+  "source": "CyFun2025_Booklet_ESSENTIAL_E.pdf"
+ },
+ "PR.IR-01.9": {
+  "goal": "This control builds on PR.IR-01.8 by focusing specifically on how external communications are governed within the organisation’s network security policy. While firewall configurations and baseline security settings provide technical enforcement, this requirement emphasises the policy and oversight layer.",
+  "source": "CyFun2025_Booklet_ESSENTIAL_E.pdf"
+ },
+ "PR.IR-02.1": {
+  "goal": "The goal of this control is to protect critical systems from environmental hazards and emergencies that could disrupt operations, damage equipment, or endanger safety — especially in OT environments where physical conditions directly impact system availability and human safety.",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "PR.IR-02.2": {
+  "goal": "The goal of this control is to ensure that fire incidents are detected early and that key personnel are automatically alerted, to enable a rapid and coordinated response — especially in environments where critical systems support safety or essential operations.",
+  "source": "CyFun2025_Booklet_ESSENTIAL_E.pdf"
+ },
+ "PR.IR-03.1": {
+  "goal": "The goal of this control is to ensure that critical systems and services remain operational, or can be quickly restored, during both normal operations and adverse conditions such as cyber-attacks, hardware failures, or natural disasters. This control supports the broader objective of operational resilience. While redundancy (as addressed in",
+  "source": "CyFun2025_Booklet_ESSENTIAL_E.pdf"
+ },
+ "PR.IR-04.1": {
+  "goal": "The goal of this control is to ensure that critical systems have enough computing, storage, and network resources available at all times by planning ahead for current and future capacity needs.",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "PR.PS-01.1": {
+  "goal": "This control ensures that all business-critical systems operate in a known, secure, and approved state. A baseline configuration defines the standard setup for these systems, helping to detect unauthorised changes, enforce security policies, and support consistent operations.",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "PR.PS-01.2": {
+  "goal": "The goal of this control is to reduce security risks and system complexity by ensuring that business-critical systems are configured to run only the functions necessary for their intended purpose.",
+  "source": "CyFun2025_Booklet_ESSENTIAL_E.pdf"
+ },
+ "PR.PS-01.3": {
+  "goal": "The goal of this control is to reduce the attack surface of critical systems by disabling functions, ports, protocols, and services that are not essential for business operations.",
+  "source": "CyFun2025_Booklet_ESSENTIAL_E.pdf"
+ },
+ "PR.PS-01.4": {
+  "goal": "The goal of this control is to ensure that only explicitly authorised software is allowed to run, reducing the risk of unauthorised or malicious programs affecting critical systems.",
+  "source": "CyFun2025_Booklet_ESSENTIAL_E.pdf"
+ },
+ "PR.PS-01.5": {
+  "goal": "The goal of this control is to detect and respond to unauthorised configuration changes that could compromise system integrity or availability.",
+  "source": "CyFun2025_Booklet_ESSENTIAL_E.pdf"
+ },
+ "PR.PS-02.1": {
+  "goal": "The goal of this control is to reduce security and operational risks by controlling which software is used, ensuring it is properly maintained, and removing it when no longer needed or supported.",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "PR.PS-03.1": {
+  "goal": "The goal of this control is to ensure that hardware used in business-critical environments remains secure, reliable, and fit for purpose by managing it based on operational and security risks.",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "PR.PS-04.1": {
+  "goal": "The goal of this control is to ensure that logs are consistently maintained, documented, and monitored to support visibility, accountability, and early detection of anomalies or threats.",
+  "source": "CyFun2025_Booklet_BASIC_E.pdf"
+ },
+ "PR.PS-04.2": {
+  "goal": "The goal of this control is to ensure that logbook records across systems use a consistent and trusted time reference, so that events can be accurately tracked and correlated.",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "PR.PS-04.3": {
+  "goal": "The goal of this control is to protect the integrity of audit records by transferring them from critical systems to a separate, secure location where they cannot be changed or tampered with.",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "PR.PS-04.4": {
+  "goal": "The goal of this control is to ensure that any failure in audit logging, such as errors in log collection, processing, or storage, triggers alerts and predefined responses to maintain system integrity and traceability.",
+  "source": "CyFun2025_Booklet_ESSENTIAL_E.pdf"
+ },
+ "PR.PS-04.5": {
+  "goal": "The goal of this control is to ensure that audit logging can be quickly adapted to provide deeper visibility during security incidents or investigations, without disrupting normal operations.",
+  "source": "CyFun2025_Booklet_ESSENTIAL_E.pdf"
+ },
+ "PR.PS-05.1": {
+  "goal": "The goal of this control is to reduce the risk of malware infections, phishing attacks, and data breaches by implementing and maintaining effective web and email filtering solutions.",
+  "source": "CyFun2025_Booklet_BASIC_E.pdf"
+ },
+ "PR.PS-05.2": {
+  "goal": "The goal of this control is to reduce the risk of compromise by ensuring only trusted and approved software is installed and executed on systems.",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "PR.PS-06.1": {
+  "goal": "The goal of this control is to make sure that security is built into systems and applications from the beginning and maintained throughout their entire life — from design to retirement — whether they are developed in-house or purchased.",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "PR.PS-06.2": {
+  "goal": "The goal of this control is to reduce the risk of disruptions or vulnerabilities by ensuring that all changes and exceptions are properly tested and validated before being applied to operational systems.",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "PR.PS-06.3": {
+  "goal": "The goal of this control is to reduce security risks in software by embedding protective measures throughout development and continuously improving them based on performance and evolving threats.",
+  "source": "CyFun2025_Booklet_ESSENTIAL_E.pdf"
+ },
+ "RC.CO-03.1": {
+  "goal": "The goal of this control is to ensure that recovery efforts and the progress of restoring operational capabilities are clearly and consistently communicated to all relevant internal and external stakeholders. This supports transparency, coordination, and informed decision-making during the recovery phase of an incident.",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "RC.CO-04.1": {
+  "goal": "The goal of this control is to ensure that public communication during the recovery phase of an incident is accurate, timely, and delivered through approved channels, in order to maintain trust, manage reputational risk, and meet legal or regulatory obligations.",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "RC.CO-04.2": {
+  "goal": "The goal of this control is to ensure that public communication during cybersecurity or information security incident recovery is professionally managed, accurate, and aligned with the organisation’s confidentiality and integrity standards. By assigning a dedicated Public Relations Officer (PRO), the organisation ensures that public messaging is handled by a trained individual who can maintain trust, protect the organisation’s reputation, and comply with legal and regulatory requirements.",
+  "source": "CyFun2025_Booklet_ESSENTIAL_E.pdf"
+ },
+ "RC.CO-04.3": {
+  "goal": "The goal of this control is to ensure that the organisation is prepared to manage communications effectively during and after a crisis, in order to minimise reputational damage, maintain stakeholder trust, and support recovery efforts.",
+  "source": "CyFun2025_Booklet_ESSENTIAL_E.pdf"
+ },
+ "RC.RP-01.1": {
+  "goal": "The goal of this control is to ensure the organisation can respond quickly and effectively to disasters, information security incidents, and cybersecurity events by developing and executing a structured recovery process that protects people, systems, and data.",
+  "source": "CyFun2025_Booklet_BASIC_E.pdf"
+ },
+ "RC.RP-02.1": {
+  "goal": "The goal of this control is to minimise disruption to critical operations during incidents and ensure they remain functional until systems are fully restored.",
+  "source": "CyFun2025_Booklet_ESSENTIAL_E.pdf"
+ },
+ "RC.RP-05.1": {
+  "goal": "The goal of this control is to ensure that systems and services are not only restored after an incident, but also verified to be safe, uncompromised, and fully functional before being returned to normal operations.",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "RC.RP-06.1": {
+  "goal": "The goal of this control is to ensure that the incident recovery process is formally and responsibly concluded, and that comprehensive documentation is completed to support accountability, learning, and future preparedness.",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "RS.AN-03.1": {
+  "goal": "The goal of this control is to understand the full scope of a cybersecurity incident and identify its root cause, enabling effective response and prevention of similar future events.",
+  "source": "CyFun2025_Booklet_ESSENTIAL_E.pdf"
+ },
+ "RS.AN-06.1": {
+  "goal": "The goal of this control is to ensure that all actions taken during an incident investigation are properly recorded, and that the integrity and origin of those records are protected.",
+  "source": "CyFun2025_Booklet_ESSENTIAL_E.pdf"
+ },
+ "RS.AN-07.1": {
+  "goal": "The goal of this control is to ensure that all relevant information about a cybersecurity incident is accurately captured, securely stored, and reliably traceable, so it can be used effectively for response, investigation, and legal or compliance purposes. Therefore the following should be considered: · Incident data and metadata (such as the source of the data and the time it was collected) should be gathered and stored in a way that protects them from tampering or loss. · The integrity and origin of this information should be preserved using methods such as: · Chain of custody documentation to track how the data is handled from collection to analysis.",
+  "source": "CyFun2025_Booklet_ESSENTIAL_E.pdf"
+ },
+ "RS.AN-08.1": {
+  "goal": "The goal of this control is to ensure that organisations have a clear understanding of the full scope and impact of a cybersecurity incident, so that response actions can be appropriately scaled, prioritised, and coordinated. Therefore the following should be considered: · The scope and impact of an incident should be assessed by examining not only the initially affected system but also other systems or devices that may be compromised. · Indicators of Compromise (IoCs), such as unusual network activity, unauthorised access attempts, or unexpected software changes, should be identified to understand how far the incident has spread. · Signs of persistence, including backdoors or malware that allow continued access, should be investigated",
+  "source": "CyFun2025_Booklet_ESSENTIAL_E.pdf"
+ },
+ "RS.CO-02.1": {
+  "goal": "The goal of this control is to ensure that all employees are informed about cybersecurity incidents in a timely and understandable manner, so they can respond appropriately and help reduce risks.",
+  "source": "CyFun2025_Booklet_BASIC_E.pdf"
+ },
+ "RS.CO-02.2": {
+  "goal": "The goal of this control is to ensure that all relevant external parties are informed about cybersecurity incidents in a timely, secure, and appropriate manner, helping to maintain trust and meet legal and contractual obligations.",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "RS.MA-01.1": {
+  "goal": "The goal of this control is to ensure that a well-defined incident response plan is executed during or after a cybersecurity event affecting the organisation’s critical systems, enabling timely detection, containment, communication, and recovery.",
+  "source": "CyFun2025_Booklet_BASIC_E.pdf"
+ },
+ "RS.MA-01.2": {
+  "goal": "The goal of this control is to ensure that all relevant internal and external stakeholders work together effectively during a cybersecurity or information incident.",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "RS.MA-02.1": {
+  "goal": "The goal of this control is to ensure that all reported incidents are systematically reviewed and assessed before any further action is taken. This control is a foundational step in the incident response process and the following should be considered: · Filter out irrelevant or false reports Not every report received is a real incident. This control ensures that only legitimate, cybersecurity-relevant incidents are acted upon. · Ensure timely and appropriate response By triaging and validating reports early, organisations can prioritise real threats and avoid wasting resources on non-issues.",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "RS.MA-02.2": {
+  "goal": "The goal of this control is to ensure that organisations are equipped with the technical capabilities to efficiently and accurately handle cybersecurity incidents once they have been validated.",
+  "source": "CyFun2025_Booklet_ESSENTIAL_E.pdf"
+ },
+ "RS.MA-03.1": {
+  "goal": "This control is an evolution of RS.MA-02.1 and is to ensure that once an incident is validated, it is systematically classified and managed based on its nature, urgency, and potential impact, so that the organisation can respond efficiently, consistently, and appropriately. Therefore the following should be considered: · Incidents should be reviewed and classified based on their type (e.g. data breach, ransomware, DDoS, account compromise) and the validated magnitude of their impact. · The estimation and validation of an incident’s magnitude — further developed in RS.AN-08.1 (Essential), should inform how incidents are categorised and prioritised. ·",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "RS.MA-05.1": {
+  "goal": "The goal of this control is to ensure that organisations have a clear, consistent, and risk-informed decision-­making process for determining when to begin recovery actions following a cybersecurity incident. Therefore the following should be considered: · Criteria for initiating incident recovery should be based on the known or assumed characteristics of the incident, such as its severity, scope, and potential impact on operations, data, or systems. · The decision to begin recovery should also consider the potential disruption that recovery activities may cause to ongoing operations. · Recovery Point Objectives (RPO) and Recovery Time Objectives (RTO) should be included in the criteria to",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "RS.MI-01.1": {
+  "goal": "The goal of this control is to stop cybersecurity incidents from spreading, remove their cause, and ensure that any accepted risks are clearly recorded and approved.",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ },
+ "RS.MI-01.2": {
+  "goal": "The goal of this control is to detect unauthorised access and data leakage in a timely manner and to take appropriate mitigation actions. This should help protect the confidentiality, integrity, availability, and safety of data, whether it is stored, being transmitted, or actively used, across both Information Technology (IT) and Operational Technology (OT) environments.",
+  "source": "CyFun2025_Booklet_IMPORTANT_E.pdf"
+ }
+}

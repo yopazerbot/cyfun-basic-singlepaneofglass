@@ -8,9 +8,8 @@ from sqlalchemy.orm import Session
 
 from ..auth import require_admin, require_user
 from ..db import get_db
-from ..framework import load_framework
 from ..models import Document, User
-from ..services import log_activity, parse_date
+from ..services import current_framework, log_activity, parse_date, valid_requirement_ids
 from ..views import redirect, render
 
 router = APIRouter(prefix="/documents", tags=["documents"])
@@ -18,15 +17,14 @@ TYPES = ("policy", "procedure", "plan", "register", "record", "other")
 STATUSES = ("draft", "approved", "retired")
 
 
-def _ctx(request: Request, db: Session, edit: Document | None):
-    fw = load_framework()
+def _ctx(db: Session, edit: Document | None):
     docs = db.execute(select(Document).order_by(Document.status, Document.title)).scalars().all()
-    return {"active": "documents", "docs": docs, "types": TYPES, "statuses": STATUSES, "fw": fw, "edit": edit}
+    return {"active": "documents", "docs": docs, "types": TYPES, "statuses": STATUSES, "fw": current_framework(db), "edit": edit}
 
 
 @router.get("")
 def list_docs(request: Request, user: User = Depends(require_user), db: Session = Depends(get_db)):
-    return render(request, "documents.html", _ctx(request, db, None))
+    return render(request, "documents.html", _ctx(db, None))
 
 
 @router.get("/{doc_id}")
@@ -34,11 +32,10 @@ def edit_doc(request: Request, doc_id: int, user: User = Depends(require_user), 
     d = db.get(Document, doc_id)
     if d is None:
         return redirect("/documents", err="Document not found.")
-    return render(request, "documents.html", _ctx(request, db, d))
+    return render(request, "documents.html", _ctx(db, d))
 
 
 def _apply(d: Document, form) -> None:
-    fw = load_framework()
     d.title = (form.get("title") or "").strip()[:300] or d.title or "Untitled"
     d.doc_type = form.get("doc_type") if form.get("doc_type") in TYPES else "other"
     d.owner = (form.get("owner") or "").strip()[:200]
@@ -50,7 +47,7 @@ def _apply(d: Document, form) -> None:
     d.next_review = parse_date(form.get("next_review"))
     link = (form.get("link") or "").strip()[:1000]
     d.link = link if (not link or link.lower().startswith(("https://", "http://"))) else ""
-    d.requirement_ids = [r for r in form.getlist("requirement_ids") if r in fw.by_id]
+    d.requirement_ids = valid_requirement_ids(form.getlist("requirement_ids"))
     d.notes = (form.get("notes") or "").strip()
 
 
@@ -63,7 +60,7 @@ async def create_doc(request: Request, user: User = Depends(require_admin), db: 
     _apply(d, form)
     db.add(d)
     db.commit()
-    log_activity(db, user.email, "document_create", "document", str(d.id), {"title": d.title, "status": d.status})
+    log_activity(db, user.label, "document_create", "document", str(d.id), {"title": d.title, "status": d.status})
     return redirect("/documents", msg="Document added.")
 
 
@@ -75,7 +72,7 @@ async def update_doc(request: Request, doc_id: int, user: User = Depends(require
     form = await request.form()
     _apply(d, form)
     db.commit()
-    log_activity(db, user.email, "document_update", "document", str(d.id), {"title": d.title, "status": d.status, "version": d.version})
+    log_activity(db, user.label, "document_update", "document", str(d.id), {"title": d.title, "status": d.status, "version": d.version})
     return redirect("/documents", msg="Document updated.")
 
 
@@ -85,5 +82,5 @@ def delete_doc(request: Request, doc_id: int, user: User = Depends(require_admin
     if d is not None:
         db.delete(d)
         db.commit()
-        log_activity(db, user.email, "document_delete", "document", str(doc_id), {"title": d.title})
+        log_activity(db, user.label, "document_delete", "document", str(doc_id), {"title": d.title})
     return redirect("/documents", msg="Document deleted.")

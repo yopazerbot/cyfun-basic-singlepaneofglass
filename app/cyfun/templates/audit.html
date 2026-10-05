@@ -2,15 +2,15 @@
 {% block title %}Audit view · {{ settings.app_name }}{% endblock %}
 {% block content %}
 <header class="page-head">
-  <div class="eyebrow">Verification view · read-only · {{ org.name or "organisation not set" }}</div>
+  <div class="eyebrow">Verification view · read-only · {{ org.name or "organisation not set" }} · CyFun 2025 {{ fw.level }}</div>
   <h1>Audit view</h1>
   <p class="lead">Everything the Conformity Assessment Body needs per requirement: score, justification, evidence, documents and the latest automated checks. Exports: <a href="/audit/export">CCB workbook, audit pack, JSON</a>.</p>
 </header>
 
 <section class="grid stats">
-  <div class="card stat {{ 'good' if summary.passes else 'bad' }}"><div class="stat-label">BASIC thresholds</div><div class="stat-value">{{ "met" if summary.passes else "not met" }}</div><div class="stat-sub">total ≥ 2,50 and each key measure ≥ 2,50</div></div>
+  <div class="card stat {{ 'good' if summary.passes else 'bad' }}"><div class="stat-label">{{ fw.level }} thresholds</div><div class="stat-value">{{ "met" if summary.passes else "not met" }}</div><div class="stat-sub">total ≥ {{ summary.total_min|score }} · key measures ≥ {{ summary.km_min|score }}{% if summary.cat_min %} · categories ≥ {{ summary.cat_min|score }}{% endif %}</div></div>
   <div class="card stat"><div class="stat-label">Total maturity</div><div class="stat-value">{{ summary.total_maturity|score }}</div><div class="stat-sub">{{ summary.scored_count }} of {{ summary.total_count }} scored · {{ summary.na_count }} N/A</div></div>
-  <div class="card stat"><div class="stat-label">Key measures at target</div><div class="stat-value">{{ summary.key_measures_passing }}<span class="of">/ {{ summary.key_measures|length }}</span></div></div>
+  <div class="card stat"><div class="stat-label">Key measures at target</div><div class="stat-value">{{ summary.key_measures_passing }}<span class="of">/ {{ summary.key_measures|length }}</span></div>{% if summary.cat_min %}<div class="stat-sub">categories below {{ summary.cat_min|score }}: {{ summary.categories_failing|length }}</div>{% endif %}</div>
   <div class="card stat"><div class="stat-label">Assurance level (risk)</div><div class="stat-value">{{ risk.level if risk else "n/a" }}</div><div class="stat-sub">{% if risk %}score {{ risk.total_score|score(1) }} · {{ risk.sector_id }}{% else %}risk assessment not done{% endif %}</div></div>
 </section>
 
@@ -21,6 +21,7 @@
       <tr><th>Organisation</th><td>{{ org.name }}</td></tr>
       <tr><th>Legal entity</th><td>{{ org.legal_entity }} {{ org.enterprise_number }}</td></tr>
       <tr><th>Contact</th><td>{{ org.contact }}</td></tr>
+      <tr><th>Target level</th><td>{{ fw.level }} (CCB tool version {{ fw.tool_version }})</td></tr>
       <tr><th>Scope</th><td>{{ org.scope_description|nl2br }}</td></tr>
       <tr><th>Exclusions</th><td>{{ org.scope_exclusions|nl2br }}</td></tr>
       <tr><th>CAB</th><td>{{ org.cab_name }}</td></tr>
@@ -30,8 +31,8 @@
   <div class="card">
     <div class="card-head"><h2>Snapshots</h2></div>
     {% if snapshots %}
-    <table class="list small"><thead><tr><th>Name</th><th>Taken</th><th class="num">Total</th><th>Thresholds</th><th></th></tr></thead>
-      <tbody>{% for s in snapshots %}<tr><td>{{ s.name }}</td><td class="muted nowrap">{{ s.taken_at|date }}<br>{{ s.taken_by }}</td><td class="num">{{ s.total_maturity|score }}</td><td><span class="chip {{ 'ok' if s.passes else 'bad' }}">{{ "met" if s.passes else "not met" }}</span></td><td><a href="/audit/snapshot/{{ s.id }}.json">JSON</a></td></tr>{% endfor %}</tbody></table>
+    <table class="list small"><thead><tr><th>Name</th><th>Level</th><th>Taken</th><th class="num">Total</th><th>Thresholds</th><th></th></tr></thead>
+      <tbody>{% for s in snapshots %}<tr><td>{{ s.name }}</td><td class="mono">{{ s.level }}</td><td class="muted nowrap">{{ s.taken_at|date }}<br>{{ s.taken_by }}</td><td class="num">{{ s.total_maturity|score }}</td><td><span class="chip {{ 'ok' if s.passes else 'bad' }}">{{ "met" if s.passes else "not met" }}</span></td><td><a href="/audit/snapshot/{{ s.id }}.json">JSON</a></td></tr>{% endfor %}</tbody></table>
     {% else %}<p class="muted">No snapshots yet. Take one when you submit the self-declaration and before the verification.</p>{% endif %}
     {% if user.role == 'admin' %}
     <form class="inline-form" method="post" action="/audit/snapshot"><input name="name" maxlength="200" placeholder="Snapshot name, e.g. Self-declaration {{ today|date }}"><button class="btn secondary small" type="submit">Take snapshot</button></form>
@@ -43,14 +44,14 @@
 <section class="card audit-function">
   <h2><span class="mono">{{ f.id }}</span> {{ f.name }} <span class="muted">doc {{ summary.functions[f.id].doc|score }} · impl {{ summary.functions[f.id].impl|score }}</span></h2>
   {% for c in f.categories %}
-  <h3><span class="mono">{{ c.id }}</span> {{ c.name }} <span class="chip {{ summary.categories[c.id].maturity|status_word }}">{{ summary.categories[c.id].maturity|score }}</span></h3>
+  <h3><span class="mono">{{ c.id }}</span> {{ c.name }} <span class="chip {{ summary.categories[c.id].maturity|status_word(summary.cat_min or summary.target) }}">{{ summary.categories[c.id].maturity|score }}</span></h3>
   {% for s in c.subcategories %}{% for r in s.requirements %}
   {% set res = summary.requirements[r.id] %}{% set sc = scores.get(r.id) %}
   <article class="audit-req">
     <div class="audit-req-head">
-      <a class="mono" href="/assessment/{{ r.id }}">{{ r.id }}</a>{% if r.key_measure %} <span class="tag km">KM</span>{% endif %}
+      <a class="mono" href="/assessment/{{ r.id }}">{{ r.id }}</a> <span class="tag level-{{ r.level|lower }}">{{ r.level }}</span>{% if r.key_measure %} <span class="tag km">KM</span>{% endif %}{% if r.management_aspect %} <span class="tag ma">MA</span>{% endif %}
       <span class="scores">doc {% if res.not_applicable %}N/A{% else %}{{ res.doc|score(0) if res.doc is not none else "·" }}{% endif %} · impl {% if res.not_applicable %}N/A{% else %}{{ res.impl|score(0) if res.impl is not none else "·" }}{% endif %}</span>
-      {% if res.maturity is not none %}<span class="chip {{ res.maturity|status_word }}">{{ res.maturity|score }}</span>{% else %}<span class="chip none">not scored</span>{% endif %}
+      {% if res.maturity is not none %}<span class="chip {{ res.maturity|status_word(summary.km_min if r.key_measure else summary.target) }}">{{ res.maturity|score }}</span>{% else %}<span class="chip none">not scored</span>{% endif %}
     </div>
     <p class="req-text">{{ r.text }}</p>
     {% if sc and sc.justification %}<p class="justification">{{ sc.justification|nl2br }}</p>{% else %}<p class="muted small">No justification recorded.</p>{% endif %}

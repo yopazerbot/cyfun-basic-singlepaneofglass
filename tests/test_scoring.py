@@ -80,7 +80,7 @@ def test_key_measure_cannot_be_not_applicable():
     inputs = all_scores(fw, 3, 3)
     inputs["PR.DS-11.1"] = ReqInput(None, None, True)
     s = compute(fw, inputs)
-    assert any("Key measure" in p for p in s.problems)
+    assert any("key measure" in p for p in s.problems)
     assert not s.passes
 
 

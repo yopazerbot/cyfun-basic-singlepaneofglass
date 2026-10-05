@@ -11,24 +11,50 @@ from sqlalchemy.orm import Session
 from ..auth import require_admin, require_user
 from ..config import get_settings
 from ..db import get_db
-from ..framework import load_framework
 from ..models import Action, Activity, Document, Evidence, Score, User
-from ..scoring import ReqInput, validate_input
-from ..services import by_requirement, checks_by_requirement, current_summary, latest_checks, log_activity, parse_int, scores_by_id, store_upload
+from ..scoring import ReqInput, na_blocked_reason, validate_input
+from ..services import (
+    by_requirement,
+    checks_by_requirement,
+    current_framework,
+    current_summary,
+    latest_checks,
+    log_activity,
+    parse_date,
+    parse_int,
+    scores_by_id,
+    store_upload,
+)
 from ..views import redirect, render
 
 router = APIRouter(prefix="/assessment", tags=["assessment"])
+LEVEL_FILTERS = ("all", "Basic", "Important", "Essential", "km", "unscored", "below")
 
 
 @router.get("")
-def overview(request: Request, user: User = Depends(require_user), db: Session = Depends(get_db)):
-    fw = load_framework()
+def overview(request: Request, level: str = "all", user: User = Depends(require_user), db: Session = Depends(get_db)):
+    fw = current_framework(db)
     summary = current_summary(db, fw)
     scores = scores_by_id(db)
     evidence = by_requirement(db.execute(select(Evidence)).scalars().all())
     documents = by_requirement(db.execute(select(Document).where(Document.status != "retired")).scalars().all())
     checks = checks_by_requirement(latest_checks(db))
-    actions = by_requirement(db.execute(select(Action).where(Action.status.in_(["open", "in_progress"])).select_from(Action)).scalars().all(), "requirement_id")
+    actions = by_requirement(db.execute(select(Action).where(Action.status.in_(["open", "in_progress"]))).scalars().all(), "requirement_id")
+    flt = level if level in LEVEL_FILTERS else "all"
+
+    def visible(r) -> bool:
+        res = summary.requirements[r.id]
+        if flt in ("Basic", "Important", "Essential"):
+            return r.level == flt
+        if flt == "km":
+            return r.key_measure
+        if flt == "unscored":
+            return not res.scored
+        if flt == "below":
+            return res.maturity is not None and res.maturity < summary.target
+        return True
+
+    shown = {r.id for r in fw.requirements if visible(r)}
     return render(
         request,
         "assessment_list.html",
@@ -41,16 +67,19 @@ def overview(request: Request, user: User = Depends(require_user), db: Session =
             "documents": documents,
             "checks": checks,
             "actions": actions,
+            "flt": flt,
+            "shown": shown,
+            "counts": fw.count_by_level(),
         },
     )
 
 
 @router.get("/{rid}")
 def detail(request: Request, rid: str, user: User = Depends(require_user), db: Session = Depends(get_db)):
-    fw = load_framework()
+    fw = current_framework(db)
     req = fw.get(rid)
     if req is None:
-        return redirect("/assessment", err="Unknown requirement.")
+        return redirect("/assessment", err=f"{rid} is not part of the {fw.level} requirement set.")
     summary = current_summary(db, fw)
     score = db.get(Score, rid)
     evidence = [e for e in db.execute(select(Evidence).order_by(Evidence.id.desc())).scalars().all() if rid in (e.requirement_ids or [])]
@@ -59,6 +88,8 @@ def detail(request: Request, rid: str, user: User = Depends(require_user), db: S
     actions = db.execute(select(Action).where(Action.requirement_id == rid).order_by(Action.status, Action.due_date)).scalars().all()
     history = db.execute(select(Activity).where(Activity.entity == "score", Activity.entity_id == rid).order_by(Activity.id.desc()).limit(10)).scalars().all()
     prev_, next_ = fw.neighbours(rid)
+    blocked = na_blocked_reason(req, fw.thresholds)
+    na_available = blocked is None and (summary.na_count < summary.na_allowed or (score is not None and score.not_applicable))
     return render(
         request,
         "assessment_detail.html",
@@ -76,7 +107,8 @@ def detail(request: Request, rid: str, user: User = Depends(require_user), db: S
             "history": history,
             "prev": prev_,
             "next": next_,
-            "na_available": summary.na_count == 0 or (score is not None and score.not_applicable),
+            "na_available": na_available,
+            "na_blocked": blocked,
         },
     )
 
@@ -93,10 +125,10 @@ def save_score(
     user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
-    fw = load_framework()
+    fw = current_framework(db)
     req = fw.get(rid)
     if req is None:
-        return redirect("/assessment", err="Unknown requirement.")
+        return redirect("/assessment", err=f"{rid} is not part of the {fw.level} requirement set.")
     na = not_applicable == "1"
     errors: list[str] = []
     parsed: dict[str, int | None] = {}
@@ -108,9 +140,14 @@ def save_score(
     inp = ReqInput(parsed["documentation"], parsed["implementation"], na)
     errors += validate_input(req, inp, fw.thresholds)
     if na:
-        others = [s for s in db.execute(select(Score).where(Score.not_applicable.is_(True))).scalars().all() if s.requirement_id != rid]
-        if others:
-            errors.append(f"Only one requirement may be not applicable at BASIC; {others[0].requirement_id} already is.")
+        others = [
+            s
+            for s in db.execute(select(Score).where(Score.not_applicable.is_(True))).scalars().all()
+            if s.requirement_id != rid and s.requirement_id in fw.by_id
+        ]
+        allowed = int(fw.thresholds["na_allowed"])
+        if len(others) >= allowed:
+            errors.append(f"{fw.level} allows at most {allowed} not applicable requirement(s); already used by {', '.join(o.requirement_id for o in others)}.")
         if not justification.strip():
             errors.append("A justification is required when marking a requirement not applicable.")
     if errors:
@@ -124,13 +161,13 @@ def save_score(
     score.impl_score = None if na else inp.impl
     score.not_applicable = na
     score.justification = justification.strip()
-    score.updated_by = user.email
+    score.updated_by = user.label
     db.commit()
     after = {"doc": score.doc_score, "impl": score.impl_score, "na": score.not_applicable}
     if before != after:
-        log_activity(db, user.email, "score_update", "score", rid, {"before": before, "after": after})
+        log_activity(db, user.label, "score_update", "score", rid, {"before": before, "after": after, "level": fw.level})
     else:
-        log_activity(db, user.email, "justification_update", "score", rid, {})
+        log_activity(db, user.label, "justification_update", "score", rid, {})
     if go == "next":
         _, nxt = fw.neighbours(rid)
         if nxt:
@@ -149,11 +186,11 @@ def add_evidence(
     user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
-    fw = load_framework()
+    fw = current_framework(db)
     if fw.get(rid) is None:
         return redirect("/assessment", err="Unknown requirement.")
     settings = get_settings()
-    ev = Evidence(title=title.strip()[:300], description=description.strip(), requirement_ids=[rid], collected_on=date.today(), collected_by=user.email)
+    ev = Evidence(title=title.strip()[:300], description=description.strip(), requirement_ids=[rid], collected_on=date.today(), collected_by=user.label)
     if file is not None and file.filename:
         try:
             stored, original, digest, size = store_upload(settings, file)
@@ -173,7 +210,7 @@ def add_evidence(
         return redirect(f"/assessment/{rid}", err="Provide a file or a link.")
     db.add(ev)
     db.commit()
-    log_activity(db, user.email, "evidence_add", "evidence", str(ev.id), {"title": ev.title, "requirements": [rid], "sha256": ev.sha256})
+    log_activity(db, user.label, "evidence_add", "evidence", str(ev.id), {"title": ev.title, "requirements": [rid], "sha256": ev.sha256})
     return redirect(f"/assessment/{rid}", msg="Evidence added.")
 
 
@@ -188,9 +225,7 @@ def add_action(
     user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
-    from ..services import parse_date
-
-    fw = load_framework()
+    fw = current_framework(db)
     if fw.get(rid) is None:
         return redirect("/assessment", err="Unknown requirement.")
     a = Action(
@@ -202,5 +237,5 @@ def add_action(
     )
     db.add(a)
     db.commit()
-    log_activity(db, user.email, "action_create", "action", str(a.id), {"title": a.title, "requirement": rid})
+    log_activity(db, user.label, "action_create", "action", str(a.id), {"title": a.title, "requirement": rid})
     return redirect(f"/assessment/{rid}", msg="Action added.")

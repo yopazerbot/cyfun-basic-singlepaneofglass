@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sign in · {{ settings.app_name }}</title>
+  <link rel="stylesheet" href="/static/app.css">
+  <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+</head>
+<body class="plain">
+  <main class="login-card">
+    <div class="brand-mark big">CF</div>
+    <h1>{{ settings.app_name }}</h1>
+    <p class="muted small">CyberFundamentals 2025 · assessment, evidence and verification</p>
+    {% if error %}<div class="flash bad" role="alert">{{ error }}</div>{% endif %}
+    {% if entra %}
+    <a class="btn ms wide" href="/auth/microsoft?next={{ next|urlencode }}"><span class="ms-logo"><i></i><i></i><i></i><i></i></span> Sign in with Microsoft</a>
+    {% endif %}
+    {% if entra and local %}<div class="or">or with a local account</div>{% endif %}
+    {% if local %}
+    <form class="form" method="post" action="/auth/local" autocomplete="on">
+      <input type="hidden" name="next" value="{{ next }}">
+      <label>Username<input name="username" value="{{ username }}" autocomplete="username" required autofocus maxlength="64"></label>
+      <label>Password<input name="password" type="password" autocomplete="current-password" required maxlength="200"></label>
+      <button class="btn wide" type="submit">Sign in</button>
+    </form>
+    {% endif %}
+    {% if not entra and not local %}<p class="muted small">No sign-in method is enabled. See docs/entra-id-sso.md and AUTH_LOCAL_ENABLED.</p>{% endif %}
+  </main>
+</body>
+</html>
