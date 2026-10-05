@@ -75,7 +75,7 @@
       <div class="card-head"><h2>Key measures</h2><span class="muted">each ≥ 2,50</span></div>
       <div class="km-grid">
         {% for k in summary.key_measures %}
-        <a class="km {{ k.maturity|status_word }}" href="/assessment/{{ k.requirement.id }}" title="{{ k.requirement.text }}">
+        <a class="km-tile {{ k.maturity|status_word }}" href="/assessment/{{ k.requirement.id }}" title="{{ k.requirement.text }}">
           <span class="mono">{{ k.requirement.id }}</span>
           <strong>{{ k.maturity|score }}</strong>
         </a>
