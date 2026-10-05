@@ -1,5 +1,6 @@
 import io
 import json
+import re
 import zipfile
 
 
@@ -127,7 +128,8 @@ def test_evidence_upload_download_and_pack(admin):
     )
     assert "err=" in r.headers["location"]
     # download
-    ev_id = int(page.split("/evidence/")[1].split("/download")[0]) if "/download" in page else None
+    m = re.search(r"/evidence/(\d+)/download", page)
+    ev_id = int(m.group(1)) if m else None
     assert ev_id is not None
     d = admin.get(f"/evidence/{ev_id}/download")
     assert d.status_code == 200 and d.content == b"restore test passed 2026-09-30"

@@ -100,9 +100,20 @@ def _unescape(s: str) -> str:
 
 
 # --------------------------------------------------------------------------- package
+MAX_PARTS = 400
+MAX_PART_BYTES = 16 * 1024 * 1024
+MAX_TOTAL_BYTES = 48 * 1024 * 1024
+
+
 class Package:
     def __init__(self, data: bytes):
         self.zin = zipfile.ZipFile(io.BytesIO(data))
+        infos = self.zin.infolist()
+        # The CCB workbooks are about 0,1 MB with about 60 parts. Refuse anything far outside that
+        # before decompressing, so a crafted upload cannot exhaust memory or CPU (zip bomb).
+        too_big = any(i.file_size > MAX_PART_BYTES for i in infos) or sum(i.file_size for i in infos) > MAX_TOTAL_BYTES
+        if len(infos) > MAX_PARTS or too_big:
+            raise ExportError("The uploaded file is far larger than a CCB self-assessment workbook and was refused.")
         self.parts: dict[str, bytes] = {n: self.zin.read(n) for n in self.zin.namelist()}
         self.order = self.zin.namelist()
         wb = self.parts["xl/workbook.xml"].decode("utf-8")

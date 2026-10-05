@@ -102,3 +102,17 @@ def test_validate_range():
     assert validate_input(req, ReqInput(0, 3), fw.thresholds)
     assert validate_input(req, ReqInput(3, 6), fw.thresholds)
     assert validate_input(req, ReqInput(3, 3), fw.thresholds) == []
+
+
+def test_provisional_values_while_incomplete():
+    fw = load_framework()
+    inputs = {r.id: ReqInput(3, 3) for r in fw.requirements[:10]}
+    s = compute(fw, inputs)
+    assert s.total_maturity is None and not s.passes
+    assert s.provisional_total == 3.0
+    first = fw.categories[0]
+    assert s.category_value(first.id) == (3.0, False)  # GV.OC has one requirement, scored
+    untouched = fw.categories[-1]
+    assert s.category_value(untouched.id) == (None, True)
+    full = compute(fw, {r.id: ReqInput(4, 2) for r in fw.requirements})
+    assert full.provisional_total == full.total_maturity == 3.0

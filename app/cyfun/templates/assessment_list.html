@@ -2,46 +2,49 @@
 {% block title %}Self-assessment · {{ settings.app_name }}{% endblock %}
 {% block content %}
 <header class="page-head">
-  <div class="eyebrow">CyFun 2025 {{ fw.level }} · {{ fw.requirements|length }} requirements · {{ fw.key_measures|length }} key measures · tool version {{ fw.tool_version }}</div>
+  <div class="eyebrow">CyFun 2025 {{ fw.level }} · {{ fw.requirements|length }} requirements · {{ fw.key_measures|length }} key measures · CCB tool {{ fw.tool_version }}</div>
   <h1>Self-assessment</h1>
   <p class="lead">
-    Total maturity <strong class="{{ summary.total_maturity|status_word(summary.total_min) }}">{{ summary.total_maturity|score }}</strong> (target {{ summary.total_min|score }}) ·
+    {% if summary.complete %}Total maturity <strong class="{{ summary.total_maturity|status_word(summary.total_min) }}">{{ summary.total_maturity|score }}</strong>{% else %}Provisional total <strong>{{ summary.provisional_total|score }}</strong> over the scored requirements{% endif %} (target {{ summary.total_min|score }}) ·
     {{ summary.scored_count }} of {{ summary.total_count }} scored ·
     {{ summary.key_measures_passing }} of {{ summary.key_measures|length }} key measures ≥ {{ summary.km_min|score }} ·
     {% if summary.cat_min %}{{ summary.categories|length - summary.categories_failing|length }} of {{ summary.categories|length }} categories ≥ {{ summary.cat_min|score }} · {% endif %}
     {{ summary.na_count }} not applicable (max {{ summary.na_allowed }}).
   </p>
-  <nav class="tabs">
-    <a class="{{ 'on' if flt == 'all' }}" href="/assessment">All ({{ fw.requirements|length }})</a>
-    {% for lv in ('Basic', 'Important', 'Essential') %}{% if counts.get(lv) %}<a class="{{ 'on' if flt == lv }}" href="/assessment?level={{ lv }}">{{ lv }} ({{ counts[lv] }})</a>{% endif %}{% endfor %}
-    <a class="{{ 'on' if flt == 'km' }}" href="/assessment?level=km">Key measures ({{ fw.key_measures|length }})</a>
-    <a class="{{ 'on' if flt == 'unscored' }}" href="/assessment?level=unscored">Unscored ({{ summary.total_count - summary.scored_count }})</a>
-    <a class="{{ 'on' if flt == 'below' }}" href="/assessment?level=below">Below target ({{ summary.below_target|length }})</a>
+  <nav class="tabs" aria-label="Filter requirements">
+    <a class="{{ 'on' if flt == 'all' }}" href="/assessment" {{ 'aria-current=page' if flt == 'all' }}>All ({{ fw.requirements|length }})</a>
+    {% for lv in ('Basic', 'Important', 'Essential') %}{% if counts.get(lv) and counts|length > 1 %}<a class="{{ 'on' if flt == lv }}" href="/assessment?level={{ lv }}" {{ 'aria-current=page' if flt == lv }}>{{ lv }} ({{ counts[lv] }})</a>{% endif %}{% endfor %}
+    <a class="{{ 'on' if flt == 'km' }}" href="/assessment?level=km" {{ 'aria-current=page' if flt == 'km' }}>Key measures ({{ fw.key_measures|length }})</a>
+    <a class="{{ 'on' if flt == 'unscored' }}" href="/assessment?level=unscored" {{ 'aria-current=page' if flt == 'unscored' }}>Unscored ({{ summary.total_count - summary.scored_count }})</a>
+    <a class="{{ 'on' if flt == 'below' }}" href="/assessment?level=below" {{ 'aria-current=page' if flt == 'below' }}>Below target ({{ summary.below_target|length }})</a>
   </nav>
 </header>
 
-{% if summary.problems %}<section class="card warn-card"><ul>{% for p in summary.problems %}<li>{{ p }}</li>{% endfor %}</ul></section>{% endif %}
+{% if summary.problems %}<section class="card warn-card" role="alert"><ul>{% for p in summary.problems %}<li>{{ p }}</li>{% endfor %}</ul></section>{% endif %}
 
 <section class="card">
   <div class="table-wrap">
   <table class="list assessment">
     <thead>
-      <tr><th>Requirement</th><th class="num">Doc</th><th class="num">Impl</th><th class="num">Maturity</th><th class="num">Evidence</th><th class="num">Docs</th><th>Checks</th><th class="num">Actions</th></tr>
+      <tr><th>Requirement</th><th class="num">Doc</th><th class="num">Impl</th><th class="num">Maturity</th><th class="num hide-sm">Evidence</th><th class="num hide-sm">Docs</th><th class="hide-sm">Checks</th><th class="num hide-sm">Actions</th></tr>
     </thead>
     <tbody>
     {% for f in fw.functions %}
       {% set f_rows = f.requirements|selectattr("id", "in", shown)|list %}
       {% if f_rows %}
-      <tr class="function-row"><th colspan="8"><span class="mono">{{ f.id }}</span> {{ f.name }} <span class="muted">doc {{ summary.functions[f.id].doc|score }} · impl {{ summary.functions[f.id].impl|score }}</span></th></tr>
+      {% set fv = summary.function_value(f.id) %}
+      <tr class="function-row"><th colspan="8"><span class="mono">{{ f.id }}</span> {{ f.name }} <span class="muted">{% if fv[0] is not none %}{{ "≈ " if fv[1] }}{{ fv[0]|score }}{% else %}not scored{% endif %}</span></th></tr>
       {% for c in f.categories %}
         {% set c_rows = c.requirements|selectattr("id", "in", shown)|list %}
         {% if c_rows %}
         {% set g = summary.categories[c.id] %}
-        <tr class="category-row">
+        {% set cv = summary.category_value(c.id) %}
+        {% set pg = summary.partial_categories[c.id] %}
+        <tr class="category-row" id="{{ c.id }}">
           <th><span class="mono">{{ c.id }}</span> {{ c.name }}</th>
-          <td class="num">{{ g.doc|score }}</td><td class="num">{{ g.impl|score }}</td>
-          <td class="num"><span class="chip {{ g.maturity|status_word(summary.cat_min or summary.target) }}">{{ g.maturity|score }}</span></td>
-          <td colspan="4"></td>
+          <td class="num">{{ (g.doc if g.doc is not none else pg.doc)|score }}</td><td class="num">{{ (g.impl if g.impl is not none else pg.impl)|score }}</td>
+          <td class="num">{% if cv[0] is none %}<span class="chip none">-</span>{% elif cv[1] %}<span class="chip partial" title="Provisional: not all requirements of this category are scored">≈ {{ cv[0]|score }}</span>{% else %}<span class="chip {{ cv[0]|status_word(summary.cat_min or summary.target) }}">{{ cv[0]|score }}</span>{% endif %}</td>
+          <td colspan="4" class="hide-sm"></td>
         </tr>
         {% for s in c.subcategories %}{% for r in s.requirements if r.id in shown %}
           {% set res = summary.requirements[r.id] %}
@@ -56,10 +59,10 @@
             <td class="num">{% if res.not_applicable %}<span class="chip">N/A</span>{% else %}{{ res.doc|score(0) if res.doc is not none else "·" }}{% endif %}</td>
             <td class="num">{% if res.not_applicable %}<span class="chip">N/A</span>{% else %}{{ res.impl|score(0) if res.impl is not none else "·" }}{% endif %}</td>
             <td class="num">{% if res.maturity is not none %}<span class="chip {{ res.maturity|status_word(summary.km_min if r.key_measure else summary.target) }}">{{ res.maturity|score }}</span>{% else %}<span class="chip none">not scored</span>{% endif %}</td>
-            <td class="num">{{ evidence.get(r.id, [])|length or "" }}</td>
-            <td class="num">{{ documents.get(r.id, [])|length or "" }}</td>
-            <td>{% if ch %}{% if fails %}<span class="chip bad">{{ fails|length }} fail</span>{% else %}<span class="chip ok">{{ ch|length }}</span>{% endif %}{% endif %}</td>
-            <td class="num">{{ actions.get(r.id, [])|length or "" }}</td>
+            <td class="num hide-sm">{{ evidence.get(r.id, [])|length or "" }}</td>
+            <td class="num hide-sm">{{ documents.get(r.id, [])|length or "" }}</td>
+            <td class="hide-sm">{% if ch %}{% if fails %}<span class="chip bad">{{ fails|length }} fail</span>{% else %}<span class="chip ok">{{ ch|length }}</span>{% endif %}{% endif %}</td>
+            <td class="num hide-sm">{{ actions.get(r.id, [])|length or "" }}</td>
           </tr>
         {% endfor %}{% endfor %}
         {% endif %}
@@ -70,7 +73,7 @@
   </table>
   </div>
   {% if not shown %}<p class="muted">No requirements match this filter.</p>{% endif %}
-  <p class="muted small">Tags: level that introduces the requirement (Basic, Important, Essential), KM key measure, MA control linked to management aspects (reviewed at every ESSENTIAL audit; cannot be N/A at ESSENTIAL).</p>
+  <p class="muted small">Tags: level that introduces the requirement (Basic, Important, Essential), KM key measure, MA control linked to management aspects (reviewed at every ESSENTIAL audit; cannot be N/A at ESSENTIAL). Values marked ≈ are provisional: the category is not fully scored yet.</p>
   {% if fw.quirks %}
   <details class="small muted"><summary>Scoring follows the CCB {{ fw.level }} workbook formulas, including {{ fw.quirks|length }} places where they deviate from the subcategory structure</summary>
     <ul>{% for q in fw.quirks %}<li>{{ q }}</li>{% endfor %}</ul>

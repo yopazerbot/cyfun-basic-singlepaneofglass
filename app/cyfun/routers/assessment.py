@@ -74,6 +74,17 @@ def overview(request: Request, level: str = "all", user: User = Depends(require_
     )
 
 
+def _next_unscored(fw, summary, rid: str):
+    """The first unscored requirement after `rid` in framework order, wrapping around; None when all are scored."""
+    ids = [r.id for r in fw.requirements]
+    start = ids.index(rid) + 1 if rid in ids else 0
+    for i in list(range(start, len(ids))) + list(range(0, start)):
+        r = fw.requirements[i]
+        if r.id != rid and not summary.requirements[r.id].scored:
+            return r
+    return None
+
+
 @router.get("/{rid}")
 def detail(request: Request, rid: str, user: User = Depends(require_user), db: Session = Depends(get_db)):
     fw = current_framework(db)
@@ -88,6 +99,7 @@ def detail(request: Request, rid: str, user: User = Depends(require_user), db: S
     actions = db.execute(select(Action).where(Action.requirement_id == rid).order_by(Action.status, Action.due_date)).scalars().all()
     history = db.execute(select(Activity).where(Activity.entity == "score", Activity.entity_id == rid).order_by(Activity.id.desc()).limit(10)).scalars().all()
     prev_, next_ = fw.neighbours(rid)
+    next_unscored = _next_unscored(fw, summary, rid)
     blocked = na_blocked_reason(req, fw.thresholds)
     na_available = blocked is None and (summary.na_count < summary.na_allowed or (score is not None and score.not_applicable))
     return render(
@@ -107,6 +119,7 @@ def detail(request: Request, rid: str, user: User = Depends(require_user), db: S
             "history": history,
             "prev": prev_,
             "next": next_,
+            "next_unscored": next_unscored,
             "na_available": na_available,
             "na_blocked": blocked,
         },
@@ -172,6 +185,11 @@ def save_score(
         _, nxt = fw.neighbours(rid)
         if nxt:
             return redirect(f"/assessment/{nxt.id}", msg=f"{rid} saved.")
+    if go == "next_unscored":
+        nxt = _next_unscored(fw, current_summary(db, fw), rid)
+        if nxt:
+            return redirect(f"/assessment/{nxt.id}", msg=f"{rid} saved.")
+        return redirect("/assessment", msg=f"{rid} saved. Every requirement of {fw.level} is now scored.")
     return redirect(f"/assessment/{rid}", msg="Saved.")
 
 

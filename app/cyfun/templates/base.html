@@ -9,39 +9,46 @@
   <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
 </head>
 <body>
+<a class="skip" href="#content">Skip to content</a>
 <div class="shell">
-  <aside class="side">
-    <a class="brand" href="/">
-      <span class="brand-mark">CF</span>
-      <span class="brand-text"><strong>{{ settings.app_name }}</strong><small>CyberFundamentals 2025 · {{ level }}</small></span>
-    </a>
-    <nav class="nav">
-      <div class="nav-group">Assess</div>
-      <a href="/" class="{{ 'on' if active == 'dashboard' }}">Dashboard</a>
-      <a href="/journey" class="{{ 'on' if active == 'journey' }}">Scope, level and journey</a>
-      <a href="/risk" class="{{ 'on' if active == 'risk' }}">Risk assessment</a>
-      <a href="/assessment" class="{{ 'on' if active == 'assessment' }}">Self-assessment</a>
-      <div class="nav-group">Manage</div>
-      <a href="/assets" class="{{ 'on' if active == 'assets' }}">Assets</a>
-      <a href="/documents" class="{{ 'on' if active == 'documents' }}">Documents</a>
-      <a href="/evidence" class="{{ 'on' if active == 'evidence' }}">Evidence</a>
-      <a href="/actions" class="{{ 'on' if active == 'actions' }}">Actions</a>
-      <div class="nav-group">Connect</div>
-      <a href="/connectors" class="{{ 'on' if active == 'connectors' }}">Connected systems</a>
-      <div class="nav-group">Verify</div>
-      <a href="/audit" class="{{ 'on' if active == 'audit' }}">Audit view and export</a>
-      <a href="/activity" class="{{ 'on' if active == 'activity' }}">Activity log</a>
-      {% if user and user.role == 'admin' %}<a href="/auth/users" class="{{ 'on' if active == 'users' }}">Users</a>{% endif %}
-    </nav>
-    <div class="side-foot">
-      {% if user %}
-      <div class="who"><strong>{{ user.label }}</strong><small>{{ user.username or user.email }} · {{ user.role }}{% if user.auth_provider == 'local' %} · <a href="/auth/password">password</a>{% endif %}</small></div>
-      <form method="post" action="/auth/logout"><button class="btn ghost small" type="submit">Sign out</button></form>
-      {% endif %}
-      <small class="ver">v{{ version }}</small>
+  <aside class="side" aria-label="Main navigation">
+    <input type="checkbox" id="nav-toggle" class="nav-toggle" aria-controls="side-body">
+    <div class="side-top">
+      <a class="brand" href="/">
+        <span class="brand-mark" aria-hidden="true">CF</span>
+        <span class="brand-text"><strong>{{ settings.app_name }}</strong><small>CyberFundamentals 2025 · {{ level }}</small></span>
+      </a>
+      <label for="nav-toggle" class="nav-toggle-label"><span class="when-closed">Menu</span><span class="when-open">Close</span></label>
+    </div>
+    <div class="side-body" id="side-body">
+      <nav class="nav">
+        <div class="nav-group">Assess</div>
+        <a href="/" class="{{ 'on' if active == 'dashboard' }}" {{ 'aria-current=page' if active == 'dashboard' }}>Dashboard</a>
+        <a href="/journey" class="{{ 'on' if active == 'journey' }}" {{ 'aria-current=page' if active == 'journey' }}>Scope, level and journey</a>
+        <a href="/risk" class="{{ 'on' if active == 'risk' }}" {{ 'aria-current=page' if active == 'risk' }}>Risk assessment</a>
+        <a href="/assessment" class="{{ 'on' if active == 'assessment' }}" {{ 'aria-current=page' if active == 'assessment' }}>Self-assessment</a>
+        <div class="nav-group">Manage</div>
+        <a href="/assets" class="{{ 'on' if active == 'assets' }}" {{ 'aria-current=page' if active == 'assets' }}>Assets</a>
+        <a href="/documents" class="{{ 'on' if active == 'documents' }}" {{ 'aria-current=page' if active == 'documents' }}>Documents</a>
+        <a href="/evidence" class="{{ 'on' if active == 'evidence' }}" {{ 'aria-current=page' if active == 'evidence' }}>Evidence</a>
+        <a href="/actions" class="{{ 'on' if active == 'actions' }}" {{ 'aria-current=page' if active == 'actions' }}>Actions</a>
+        <div class="nav-group">Connect</div>
+        <a href="/connectors" class="{{ 'on' if active == 'connectors' }}" {{ 'aria-current=page' if active == 'connectors' }}>Connected systems</a>
+        <div class="nav-group">Verify</div>
+        <a href="/audit" class="{{ 'on' if active == 'audit' }}" {{ 'aria-current=page' if active == 'audit' }}>Audit view and export</a>
+        <a href="/activity" class="{{ 'on' if active == 'activity' }}" {{ 'aria-current=page' if active == 'activity' }}>Activity log</a>
+        {% if user and user.role == 'admin' %}<a href="/auth/users" class="{{ 'on' if active == 'users' }}" {{ 'aria-current=page' if active == 'users' }}>Users</a>{% endif %}
+      </nav>
+      <div class="side-foot">
+        {% if user %}
+        <div class="who"><strong>{{ user.label }}</strong><small>{{ user.username or user.email }} · {{ user.role }}</small>{% if user.auth_provider == 'local' %}<a href="/auth/password">Change password</a>{% endif %}</div>
+        <form method="post" action="/auth/logout"><button class="btn ghost small" type="submit">Sign out</button></form>
+        {% endif %}
+        <small class="ver">v{{ version }}</small>
+      </div>
     </div>
   </aside>
-  <main class="main">
+  <main class="main" id="content" tabindex="-1">
     {% if msg %}<div class="flash ok" role="status">{{ msg }}</div>{% endif %}
     {% if err %}<div class="flash bad" role="alert">{{ err }}</div>{% endif %}
     {% block content %}{% endblock %}

@@ -3,9 +3,9 @@
   <div class="stat-value">{{ result.total|score(1) }}</div>
   <div class="level-badge">{{ result.level }}</div>
   <p class="muted small">{% if result.level == level %}The CCB method points to {{ result.level }}, which is the target level set on the Scope page.{% else %}The CCB method points to {{ result.level }}; the target level set on the Scope page is {{ level }}. Align the two, or record in the rationale why they differ (for example BASIC as a first step towards {{ result.level }}).{% endif %}</p>
-  <table class="list small">
+  <div class="table-wrap"><table class="list small">
     <tr><th>Threat actor</th><th class="num">Score</th></tr>
     {% for a in sector.actors %}<tr><td>{{ a }}</td><td class="num">{{ result.per_actor[loop.index0]|score(1) }}</td></tr>{% endfor %}
     <tr><th>Total</th><th class="num">{{ result.total|score(1) }}</th></tr>
-  </table>
+  </table></div>
 </div>

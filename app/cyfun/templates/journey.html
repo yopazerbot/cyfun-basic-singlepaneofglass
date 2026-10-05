@@ -1,36 +1,35 @@
 {% extends "base.html" %}
 {% block title %}Scope, level and journey · {{ settings.app_name }}{% endblock %}
 {% block content %}
+{% set admin = user.role == 'admin' %}
 <header class="page-head">
   <div class="eyebrow">Scope · Organisation · Target assurance level · Label journey</div>
   <h1>Scope, level and journey</h1>
   <p class="lead">The organisation details, scope statement and target level appear in the audit pack. The journey stages are internal planning and stay out of exports.</p>
 </header>
 
-<section class="card form">
-  <div class="card-head"><h2>Target assurance level</h2>{% if risk %}<span class="muted">CCB risk method points to <strong>{{ risk.level }}</strong> (score {{ risk.total_score|score(1) }})</span>{% else %}<a class="link" href="/risk">Run the risk assessment first</a>{% endif %}</div>
-  <div class="level-cards">
+<form class="card form" method="post" action="/journey/level">
+  <div class="card-head"><h2 id="level-label">Target assurance level</h2>{% if risk %}<span class="muted">The CCB risk method points to <strong>{{ risk.level }}</strong> (score {{ risk.total_score|score(1) }})</span>{% else %}<a class="link" href="/risk">Run the risk assessment first</a>{% endif %}</div>
+  <fieldset class="level-options" role="radiogroup" aria-labelledby="level-label" {{ 'disabled' if not admin }}>
     {% for lv in levels %}
-    <div class="level-card {{ 'on' if lv.level == target }}">
+    <label class="level-option">
+      <input type="radio" name="target_level" value="{{ lv.level }}" {{ 'checked' if lv.level == target }}>
       <strong>{{ lv.level }}</strong>
       <span class="muted">{{ lv.requirements }} requirements · {{ lv.key_measures }} key measures</span>
-      <span class="muted">key measures ≥ {{ lv.km_min|score }}{% if lv.cat_min %} · categories ≥ {{ lv.cat_min|score }}{% endif %} · total ≥ {{ lv.total_min|score }}</span>
-      <span class="muted">up to {{ lv.na_allowed }} N/A · CCB tool {{ lv.tool_version }}</span>
-    </div>
+      <span class="muted">key measures ≥ {{ lv.km_min|score }}{% if lv.cat_min %} · each category ≥ {{ lv.cat_min|score }}{% endif %} · total ≥ {{ lv.total_min|score }}</span>
+      <span class="muted">up to {{ lv.na_allowed }} not applicable · CCB tool {{ lv.tool_version }}</span>
+      {% if risk and risk.level == lv.level %}<span class="chip info suggested">suggested by the risk assessment</span>{% endif %}
+    </label>
     {% endfor %}
-  </div>
-  <p class="muted small">Scores are stored per requirement and kept when the level changes. A higher level adds requirements and raises the thresholds; the BASIC requirements are part of IMPORTANT, and both are part of ESSENTIAL.</p>
-</section>
+  </fieldset>
+  {% if admin %}<div class="actions"><button class="btn" type="submit">Set target level</button><span class="muted small">Scores are stored per requirement and kept when the level changes. A higher level adds requirements and raises the thresholds.</span></div>{% endif %}
+</form>
 
 <section class="grid two">
   <form class="card form" method="post" action="/journey/organisation">
     <div class="card-head"><h2>Organisation and scope</h2></div>
-    <label>Target assurance level
-      <select name="target_level" {{ 'disabled' if user.role != 'admin' }}>
-        {% for lv in levels %}<option value="{{ lv.level }}" {{ 'selected' if lv.level == target }}>{{ lv.level }}{% if risk and risk.level == lv.level %} (suggested by the risk assessment){% endif %}</option>{% endfor %}
-      </select>
-    </label>
-    <label>Organisation name<input name="name" value="{{ org.name }}" maxlength="200" required></label>
+    <fieldset {{ 'disabled' if not admin }}>
+    <label>Organisation name<input name="name" value="{{ org.name }}" maxlength="200" required autocomplete="organization"></label>
     <div class="row">
       <label>Legal entity<input name="legal_entity" value="{{ org.legal_entity }}" maxlength="200"></label>
       <label>Enterprise number<input name="enterprise_number" value="{{ org.enterprise_number }}" maxlength="50" placeholder="BE 0xxx.xxx.xxx"></label>
@@ -42,28 +41,29 @@
       <label>Conformity Assessment Body (CAB)<input name="cab_name" value="{{ org.cab_name }}" maxlength="200"></label>
       <label>Self-assessment completion date<input name="self_assessment_date" type="date" value="{{ org.self_assessment_date|date }}"></label>
     </div>
-    {% if user.role == 'admin' %}<div class="actions"><button class="btn" type="submit">Save</button></div>{% endif %}
+    </fieldset>
+    {% if admin %}<div class="actions"><button class="btn" type="submit">Save</button></div>{% endif %}
   </form>
 
   <div class="card">
-    <div class="card-head"><h2>Journey to the {{ target }} label</h2></div>
-    <table class="list stages">
+    <div class="card-head"><h2>Journey to the {{ target }} label</h2><span class="muted">{{ stages|selectattr("status", "equalto", "done")|list|length }} of {{ stages|length }} done</span></div>
+    <ol class="stage-list">
       {% for s in stages %}
-      <tr>
-        <td class="nowrap"><span class="dot {{ s.status }}"></span> {{ loop.index }}. {{ s.label }}</td>
-        <td>
-          <form class="inline" method="post" action="/journey/stage/{{ s.key }}">
-            <select name="status" {{ 'disabled' if user.role != 'admin' }}>
-              {% for st in statuses %}<option value="{{ st }}" {{ 'selected' if st == s.status }}>{{ st.replace('_', ' ') }}</option>{% endfor %}
-            </select>
-            <input type="date" name="date" value="{{ s.date }}" {{ 'disabled' if user.role != 'admin' }}>
-            <input name="note" value="{{ s.note }}" placeholder="note" maxlength="1000" {{ 'disabled' if user.role != 'admin' }}>
-            {% if user.role == 'admin' %}<button class="btn small secondary" type="submit">Save</button>{% endif %}
-          </form>
-        </td>
-      </tr>
+      <li class="stage">
+        <div class="stage-title"><span class="dot {{ s.status }}" aria-hidden="true"></span><span>{{ loop.index }}. {{ s.label }}</span>{% if not admin and s.date %}<span class="muted small">{{ s.date }}</span>{% endif %}</div>
+        {% if admin %}
+        <form class="stage-form" method="post" action="/journey/stage/{{ s.key }}">
+          <select name="status" aria-label="Status of {{ s.label }}">
+            {% for st in statuses %}<option value="{{ st }}" {{ 'selected' if st == s.status }}>{{ st.replace('_', ' ') }}</option>{% endfor %}
+          </select>
+          <input type="date" name="date" value="{{ s.date }}" aria-label="Date of {{ s.label }}">
+          <input class="note" name="note" value="{{ s.note }}" placeholder="Note" maxlength="1000" aria-label="Note for {{ s.label }}">
+          <button class="btn small secondary" type="submit">Save</button>
+        </form>
+        {% elif s.note %}<p class="muted small">{{ s.note }}</p>{% endif %}
+      </li>
       {% endfor %}
-    </table>
+    </ol>
     <p class="muted small">Typical order: define scope and level, confirm the level with the risk assessment, score the requirements, remediate gaps below the thresholds, collect evidence, fill the CCB workbook, verification by a CAB, label.</p>
   </div>
 </section>

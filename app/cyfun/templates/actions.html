@@ -1,56 +1,62 @@
 {% extends "base.html" %}
 {% block title %}Actions · {{ settings.app_name }}{% endblock %}
 {% block content %}
+{% set admin = user.role == 'admin' %}
 <header class="page-head">
   <div class="eyebrow">Remediation</div>
   <h1>Actions</h1>
-  <p class="lead">Work needed to bring requirements to maturity 2,5 or higher. Actions are internal planning and are not part of the audit pack.</p>
-  <nav class="tabs">
-    {% for s, label in [('active','Open and in progress'),('open','Open'),('in_progress','In progress'),('done','Done'),('cancelled','Cancelled'),('all','All')] %}<a class="{{ 'on' if f_status == s }}" href="/actions?status={{ s }}">{{ label }}</a>{% endfor %}
+  <p class="lead">Work needed to bring requirements to the level's targets. Actions are internal planning and are not part of the audit pack.</p>
+  <nav class="tabs" aria-label="Filter actions">
+    {% for s, label in [('active','Open and in progress'),('open','Open'),('in_progress','In progress'),('done','Done'),('cancelled','Cancelled'),('all','All')] %}<a class="{{ 'on' if f_status == s }}" href="/actions?status={{ s }}" {{ 'aria-current=page' if f_status == s }}>{{ label }}</a>{% endfor %}
   </nav>
 </header>
 
-<section class="grid two-one">
-  <div class="card">
-    {% if items %}
-    <div class="table-wrap">
-    <table class="list">
-      <thead><tr><th>Action</th><th>Requirement</th><th>Owner</th><th>Priority</th><th>Due</th><th>Status</th><th></th></tr></thead>
-      <tbody>
-      {% for a in items %}
-      <tr class="{{ 'overdue' if a.due_date and a.due_date < today and a.status in ('open','in_progress') }}">
-        <td><a href="/actions/{{ a.id }}">{{ a.title }}</a>{% if a.description %}<div class="muted small">{{ a.description[:140] }}</div>{% endif %}</td>
-        <td>{% if a.requirement_id %}<a class="mono" href="/assessment/{{ a.requirement_id }}">{{ a.requirement_id }}</a>{% endif %}</td>
-        <td class="muted">{{ a.owner }}</td>
-        <td><span class="chip {{ 'bad' if a.priority == 'high' else ('warn' if a.priority == 'medium' else '') }}">{{ a.priority }}</span></td>
-        <td class="muted small">{{ a.due_date|date }}</td>
-        <td><span class="chip {{ 'ok' if a.status == 'done' else ('info' if a.status == 'in_progress' else ('none' if a.status == 'cancelled' else '')) }}">{{ a.status.replace('_',' ') }}</span></td>
-        <td>{% if user.role == 'admin' %}<form method="post" action="/actions/{{ a.id }}/delete" class="inline"><button class="btn link-danger small" data-confirm="Delete this action?">Delete</button></form>{% endif %}</td>
-      </tr>
-      {% endfor %}
-      </tbody>
-    </table>
-    </div>
-    {% else %}<p class="muted">No actions in this view.</p>{% endif %}
-  </div>
-
-  <form class="card form" method="post" action="{{ '/actions/' ~ edit.id if edit else '/actions' }}">
-    <div class="card-head"><h2>{{ "Edit action" if edit else "Add action" }}</h2>{% if edit %}<a class="link" href="/actions">Cancel</a>{% endif %}</div>
-    <label>Title<input name="title" required maxlength="300" value="{{ edit.title if edit }}"></label>
-    <label>Requirement
-      <select name="requirement_id"><option value="">none</option>{% for r in fw.requirements %}<option value="{{ r.id }}" {{ 'selected' if edit and edit.requirement_id == r.id }}>{{ r.id }}{{ " · KM" if r.key_measure }} · {{ r.text[:60] }}</option>{% endfor %}</select>
+{% set action_form %}
+<form class="card form" id="action-form" method="post" action="{{ '/actions/' ~ edit.id if edit else '/actions' }}">
+  <div class="card-head"><h2>{{ ("Edit action" if admin else "Action") if edit else "Add action" }}</h2>{% if edit %}<a class="link" href="/actions">Back to the list</a>{% endif %}</div>
+  <fieldset {{ 'disabled' if not admin }}>
+  <div class="form-grid">
+    <label class="span-all">Title<input name="title" required maxlength="300" value="{{ edit.title if edit }}"></label>
+    <label class="span-all">Requirement
+      <select name="requirement_id"><option value="">none</option>{% for r in fw.requirements %}<option value="{{ r.id }}" {{ 'selected' if edit and edit.requirement_id == r.id }}>{{ r.id }}{{ " · KM" if r.key_measure }} · {{ r.text[:70] }}</option>{% endfor %}</select>
     </label>
-    <label>Description<textarea name="description" rows="3">{{ edit.description if edit }}</textarea></label>
-    <div class="row">
-      <label>Owner<input name="owner" maxlength="200" value="{{ edit.owner if edit }}"></label>
-      <label>Priority<select name="priority">{% for p in priorities %}<option value="{{ p }}" {{ 'selected' if (edit and edit.priority == p) or (not edit and p == 'medium') }}>{{ p }}</option>{% endfor %}</select></label>
-    </div>
-    <div class="row">
-      <label>Status<select name="status">{% for s in statuses %}<option value="{{ s }}" {{ 'selected' if edit and edit.status == s }}>{{ s.replace('_',' ') }}</option>{% endfor %}</select></label>
-      <label>Due date<input type="date" name="due_date" value="{{ edit.due_date|date if edit }}"></label>
-      <label>Completed on<input type="date" name="completed_on" value="{{ edit.completed_on|date if edit }}"></label>
-    </div>
-    {% if user.role == 'admin' %}<div class="actions"><button class="btn" type="submit">{{ "Save" if edit else "Add" }}</button></div>{% endif %}
-  </form>
+    <label class="span-all">Description<textarea name="description" rows="3">{{ edit.description if edit }}</textarea></label>
+    <label>Owner<input name="owner" maxlength="200" value="{{ edit.owner if edit }}"></label>
+    <label>Priority<select name="priority">{% for p in priorities %}<option value="{{ p }}" {{ 'selected' if (edit and edit.priority == p) or (not edit and p == 'medium') }}>{{ p }}</option>{% endfor %}</select></label>
+    <label>Status<select name="status">{% for s in statuses %}<option value="{{ s }}" {{ 'selected' if edit and edit.status == s }}>{{ s.replace('_',' ') }}</option>{% endfor %}</select></label>
+    <label>Due date<input type="date" name="due_date" value="{{ edit.due_date|date if edit }}"></label>
+    <label>Completed on<input type="date" name="completed_on" value="{{ edit.completed_on|date if edit }}"></label>
+  </div>
+  </fieldset>
+  {% if admin %}<div class="actions"><button class="btn" type="submit">{{ "Save" if edit else "Add action" }}</button>{% if edit %}<a class="btn secondary" href="/actions">Cancel</a>{% endif %}</div>{% endif %}
+</form>
+{% endset %}
+
+{% if edit %}{{ action_form }}{% endif %}
+
+<section class="card">
+  {% if items %}
+  <div class="table-wrap">
+  <table class="list">
+    <thead><tr><th>Action</th><th>Requirement</th><th class="hide-sm">Owner</th><th class="hide-sm">Priority</th><th>Due</th><th>Status</th>{% if admin %}<th><span class="visually-hidden">Delete</span></th>{% endif %}</tr></thead>
+    <tbody>
+    {% for a in items %}
+    {% set late = a.due_date and a.due_date < today and a.status in ('open','in_progress') %}
+    <tr class="{{ 'overdue' if late }}">
+      <td><a href="/actions/{{ a.id }}">{{ a.title }}</a>{% if a.description %}<div class="muted small">{{ a.description[:140] }}</div>{% endif %}</td>
+      <td>{% if a.requirement_id %}<a class="mono" href="/assessment/{{ a.requirement_id }}">{{ a.requirement_id }}</a>{% endif %}</td>
+      <td class="hide-sm muted">{{ a.owner }}</td>
+      <td class="hide-sm"><span class="chip {{ 'bad' if a.priority == 'high' else ('warn' if a.priority == 'medium' else '') }}">{{ a.priority }}</span></td>
+      <td class="small nowrap">{{ a.due_date|date }}{% if late %}<br><span class="bad">overdue</span>{% endif %}</td>
+      <td><span class="chip {{ 'ok' if a.status == 'done' else ('info' if a.status == 'in_progress' else ('none' if a.status == 'cancelled' else '')) }}">{{ a.status.replace('_',' ') }}</span></td>
+      {% if admin %}<td><form method="post" action="/actions/{{ a.id }}/delete" class="inline"><button class="btn link-danger small" data-confirm="Delete the action '{{ a.title }}'?">Delete</button></form></td>{% endif %}
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}<p class="muted">No actions in this view.</p>{% endif %}
 </section>
+
+{% if not edit and admin %}{{ action_form }}{% endif %}
 {% endblock %}

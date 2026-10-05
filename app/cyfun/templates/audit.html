@@ -17,7 +17,7 @@
 <section class="grid two">
   <div class="card">
     <div class="card-head"><h2>Organisation and scope</h2><a class="link" href="/journey">Edit</a></div>
-    <table class="list small kv">
+    <div class="table-wrap"><table class="list small kv">
       <tr><th>Organisation</th><td>{{ org.name }}</td></tr>
       <tr><th>Legal entity</th><td>{{ org.legal_entity }} {{ org.enterprise_number }}</td></tr>
       <tr><th>Contact</th><td>{{ org.contact }}</td></tr>
@@ -26,13 +26,13 @@
       <tr><th>Exclusions</th><td>{{ org.scope_exclusions|nl2br }}</td></tr>
       <tr><th>CAB</th><td>{{ org.cab_name }}</td></tr>
       <tr><th>Self-assessment date</th><td>{{ org.self_assessment_date|date }}</td></tr>
-    </table>
+    </table></div>
   </div>
   <div class="card">
     <div class="card-head"><h2>Snapshots</h2></div>
     {% if snapshots %}
-    <table class="list small"><thead><tr><th>Name</th><th>Level</th><th>Taken</th><th class="num">Total</th><th>Thresholds</th><th></th></tr></thead>
-      <tbody>{% for s in snapshots %}<tr><td>{{ s.name }}</td><td class="mono">{{ s.level }}</td><td class="muted nowrap">{{ s.taken_at|date }}<br>{{ s.taken_by }}</td><td class="num">{{ s.total_maturity|score }}</td><td><span class="chip {{ 'ok' if s.passes else 'bad' }}">{{ "met" if s.passes else "not met" }}</span></td><td><a href="/audit/snapshot/{{ s.id }}.json">JSON</a></td></tr>{% endfor %}</tbody></table>
+    <div class="table-wrap"><table class="list small"><thead><tr><th>Name</th><th>Level</th><th>Taken</th><th class="num">Total</th><th>Thresholds</th><th></th></tr></thead>
+      <tbody>{% for s in snapshots %}<tr><td>{{ s.name }}</td><td class="mono">{{ s.level }}</td><td class="muted nowrap">{{ s.taken_at|date }}<br>{{ s.taken_by }}</td><td class="num">{{ s.total_maturity|score }}</td><td><span class="chip {{ 'ok' if s.passes else 'bad' }}">{{ "met" if s.passes else "not met" }}</span></td><td><a href="/audit/snapshot/{{ s.id }}.json">JSON</a></td></tr>{% endfor %}</tbody></table></div>
     {% else %}<p class="muted">No snapshots yet. Take one when you submit the self-declaration and before the verification.</p>{% endif %}
     {% if user.role == 'admin' %}
     <form class="inline-form" method="post" action="/audit/snapshot"><input name="name" maxlength="200" placeholder="Snapshot name, e.g. Self-declaration {{ today|date }}"><button class="btn secondary small" type="submit">Take snapshot</button></form>

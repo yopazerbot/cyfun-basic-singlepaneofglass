@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import hashlib
+import hmac
+import secrets
 from datetime import UTC, date, datetime
 from pathlib import Path
 from urllib.parse import quote
@@ -61,6 +64,26 @@ templates.env.filters["nl2br"] = nl2br_safe
 templates.env.globals["version"] = __version__
 
 
+_FLASH_KEY = secrets.token_bytes(32)  # per process; a restart only drops messages in flight
+
+
+def _flash_sig(kind: str, text: str) -> str:
+    return hmac.new(_FLASH_KEY, f"{kind}:{text}".encode(), hashlib.sha256).hexdigest()[:32]
+
+
+def _flash(request: Request) -> tuple[str, str]:
+    """Messages travel in the redirect URL but are shown only with a valid server signature,
+    so a crafted link cannot put arbitrary text into the application's own message banner."""
+    sig = request.query_params.get("s", "")
+    msg = request.query_params.get("msg", "")
+    err = request.query_params.get("err", "")
+    if msg and hmac.compare_digest(sig, _flash_sig("msg", msg)):
+        return msg, ""
+    if err and hmac.compare_digest(sig, _flash_sig("err", err)):
+        return "", err
+    return "", ""
+
+
 def _current_level() -> str:
     try:
         from .models import Organisation
@@ -78,8 +101,8 @@ def render(request: Request, name: str, context: dict | None = None, status_code
         "settings": get_settings(),
         "active": "",
         "today": date.today(),
-        "msg": request.query_params.get("msg", ""),
-        "err": request.query_params.get("err", ""),
+        "msg": _flash(request)[0],
+        "err": _flash(request)[1],
         "level": _current_level(),
         "now_utc": datetime.now(UTC).replace(tzinfo=None),
     }
@@ -90,7 +113,7 @@ def render(request: Request, name: str, context: dict | None = None, status_code
 def redirect(path: str, msg: str = "", err: str = "") -> RedirectResponse:
     sep = "&" if "?" in path else "?"
     if msg:
-        path = f"{path}{sep}msg={quote(msg)}"
+        path = f"{path}{sep}msg={quote(msg)}&s={_flash_sig('msg', msg)}"
     elif err:
-        path = f"{path}{sep}err={quote(err)}"
+        path = f"{path}{sep}err={quote(err)}&s={_flash_sig('err', err)}"
     return RedirectResponse(path, status_code=303)

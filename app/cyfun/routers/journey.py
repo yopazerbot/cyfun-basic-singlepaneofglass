@@ -67,7 +67,7 @@ def save_org(
     scope_exclusions: str = Form(""),
     cab_name: str = Form(""),
     self_assessment_date: str = Form(""),
-    target_level: str = Form("BASIC"),
+    target_level: str | None = Form(None),
     user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
@@ -81,7 +81,8 @@ def save_org(
     org.scope_exclusions = scope_exclusions.strip()
     org.cab_name = cab_name.strip()[:200]
     org.self_assessment_date = parse_date(self_assessment_date)
-    org.target_level = normalise_level(target_level)
+    if target_level:  # the level has its own form; older clients may still post it here
+        org.target_level = normalise_level(target_level)
     db.commit()
     log_activity(db, user.label, "organisation_update", "organisation", "1", {"name": org.name, "target_level": org.target_level})
     if org.target_level != before_level:
@@ -91,6 +92,21 @@ def save_org(
             msg=f"Target assurance level set to {org.target_level}. Scores entered so far are kept; the requirement set and thresholds now follow {org.target_level}.",
         )
     return redirect("/journey", msg="Organisation and scope saved.")
+
+
+@router.post("/level")
+def save_level(request: Request, target_level: str = Form(...), user: User = Depends(require_admin), db: Session = Depends(get_db)):
+    org = get_org(db)
+    before = normalise_level(org.target_level)
+    after = normalise_level(target_level)
+    if after == before:
+        return redirect("/journey", msg=f"Target assurance level stays {after}.")
+    org.target_level = after
+    db.commit()
+    log_activity(db, user.label, "level_change", "organisation", "1", {"from": before, "to": after})
+    return redirect(
+        "/journey", msg=f"Target assurance level set to {after}. Scores entered so far are kept; the requirement set and thresholds now follow {after}."
+    )
 
 
 @router.post("/stage/{stage}")

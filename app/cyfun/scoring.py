@@ -84,6 +84,26 @@ class Summary:
     na_allowed: int
     na_ids: list[str] = field(default_factory=list)
     problems: list[str] = field(default_factory=list)
+    # Provisional values over the requirements scored so far (None where nothing is scored yet).
+    # Shown while the assessment is incomplete; never used for the pass/fail decision.
+    partial_categories: dict[str, GroupResult] = field(default_factory=dict)
+    partial_functions: dict[str, GroupResult] = field(default_factory=dict)
+    provisional_total: float | None = None
+
+    def category_value(self, category_id: str) -> tuple[float | None, bool]:
+        """(value, provisional) for display: the exact value when complete, else the partial one."""
+        g = self.categories[category_id]
+        if g.maturity is not None:
+            return g.maturity, False
+        p = self.partial_categories.get(category_id)
+        return (p.maturity if p else None), True
+
+    def function_value(self, function_id: str) -> tuple[float | None, bool]:
+        g = self.functions[function_id]
+        if g.maturity is not None:
+            return g.maturity, False
+        p = self.partial_functions.get(function_id)
+        return (p.maturity if p else None), True
 
     @property
     def key_measures_failing(self) -> list[ReqResult]:
@@ -124,6 +144,11 @@ def _avg(values: list[float | None]) -> float | None:
     return sum(vals) / len(vals)
 
 
+def _avg_any(values: list[float | None]) -> float | None:
+    vals = [v for v in values if v is not None]
+    return sum(vals) / len(vals) if vals else None
+
+
 def na_blocked_reason(req: Requirement, thresholds: dict) -> str | None:
     excludes = thresholds.get("na_excludes", ["key_measure"])
     if req.key_measure and "key_measure" in excludes:
@@ -146,11 +171,15 @@ def validate_input(req: Requirement, inp: ReqInput, thresholds: dict) -> list[st
     return errors
 
 
-def _category_dimension(cat: Category, dimension: str, results: dict[str, ReqResult]) -> float | None:
+def _category_dimension(cat: Category, dimension: str, results: dict[str, ReqResult], partial: bool = False) -> float | None:
+    agg = _avg_any if partial else _avg
     groups = []
     for group in cat.groups(dimension):
-        groups.append(_avg([getattr(results[i], dimension) for i in group if i in results]))
-    return _avg(groups)
+        values = [results[i] for i in group if i in results]
+        if partial:
+            values = [v for v in values if v.scored]
+        groups.append(agg([getattr(v, dimension) for v in values]) if values else None)
+    return agg(groups)
 
 
 def compute(fw: Framework, inputs: dict[str, ReqInput]) -> Summary:
@@ -195,6 +224,16 @@ def compute(fw: Framework, inputs: dict[str, ReqInput]) -> Summary:
         funcs[f.id] = GroupResult(f.id, f.name, _avg([x.doc for x in cc]), _avg([x.impl for x in cc]))
 
     total = _avg([cats[c.id].maturity for c in fw.categories])
+    pcats: dict[str, GroupResult] = {}
+    pfuncs: dict[str, GroupResult] = {}
+    for f in fw.functions:
+        for c in f.categories:
+            pd = _category_dimension(c, "doc", req_results, partial=True)
+            pi = _category_dimension(c, "impl", req_results, partial=True)
+            pcats[c.id] = GroupResult(c.id, c.name, pd, pi)
+        pc = [pcats[c.id] for c in f.categories if pcats[c.id].maturity is not None]
+        pfuncs[f.id] = GroupResult(f.id, f.name, _avg_any([x.doc for x in pc]), _avg_any([x.impl for x in pc]))
+    provisional = _avg_any([pcats[c.id].maturity for c in fw.categories])
     kms = [req_results[k.id] for k in fw.key_measures]
     scored_count = sum(1 for x in req_results.values() if x.scored)
     return Summary(
@@ -215,6 +254,9 @@ def compute(fw: Framework, inputs: dict[str, ReqInput]) -> Summary:
         na_allowed=int(t["na_allowed"]),
         na_ids=na_ids,
         problems=problems,
+        partial_categories=pcats,
+        partial_functions=pfuncs,
+        provisional_total=provisional,
     )
 
 
@@ -224,6 +266,7 @@ def summary_to_dict(s: Summary) -> dict:
         "level": s.level,
         "thresholds": {"key_measure_min": s.km_min, "category_min": s.cat_min, "total_min": s.total_min, "na_allowed": s.na_allowed},
         "total_maturity": s.total_maturity,
+        "provisional_total": s.provisional_total,
         "passes": s.passes,
         "complete": s.complete,
         "scored": s.scored_count,

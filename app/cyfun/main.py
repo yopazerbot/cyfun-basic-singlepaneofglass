@@ -7,7 +7,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from . import __version__, auth, db, scheduler
@@ -47,6 +47,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(auth.router)
     for r in (dashboard, journey, risk, assessment, assets, documents, evidence, actions, connectors, audit, activity):
         app.include_router(r.router)
+
+    @app.get("/favicon.ico", include_in_schema=False)
+    def favicon():
+        return FileResponse(HERE / "static" / "favicon.svg", media_type="image/svg+xml")
 
     @app.get("/healthz", include_in_schema=False)
     def healthz():

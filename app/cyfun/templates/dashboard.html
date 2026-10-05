@@ -7,18 +7,26 @@
   <p class="lead">
     {{ summary.scored_count }} of {{ summary.total_count }} requirements scored.
     {% if risk %}Assurance level from risk assessment: <strong>{{ risk.level }}</strong> (score {{ risk.total_score|score(1) }}).{% else %}Risk assessment not done.{% endif %}
-    Target level <strong>{{ fw.level }}</strong>. Stage {{ done_stages }} of {{ stages|length }} completed.
+    Target level <strong>{{ fw.level }}</strong>. {{ done_stages }} of {{ stages|length }} journey stages done.
   </p>
 </header>
 
 {% if level_mismatch %}<div class="notice">The CCB risk method points to <strong>{{ risk.level }}</strong> while the target level is <strong>{{ fw.level }}</strong>. Record the reason in the risk assessment rationale, or change the target level on the Scope page.</div>{% endif %}
 
 <section class="grid stats">
+  {% if summary.complete %}
   <div class="card stat {{ 'good' if summary.total_meets_target else 'bad' }}">
     <div class="stat-label">Total maturity</div>
     <div class="stat-value">{{ summary.total_maturity|score }}</div>
-    <div class="stat-sub">target ≥ {{ summary.total_min|score }} · {% if summary.complete %}{{ "meets target" if summary.total_meets_target else "below target" }}{% else %}incomplete{% endif %}</div>
+    <div class="stat-sub">target ≥ {{ summary.total_min|score }} · {{ "meets target" if summary.total_meets_target else "below target" }}</div>
   </div>
+  {% else %}
+  <div class="card stat">
+    <div class="stat-label">Total maturity</div>
+    <div class="stat-value partial">{% if summary.provisional_total is not none %}≈ {{ summary.provisional_total|score }}{% else %}-{% endif %}</div>
+    <div class="stat-sub">provisional · target ≥ {{ summary.total_min|score }} · {{ summary.total_count - summary.scored_count }} requirements still to score</div>
+  </div>
+  {% endif %}
   <div class="card stat {{ 'good' if summary.key_measures_passing == summary.key_measures|length else 'bad' }}">
     <div class="stat-label">Key measures ≥ {{ summary.km_min|score }}</div>
     <div class="stat-value">{{ summary.key_measures_passing }}<span class="of">/ {{ summary.key_measures|length }}</span></div>
@@ -37,7 +45,7 @@
   <div class="card stat {{ 'bad' if overdue else '' }}">
     <div class="stat-label">Open actions</div>
     <div class="stat-value">{{ actions|length }}</div>
-    <div class="stat-sub">{{ overdue|length }} overdue · {{ docs_due|length }} documents due for review</div>
+    <div class="stat-sub">{{ overdue|length }} overdue · {{ docs_due|length }} {{ "document" if docs_due|length == 1 else "documents" }} due for review</div>
   </div>
 </section>
 
@@ -53,24 +61,27 @@
     <div class="card-head"><h2>Maturity per category</h2><a href="/assessment" class="link">Open self-assessment</a></div>
     <table class="bars">
       {% for f in fw.functions %}
-      <tr class="group-row"><th colspan="3"><span class="mono">{{ f.id }}</span> {{ f.name }} <span class="muted">{{ summary.functions[f.id].maturity|score }}</span></th></tr>
+      {% set fv = summary.function_value(f.id) %}
+      <tr class="group-row"><th colspan="3"><span class="mono">{{ f.id }}</span> {{ f.name }} <span class="muted">{% if fv[0] is not none %}{{ "≈ " if fv[1] }}{{ fv[0]|score }}{% endif %}</span></th></tr>
       {% for c in f.categories %}
-      {% set g = summary.categories[c.id] %}
+      {% set cv = summary.category_value(c.id) %}
       {% set tgt = summary.cat_min or summary.target %}
+      {% set cls = "none" if cv[0] is none else ("partial" if cv[1] else cv[0]|status_word(tgt)) %}
       <tr>
-        <td class="bar-label"><span class="mono">{{ c.id }}</span> {{ c.name }}</td>
+        <td class="bar-label"><a href="/assessment#{{ c.id }}" class="plain-link"><span class="mono">{{ c.id }}</span> {{ c.name }}</a></td>
         <td class="bar-cell">
-          <svg viewBox="0 0 100 10" preserveAspectRatio="none" class="bar {{ g.maturity|status_word(tgt) }}" role="img" aria-label="{{ c.name }} {{ g.maturity|score }}">
+          <svg viewBox="0 0 100 10" preserveAspectRatio="none" class="bar {{ cls }}" role="img" aria-label="{{ c.name }}: {{ cv[0]|score }}{{ ' provisional' if cv[1] and cv[0] is not none }}, target {{ tgt|score }}">
             <rect class="track" x="0" y="0" width="100" height="10"></rect>
-            <rect class="fill" x="0" y="0" width="{{ g.maturity|pct }}" height="10"></rect>
+            <rect class="fill" x="0" y="0" width="{{ cv[0]|pct }}" height="10"></rect>
             <rect class="target" x="{{ tgt|pct }}" y="0" width="0.6" height="10"></rect>
           </svg>
         </td>
-        <td class="bar-value {{ g.maturity|status_word(tgt) }}">{{ g.maturity|score }}</td>
+        <td class="bar-value {{ cls }}">{% if cv[0] is not none %}{{ "≈ " if cv[1] }}{{ cv[0]|score }}{% else %}-{% endif %}</td>
       </tr>
       {% endfor %}
       {% endfor %}
     </table>
+    <p class="legend">Green meets the target ({{ (summary.cat_min or summary.target)|score }}, vertical mark), red is below. Grey values marked ≈ are provisional because the category is not fully scored.</p>
   </div>
 
   <div class="stack">
@@ -100,7 +111,7 @@
 <section class="grid two">
   <div class="card">
     <div class="card-head"><h2>Connected systems</h2><a href="/connectors" class="link">Manage</a></div>
-    <table class="list">
+    <div class="table-wrap"><table class="list">
       {% for c in connectors %}
       <tr>
         <td><a href="/connectors/{{ c.key }}">{{ c.name }}</a></td>
@@ -108,7 +119,7 @@
         <td class="muted">{{ c.run.finished_at|date if c.run and c.run.finished_at else "" }}</td>
       </tr>
       {% endfor %}
-    </table>
+    </table></div>
     {% set failing = checks|selectattr("status", "equalto", "fail")|list %}
     {% if failing %}
     <h3>Failing checks</h3>
@@ -122,7 +133,7 @@
     <div class="card">
       <div class="card-head"><h2>Actions due</h2><a href="/actions" class="link">All actions</a></div>
       {% if actions %}
-      <table class="list">
+      <div class="table-wrap"><table class="list">
         {% for a in actions[:8] %}
         <tr class="{{ 'overdue' if a in overdue }}">
           <td>{% if a.requirement_id %}<span class="mono">{{ a.requirement_id }}</span> {% endif %}<a href="/actions/{{ a.id }}">{{ a.title }}</a></td>
@@ -130,14 +141,14 @@
           <td class="muted">{{ a.due_date|date }}</td>
         </tr>
         {% endfor %}
-      </table>
+      </table></div>
       {% else %}<p class="muted">No open actions.</p>{% endif %}
     </div>
     <div class="card">
       <div class="card-head"><h2>Recent activity</h2><a href="/activity" class="link">Full log</a></div>
-      <table class="list small">
+      <div class="table-wrap"><table class="list small">
         {% for a in recent %}<tr><td class="muted nowrap">{{ a.at|date }}</td><td>{{ a.action }}{% if a.entity_id %} <span class="mono">{{ a.entity_id }}</span>{% endif %}</td><td class="muted">{{ a.actor }}</td></tr>{% endfor %}
-      </table>
+      </table></div>
     </div>
   </div>
 </section>

@@ -29,7 +29,7 @@ Two containers, one named volume for data, one for Caddy state. No database serv
 | SQLite | Single organisation, a few users, small data. No credentials, no network listener, trivial backup (online backup API). |
 | htmx, vendored | Live recalculation of the risk matrix without a JavaScript build. Pinned file, served from the application origin. |
 | APScheduler in-process | Connector runs are small; a separate worker would add a container for nothing. |
-| Entra ID OIDC, manual flow | ~150 lines with Authlib JOSE for token validation; no session middleware with signed cookies; server-side sessions can be revoked. |
+| Entra ID OIDC, manual flow | About 150 lines with joserfc for token validation (RS256 only); no session middleware with signed cookies; server-side sessions can be revoked. |
 | Local accounts with scrypt | Standard-library hashing, no extra dependency; lets the application run before single sign-on exists and gives an external auditor an account without a tenant. Off switch in one variable. |
 | XML-level workbook filling | The CCB workbook is protected and carries a chart, defined names and conditional formatting; rewriting it with a spreadsheet library drops parts of it. Editing only the value cells keeps it byte-identical elsewhere. |
 | Caddy | Automatic TLS (internal CA or ACME), few moving parts, sensible defaults. |
@@ -42,9 +42,9 @@ Framework content is not in the database. `basic_2025.json`, `important_2025.jso
 
 ## Request flow
 
-1. `SecurityMiddleware`: rate limit on `/auth/*`, Origin check for state-changing methods, security headers on every response.
+1. `SecurityMiddleware`: rate limit on `/auth/*`, request size limit and Origin check for state-changing methods, security headers on every response.
 2. Router dependency `require_user` loads the session from the cookie hash; 401 becomes a redirect to `/auth/login?next=...`; an account that still has to change its password is redirected to `/auth/password`. `require_admin` enforces the role on every write.
-3. Handlers use a SQLAlchemy session per request, write an `activity` row for each change, and redirect with a flash message (`?msg=` or `?err=`).
+3. Handlers use a SQLAlchemy session per request, write an `activity` row for each change, and redirect with a flash message (`?msg=` or `?err=` plus an HMAC signature `s`; unsigned messages are not shown).
 
 ## Connector flow
 

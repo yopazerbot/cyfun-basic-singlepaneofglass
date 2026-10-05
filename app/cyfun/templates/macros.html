@@ -1,0 +1,26 @@
+{# Shared template macros. #}
+
+{% macro req_picker(fw, selected, label="Requirements") %}
+{# Filterable checkbox list of the requirements of the current level. Mappings to requirements of
+   other levels are carried as hidden fields so switching levels never loses data. #}
+{% set sel = selected or [] %}
+{% set inside = sel|select('in', fw.by_id)|list %}
+{% set outside = sel|reject('in', fw.by_id)|list %}
+<div class="req-picker" data-req-picker>
+  <input type="search" class="req-filter" placeholder="Filter by ID or words" aria-label="Filter {{ label|lower }}" autocomplete="off">
+  <div class="req-list" role="group" aria-label="{{ label }}">
+    {% for f in fw.functions %}
+    <div class="req-group">
+      <div class="req-group-title">{{ f.id }} · {{ f.name }}</div>
+      {% for r in f.requirements %}
+      <label class="req-item" data-text="{{ (r.id ~ ' ' ~ r.text)|lower }}"><input type="checkbox" name="requirement_ids" value="{{ r.id }}" {{ 'checked' if r.id in sel }}><span><span class="mono">{{ r.id }}</span>{% if r.key_measure %} <span class="tag km">KM</span>{% endif %} <span class="req-item-text">{{ r.text }}</span></span></label>
+      {% endfor %}
+    </div>
+    {% endfor %}
+  </div>
+  <div class="req-picker-foot"><span data-req-count>{{ inside|length }}</span> selected{% if outside %} · {{ outside|length }} mapping(s) to requirements of other assurance levels are kept{% endif %}</div>
+  {% for rid in outside %}<input type="hidden" name="requirement_ids" value="{{ rid }}">{% endfor %}
+</div>
+{% endmacro %}
+
+{% macro req_links(ids) %}{% for r in ids %}<a class="mono" href="/assessment/{{ r }}">{{ r }}</a>{{ " " }}{% endfor %}{% endmacro %}

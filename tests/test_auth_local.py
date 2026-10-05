@@ -102,7 +102,7 @@ def test_user_administration_and_lockout(app):
         assert "err=" in r.headers["location"]
         # cannot disable or delete yourself
         me = c.get("/auth/users").text
-        assert "(you)" in me
+        assert "this is you" in me
     with fresh(app) as a:
         # auditor signs in with the temporary password, must change it, then is read-only
         r = a.post("/auth/local", data={"username": "auditor.cab", "password": temp}, follow_redirects=False)
@@ -118,8 +118,9 @@ def test_user_administration_and_lockout(app):
         # five wrong attempts lock the account
         for _ in range(5):
             assert b.post("/auth/local", data={"username": "auditor.cab", "password": "nope"}, follow_redirects=False).status_code == 401
+        # locked: even the right password is refused, with the same answer as any other failure
         r = b.post("/auth/local", data={"username": "auditor.cab", "password": "Auditor-Pass-Phrase-77"}, follow_redirects=False)
-        assert r.status_code == 423
+        assert r.status_code == 401 and "locked for a few minutes" in r.text
     with fresh(app) as c:
         c.post("/auth/local", data={"username": "admin", "password": NEW_PASSWORD}, follow_redirects=False)
         users = c.get("/auth/users").text

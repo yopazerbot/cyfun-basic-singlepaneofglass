@@ -12,29 +12,29 @@
 
 <section class="card">
   <form class="filters" method="get" action="/assets">
-    <select name="kind"><option value="">All kinds</option>{% for k in kinds %}<option value="{{ k }}" {{ 'selected' if k == f_kind }}>{{ k }}</option>{% endfor %}</select>
-    <select name="source"><option value="">All sources</option>{% for s in sources %}<option value="{{ s }}" {{ 'selected' if s == f_source }}>{{ s }}</option>{% endfor %}</select>
-    <select name="lifecycle"><option value="">Any lifecycle</option>{% for l in lifecycles %}<option value="{{ l }}" {{ 'selected' if l == f_lifecycle }}>{{ l }}</option>{% endfor %}</select>
-    <input type="search" name="q" value="{{ q }}" placeholder="Search name, description, owner">
+    <select name="kind" aria-label="Kind"><option value="">All kinds</option>{% for k in kinds %}<option value="{{ k }}" {{ 'selected' if k == f_kind }}>{{ k }}</option>{% endfor %}</select>
+    <select name="source" aria-label="Source"><option value="">All sources</option>{% for s in sources %}<option value="{{ s }}" {{ 'selected' if s == f_source }}>{{ s }}</option>{% endfor %}</select>
+    <select name="lifecycle" aria-label="Lifecycle"><option value="">Any lifecycle</option>{% for l in lifecycles %}<option value="{{ l }}" {{ 'selected' if l == f_lifecycle }}>{{ l }}</option>{% endfor %}</select>
+    <input type="search" name="q" value="{{ q }}" placeholder="Search name, description, owner" aria-label="Search assets">
     <button class="btn secondary small" type="submit">Filter</button>
     <a class="btn ghost small" href="/assets/export.csv">Export CSV</a>
   </form>
   {% if items %}
   <div class="table-wrap">
   <table class="list">
-    <thead><tr><th>Kind</th><th>Name</th><th>Location</th><th>Owner</th><th>Class.</th><th>Criticality</th><th>Primary</th><th>Source</th><th>Last seen</th></tr></thead>
+    <thead><tr><th class="hide-sm">Kind</th><th>Name</th><th class="hide-sm">Location</th><th class="hide-sm">Owner</th><th class="hide-sm">Class.</th><th>Criticality</th><th class="hide-sm">Primary</th><th class="hide-sm">Source</th><th class="hide-sm">Last seen</th></tr></thead>
     <tbody>
     {% for a in items %}
     <tr class="{{ 'retired' if a.lifecycle == 'retired' }}">
-      <td><span class="chip">{{ a.kind }}</span></td>
-      <td><a href="/assets/{{ a.id }}">{{ a.name }}</a>{% if a.description %}<div class="muted small">{{ a.description[:140] }}</div>{% endif %}</td>
-      <td class="muted">{{ a.location }}</td>
-      <td class="muted">{{ a.owner }}</td>
-      <td>{{ a.classification }}</td>
+      <td class="hide-sm"><span class="chip">{{ a.kind }}</span></td>
+      <td><a href="/assets/{{ a.id }}">{{ a.name }}</a><div class="muted small"><span class="show-sm">{{ a.kind }} · </span>{{ a.description[:140] }}</div></td>
+      <td class="hide-sm muted">{{ a.location }}</td>
+      <td class="hide-sm muted">{{ a.owner }}</td>
+      <td class="hide-sm">{{ a.classification }}</td>
       <td><span class="chip {{ 'bad' if a.criticality == 'High' else ('warn' if a.criticality == 'Medium' else '') }}">{{ a.criticality }}</span></td>
-      <td>{{ "yes" if a.primary_asset else "" }}</td>
-      <td class="muted mono small">{{ a.source }}</td>
-      <td class="muted small">{{ a.last_seen_at|date if a.last_seen_at else "" }}{% if a.lifecycle == 'retired' %} · retired{% endif %}</td>
+      <td class="hide-sm">{{ "yes" if a.primary_asset else "" }}</td>
+      <td class="hide-sm muted mono small">{{ a.source }}</td>
+      <td class="hide-sm muted small">{{ a.last_seen_at|date if a.last_seen_at else "" }}{% if a.lifecycle == 'retired' %} · retired{% endif %}</td>
     </tr>
     {% endfor %}
     </tbody>

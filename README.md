@@ -51,9 +51,15 @@ The tests reproduce the CCB workbooks' category and key-measure results for all 
 |---|---|
 | ![Risk assessment](docs/screenshots/risk.png) | ![Audit view](docs/screenshots/audit.png) |
 
-| Scope and level | Sign-in |
+| Scope and level | Document register |
 |---|---|
-| ![Scope and level](docs/screenshots/journey.png) | ![Sign-in](docs/screenshots/login.png) |
+| ![Scope and level](docs/screenshots/journey.png) | ![Document register](docs/screenshots/documents.png) |
+
+On a phone the navigation folds into a menu and every page fits the screen without sideways scrolling; wide tables scroll inside their card and drop secondary columns.
+
+| Phone: dashboard | Phone: scoring a requirement | Phone: menu |
+|---|---|---|
+| <img src="docs/screenshots/mobile-dashboard.png" alt="Dashboard on a phone" width="260"> | <img src="docs/screenshots/mobile-detail.png" alt="Scoring a requirement on a phone" width="260"> | <img src="docs/screenshots/mobile-menu.png" alt="Menu on a phone" width="260"> |
 
 ## Quick start
 

@@ -9,6 +9,8 @@ services:
     env_file: .env
     environment:
       DATA_DIR: /data
+      # X-Forwarded-For is trusted only from the internal network, where Caddy is the only other member.
+      FORWARDED_ALLOW_IPS: ${CYFUN_SUBNET:-172.31.250.0/24}
     volumes:
       - data:/data
     read_only: true
@@ -61,3 +63,6 @@ volumes:
 networks:
   internal:
     driver: bridge
+    ipam:
+      config:
+        - subnet: ${CYFUN_SUBNET:-172.31.250.0/24}

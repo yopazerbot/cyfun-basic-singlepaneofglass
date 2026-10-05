@@ -62,6 +62,10 @@ class SecurityMiddleware(BaseHTTPMiddleware):
                 return PlainTextResponse("Too many requests", status_code=429)
 
         if request.method in UNSAFE:
+            length = request.headers.get("content-length")
+            limit = (self.settings.max_upload_mb + 2) * 1024 * 1024
+            if length and length.isdigit() and int(length) > limit:
+                return PlainTextResponse("Request too large", status_code=413)
             origin = request.headers.get("origin")
             referer = request.headers.get("referer", "")
             expected = self.settings.origin
@@ -78,6 +82,7 @@ class SecurityMiddleware(BaseHTTPMiddleware):
         h["Permissions-Policy"] = "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
         h["Cross-Origin-Opener-Policy"] = "same-origin"
         h["Cross-Origin-Resource-Policy"] = "same-origin"
+        h["X-Permitted-Cross-Domain-Policies"] = "none"
         if self.settings.secure_cookies:
             h["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains"
         if not path.startswith("/static/"):

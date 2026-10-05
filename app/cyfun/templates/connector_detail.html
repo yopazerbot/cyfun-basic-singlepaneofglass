@@ -17,7 +17,7 @@
 <section class="card">
   <div class="card-head"><h2>Latest checks</h2>{% if latest %}<span class="muted">{{ latest.finished_at|date }} · <a href="/connectors/{{ key }}/snapshot/{{ latest.id }}">download snapshot</a></span>{% endif %}</div>
   {% if checks %}
-  <table class="list checks">
+  <div class="table-wrap"><table class="list checks">
     <thead><tr><th>Status</th><th>Check</th><th>Requirements</th></tr></thead>
     <tbody>
     {% for ch in checks %}
@@ -29,7 +29,7 @@
     </tr>
     {% endfor %}
     </tbody>
-  </table>
+  </table></div>
   {% else %}<p class="muted">No successful run yet.</p>{% endif %}
 </section>
 
@@ -37,16 +37,16 @@
   <div class="card">
     <div class="card-head"><h2>Runs</h2></div>
     {% if runs %}
-    <table class="list small">
+    <div class="table-wrap"><table class="list small">
       <thead><tr><th>Started</th><th>Status</th><th>By</th><th class="num">Items</th><th class="num">Checks</th><th></th></tr></thead>
       <tbody>{% for r in runs %}<tr><td class="nowrap">{{ r.started_at|date }}</td><td><span class="chip {{ 'ok' if r.status == 'ok' else ('info' if r.status == 'running' else 'bad') }}">{{ r.status }}</span>{% if r.error %}<div class="bad small">{{ r.error[:200] }}</div>{% endif %}</td><td class="muted">{{ r.triggered_by }}</td><td class="num">{{ r.inventory_count }}</td><td class="num">{{ r.check_count }}</td><td>{% if r.snapshot_file %}<a href="/connectors/{{ key }}/snapshot/{{ r.id }}">snapshot</a>{% endif %}</td></tr>{% endfor %}</tbody>
-    </table>
+    </table></div>
     {% else %}<p class="muted">No runs yet.</p>{% endif %}
   </div>
   <div class="card">
     <div class="card-head"><h2>Inventory from this source</h2><a class="link" href="/assets?source={{ key }}">Open in assets</a></div>
     {% if assets %}
-    <table class="list small">{% for a in assets[:40] %}<tr><td><span class="chip">{{ a.kind }}</span></td><td><a href="/assets/{{ a.id }}">{{ a.name }}</a></td><td class="muted">{{ a.description[:80] }}</td></tr>{% endfor %}</table>
+    <div class="table-wrap"><table class="list small">{% for a in assets[:40] %}<tr><td><span class="chip">{{ a.kind }}</span></td><td><a href="/assets/{{ a.id }}">{{ a.name }}</a></td><td class="muted">{{ a.description[:80] }}</td></tr>{% endfor %}</table></div>
     {% if assets|length > 40 %}<p class="muted small">{{ assets|length - 40 }} more in the asset inventory.</p>{% endif %}
     {% else %}<p class="muted">No inventory items.</p>{% endif %}
   </div>

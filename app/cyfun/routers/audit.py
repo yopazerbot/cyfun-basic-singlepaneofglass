@@ -4,12 +4,15 @@ from __future__ import annotations
 
 import json
 import re
+import tempfile
 from datetime import date
+from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
-from fastapi.responses import Response
+from fastapi.responses import FileResponse, Response
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+from starlette.background import BackgroundTask
 
 from ..audit_pack import assessment_payload, build_pack
 from ..auth import require_admin, require_user
@@ -142,10 +145,15 @@ def export_pack(request: Request, user: User = Depends(require_user), db: Sessio
     fw = ctx["fw"]
     ctx["generated"] = date.today()
     html = templates.get_template("audit_pack.html").render(**ctx)
-    data = build_pack(db, fw, settings, html)
-    log_activity(db, user.label, "export_pack", "assessment", "", {"bytes": len(data), "level": fw.level})
+    tmp_dir = settings.data_dir / "tmp"
+    tmp_dir.mkdir(parents=True, exist_ok=True)
+    # Built on disk, not in memory: the pack carries every evidence file.
+    with tempfile.NamedTemporaryFile(dir=tmp_dir, suffix=".zip", delete=False) as fh:
+        build_pack(db, fw, settings, html, fh)
+        path = Path(fh.name)
+    log_activity(db, user.label, "export_pack", "assessment", "", {"bytes": path.stat().st_size, "level": fw.level})
     fname = f"{date.today().isoformat()}_CyFun-{fw.level}_audit-pack_{_slug(ctx['org'].name)}.zip"
-    return Response(data, media_type="application/zip", headers={"Content-Disposition": f'attachment; filename="{fname}"'})
+    return FileResponse(path, media_type="application/zip", filename=fname, background=BackgroundTask(path.unlink, missing_ok=True))
 
 
 @router.get("/export/assessment.json")

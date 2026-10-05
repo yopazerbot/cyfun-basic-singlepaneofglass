@@ -8,49 +8,55 @@
 </header>
 
 {% if temp %}
-<section class="card warn-card">
+<section class="card warn-card" role="status">
   <strong>Temporary password for {{ temp_user.username }}</strong>
   <p>Hand it over through a safe channel. It is shown once and must be changed at first login.</p>
   <span class="temp-pw">{{ temp }}</span>
 </section>
 {% endif %}
 
-<section class="grid two-one">
-  <div class="card">
-    <table class="list">
-      <thead><tr><th>User</th><th>Provider</th><th>Role</th><th>State</th><th>Last sign-in</th><th></th></tr></thead>
-      <tbody>
-      {% for u in users %}
-      <tr>
-        <td><strong>{{ u.label }}</strong><div class="muted small">{{ u.username or u.email }}</div></td>
-        <td><span class="chip">{{ u.auth_provider }}</span></td>
-        <td>
-          {% if u.id != user.id %}
-          <form class="inline" method="post" action="/auth/users/{{ u.id }}/update">
-            <select name="role"><option value="admin" {{ 'selected' if u.role == 'admin' }}>admin</option><option value="auditor" {{ 'selected' if u.role == 'auditor' }}>auditor</option></select>
-            <select name="disabled"><option value="0" {{ 'selected' if not u.disabled }}>enabled</option><option value="1" {{ 'selected' if u.disabled }}>disabled</option></select>
-            <button class="btn secondary small" type="submit">Save</button>
-          </form>
-          {% else %}<span class="chip">{{ u.role }}</span> <span class="muted small">(you)</span>{% endif %}
-        </td>
-        <td>{% if u.disabled %}<span class="chip bad">disabled</span>{% elif u.must_change_password %}<span class="chip warn">password change pending</span>{% elif u.locked_until and u.locked_until > now_utc %}<span class="chip warn">locked</span>{% else %}<span class="chip ok">active</span>{% endif %}</td>
-        <td class="muted small">{{ u.last_login_at|date }}</td>
-        <td class="nowrap">
-          {% if u.auth_provider == 'local' and u.id != user.id %}<form class="inline" method="post" action="/auth/users/{{ u.id }}/reset"><button class="btn ghost small" type="submit" data-confirm="Reset the password of {{ u.username }}? Existing sessions end.">Reset password</button></form>{% endif %}
-          {% if u.id != user.id %}<form class="inline" method="post" action="/auth/users/{{ u.id }}/delete"><button class="btn link-danger small" type="submit" data-confirm="Delete {{ u.label }}?">Delete</button></form>{% endif %}
-        </td>
-      </tr>
-      {% endfor %}
-      </tbody>
-    </table>
+<section class="card">
+  <div class="table-wrap">
+  <table class="list">
+    <thead><tr><th>User</th><th class="hide-sm">Sign-in</th><th>Role and state</th><th class="hide-sm">Last sign-in</th><th><span class="visually-hidden">Actions</span></th></tr></thead>
+    <tbody>
+    {% for u in users %}
+    {% set locked = u.locked_until and u.locked_until > now_utc %}
+    <tr>
+      <td><strong>{{ u.label }}</strong><div class="muted small">{{ u.username or u.email }}</div>
+        <div>{% if u.disabled %}<span class="chip bad">disabled</span>{% elif u.must_change_password %}<span class="chip warn">password change pending</span>{% elif locked %}<span class="chip warn">locked</span>{% else %}<span class="chip ok">active</span>{% endif %}</div></td>
+      <td class="hide-sm"><span class="chip">{{ "Microsoft" if u.auth_provider == 'entra' else "local" }}</span></td>
+      <td>
+        {% if u.id != user.id %}
+        <form class="role-form" method="post" action="/auth/users/{{ u.id }}/update">
+          <select name="role" aria-label="Role of {{ u.label }}"><option value="admin" {{ 'selected' if u.role == 'admin' }}>admin</option><option value="auditor" {{ 'selected' if u.role == 'auditor' }}>auditor</option></select>
+          <select name="disabled" aria-label="State of {{ u.label }}"><option value="0" {{ 'selected' if not u.disabled }}>enabled</option><option value="1" {{ 'selected' if u.disabled }}>disabled</option></select>
+          <button class="btn secondary small" type="submit">Save</button>
+        </form>
+        {% else %}<span class="chip">{{ u.role }}</span> <span class="muted small">this is you</span>{% endif %}
+      </td>
+      <td class="hide-sm muted small nowrap">{{ u.last_login_at|date }}</td>
+      <td class="nowrap">
+        {% if u.auth_provider == 'local' and u.id != user.id %}<form class="inline" method="post" action="/auth/users/{{ u.id }}/reset"><button class="btn ghost small" type="submit" data-confirm="Reset the password of {{ u.username }}? Their sessions end and a temporary password is shown once.">Reset password</button></form>{% endif %}
+        {% if u.id != user.id %}<form class="inline" method="post" action="/auth/users/{{ u.id }}/delete"><button class="btn link-danger small" type="submit" data-confirm="Delete {{ u.label }}?">Delete</button></form>{% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
   </div>
-  <form class="card form" method="post" action="/auth/users">
-    <div class="card-head"><h2>Add local account</h2></div>
-    <label>Username<input name="username" required maxlength="64" pattern="[A-Za-z0-9._-]+" placeholder="j.doe"></label>
+</section>
+
+{% if local %}
+<form class="card form" method="post" action="/auth/users">
+  <div class="card-head"><h2>Add local account</h2></div>
+  <div class="form-grid">
+    <label>Username<input name="username" required maxlength="64" pattern="[A-Za-z0-9._\-]+" placeholder="j.doe" autocomplete="off" autocapitalize="none" spellcheck="false"></label>
     <label>Display name<input name="display_name" maxlength="200"></label>
     <label>Role<select name="role"><option value="auditor">auditor (read-only)</option><option value="admin">admin</option></select></label>
-    <div class="actions"><button class="btn" type="submit" {{ 'disabled' if not local }}>Create with temporary password</button></div>
-    <p class="muted small">Prefer Microsoft sign-in with app roles for staff; use local accounts for the first setup or for an external auditor without a tenant account.</p>
-  </form>
-</section>
+  </div>
+  <div class="actions"><button class="btn" type="submit">Create with temporary password</button></div>
+  <p class="muted small">Prefer Microsoft sign-in with app roles for staff. Use local accounts for the first setup or for an external auditor without a tenant account, and remove them when no longer needed.</p>
+</form>
+{% endif %}
 {% endblock %}

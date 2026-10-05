@@ -32,10 +32,11 @@ from datetime import timedelta
 from urllib.parse import urlencode
 
 import httpx
-from authlib.jose import JsonWebKey, jwt
-from authlib.jose.errors import JoseError
 from fastapi import APIRouter, Depends, Form, HTTPException, Request, Response
 from fastapi.responses import RedirectResponse
+from joserfc import jwt
+from joserfc.errors import JoseError
+from joserfc.jwk import KeySet
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
@@ -49,12 +50,18 @@ log = logging.getLogger("cyfun.auth")
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 COOKIE = "cyfun_session"
+SECURE_COOKIE = "__Host-cyfun_session"  # https: host-only, Secure, path=/ enforced by the browser
+ID_TOKEN_ALGORITHMS = ["RS256"]  # Entra ID signs ID tokens with RS256; anything else is refused
+GENERIC_LOGIN_ERROR = "Unknown username or wrong password. After repeated failures the account is locked for a few minutes."
 ROLES = ("admin", "auditor")
 ROLE_MAP = {"admin": "admin", "auditor": "auditor"}
 DEFAULT_ADMIN = ("admin", "admin")
 
 _discovery_cache: dict[str, tuple[float, dict]] = {}
 _jwks_cache: dict[str, tuple[float, object]] = {}
+
+
+_DUMMY_HASH = hash_password(new_token(16))  # verified for unknown users so every attempt costs the same
 
 
 class PasswordChangeRequired(Exception):  # noqa: N818 - control-flow signal handled by the app
@@ -87,7 +94,7 @@ def jwks(s: Settings, force: bool = False):
         return cached[1]
     r = httpx.get(discovery(s)["jwks_uri"], timeout=10)
     r.raise_for_status()
-    keyset = JsonWebKey.import_key_set(r.json())
+    keyset = KeySet.import_key_set(r.json())
     _jwks_cache[key] = (now + 3600, keyset)
     return keyset
 
@@ -122,27 +129,36 @@ def role_from_claims(claims: dict, s: Settings) -> str | None:
     return default if default in ROLES else None
 
 
-def validate_id_token(id_token: str, s: Settings, nonce: str) -> dict:
-    claims_options = {
-        "iss": {"essential": True, "values": [_authority(s)]},
-        "aud": {"essential": True, "values": [s.auth_client_id]},
-        "exp": {"essential": True},
-        "nonce": {"essential": True, "value": nonce},
-        "tid": {"essential": True, "value": s.auth_tenant_id},
-    }
+def validate_id_token(id_token: str, s: Settings, nonce: str, keys=None) -> dict:
+    """Verify signature (RS256 only, key from the tenant JWKS) and claims: iss, aud, exp, nbf, iat, nonce, tid.
+
+    The JWKS is fetched again once when the signature cannot be verified (key rotation)."""
+    load = keys or jwks
     try:
-        claims = jwt.decode(id_token, jwks(s), claims_options=claims_options)
-        claims.validate(leeway=60)
+        token = jwt.decode(id_token, load(s), algorithms=ID_TOKEN_ALGORITHMS)
     except (JoseError, ValueError):
-        claims = jwt.decode(id_token, jwks(s, force=True), claims_options=claims_options)
-        claims.validate(leeway=60)
-    return dict(claims)
+        token = jwt.decode(id_token, load(s, force=True), algorithms=ID_TOKEN_ALGORITHMS)
+    registry = jwt.JWTClaimsRegistry(
+        leeway=60,
+        iss={"essential": True, "value": _authority(s)},
+        aud={"essential": True, "value": s.auth_client_id},
+        exp={"essential": True},
+        nonce={"essential": True, "value": nonce},
+        tid={"essential": True, "value": s.auth_tenant_id},
+    )
+    registry.validate(token.claims)
+    return dict(token.claims)
 
 
 # --------------------------------------------------------------------------- sessions
+def cookie_name(s: Settings) -> str:
+    return SECURE_COOKIE if s.secure_cookies else COOKIE
+
+
 def create_session(db: Session, s: Settings, user: User, request: Request) -> str:
     token = new_token(32)
     now = utcnow()
+    db.execute(delete(SessionRow).where(SessionRow.expires_at < now))  # housekeeping
     db.add(
         SessionRow(
             token_hash=_hash(token),
@@ -159,15 +175,15 @@ def create_session(db: Session, s: Settings, user: User, request: Request) -> st
 
 
 def set_cookie(response: Response, s: Settings, token: str) -> None:
-    response.set_cookie(COOKIE, token, max_age=s.session_absolute_hours * 3600, httponly=True, secure=s.secure_cookies, samesite="lax", path="/")
+    response.set_cookie(cookie_name(s), token, max_age=s.session_absolute_hours * 3600, httponly=True, secure=s.secure_cookies, samesite="lax", path="/")
 
 
 def clear_cookie(response: Response, s: Settings) -> None:
-    response.delete_cookie(COOKIE, path="/", httponly=True, secure=s.secure_cookies, samesite="lax")
+    response.delete_cookie(cookie_name(s), path="/", httponly=True, secure=s.secure_cookies, samesite="lax")
 
 
 def load_user(request: Request, db: Session, s: Settings) -> User | None:
-    token = request.cookies.get(COOKIE)
+    token = request.cookies.get(cookie_name(s))
     if not token:
         return None
     row = db.get(SessionRow, _hash(token))
@@ -296,26 +312,26 @@ def local_login(
     uname = username.strip().lower()[:64]
     user = db.execute(select(User).where(User.username == uname, User.auth_provider == "local")).scalar_one_or_none()
     now = utcnow()
-    generic = "Unknown username or wrong password."
+    # Every failure gets the same message and status, and exactly one password verification runs
+    # in every branch, so neither the response nor its timing reveals whether an account exists.
+    password_ok = verify_password(password, user.password_hash if user else _DUMMY_HASH)
     if user is None:
-        verify_password(password, hash_password("dummy-timing-equaliser"))  # keep timing similar
         log_activity(db, uname, "login_failed", "user", "", {"reason": "unknown user"})
-        return _render(request, "login.html", _login_context(s, nxt, generic, uname), 401)
+        return _render(request, "login.html", _login_context(s, nxt, GENERIC_LOGIN_ERROR, uname), 401)
     if user.disabled:
         log_activity(db, uname, "login_failed", "user", str(user.id), {"reason": "disabled"})
-        return _render(request, "login.html", _login_context(s, nxt, generic, uname), 401)
+        return _render(request, "login.html", _login_context(s, nxt, GENERIC_LOGIN_ERROR, uname), 401)
     if user.locked_until and user.locked_until > now:
-        minutes = int((user.locked_until - now).total_seconds() // 60) + 1
         log_activity(db, uname, "login_failed", "user", str(user.id), {"reason": "locked"})
-        return _render(request, "login.html", _login_context(s, nxt, f"Account locked after repeated failures. Try again in {minutes} minutes.", uname), 423)
-    if not verify_password(password, user.password_hash):
+        return _render(request, "login.html", _login_context(s, nxt, GENERIC_LOGIN_ERROR, uname), 401)
+    if not password_ok:
         user.failed_logins = (user.failed_logins or 0) + 1
         if user.failed_logins >= s.login_max_failures:
             user.locked_until = now + timedelta(minutes=s.login_lockout_minutes)
             user.failed_logins = 0
         db.commit()
         log_activity(db, uname, "login_failed", "user", str(user.id), {"reason": "wrong password"})
-        return _render(request, "login.html", _login_context(s, nxt, generic, uname), 401)
+        return _render(request, "login.html", _login_context(s, nxt, GENERIC_LOGIN_ERROR, uname), 401)
     user.failed_logins = 0
     user.locked_until = None
     user.last_login_at = now
@@ -357,6 +373,18 @@ def password_change(
     nxt = _safe_next(next)
     ctx = {"next": nxt, "forced": user.must_change_password, "error": ""}
     if not verify_password(current, user.password_hash):
+        user.failed_logins = (user.failed_logins or 0) + 1
+        if user.failed_logins >= s.login_max_failures:
+            user.locked_until = utcnow() + timedelta(minutes=s.login_lockout_minutes)
+            user.failed_logins = 0
+            db.commit()
+            end_all_sessions(db, user.id)
+            log_activity(db, user.label, "password_change_locked", "user", str(user.id), {})
+            resp = RedirectResponse("/auth/login", status_code=303)
+            clear_cookie(resp, s)
+            return resp
+        db.commit()
+        log_activity(db, user.label, "password_change_failed", "user", str(user.id), {})
         ctx["error"] = "The current password is wrong."
         return _render(request, "password.html", ctx, 400)
     if new != confirm:
@@ -370,6 +398,7 @@ def password_change(
         return _render(request, "password.html", ctx, 400)
     user.password_hash = hash_password(new)
     user.must_change_password = False
+    user.failed_logins = 0
     db.commit()
     # all other sessions of this account end; the current one is replaced
     end_all_sessions(db, user.id)
@@ -595,7 +624,7 @@ def callback(
 
 @router.post("/logout")
 def logout(request: Request, db: Session = Depends(get_db), s: Settings = Depends(get_settings)):
-    token = request.cookies.get(COOKIE)
+    token = request.cookies.get(cookie_name(s))
     if token:
         row = db.get(SessionRow, _hash(token))
         if row:

@@ -29,7 +29,7 @@
     <div class="card">
       <div class="card-head"><h2>Attributes</h2><span class="muted small">{{ edit.source }}{% if edit.external_id %} · <span class="mono">{{ edit.external_id }}</span>{% endif %}</span></div>
       {% if edit.attributes %}
-      <table class="list small">{% for k, v in edit.attributes.items() %}<tr><th class="nowrap">{{ k }}</th><td>{{ v }}</td></tr>{% endfor %}</table>
+      <div class="table-wrap"><table class="list small">{% for k, v in edit.attributes.items() %}<tr><th class="nowrap">{{ k }}</th><td>{{ v }}</td></tr>{% endfor %}</table></div>
       {% else %}<p class="muted">No attributes.</p>{% endif %}
       <p class="muted small">Created {{ edit.created_at|date }} · updated {{ edit.updated_at|date }}{% if edit.last_seen_at %} · last seen by connector {{ edit.last_seen_at|date }}{% endif %}</p>
     </div>

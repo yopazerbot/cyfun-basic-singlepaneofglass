@@ -7,14 +7,14 @@
   <p class="lead">Who changed what and when. Entries cannot be edited or deleted through the application.</p>
 </header>
 <section class="card">
-  <table class="list small">
-    <thead><tr><th>When (UTC)</th><th>Actor</th><th>Action</th><th>Entity</th><th>Details</th></tr></thead>
+  <div class="table-wrap"><table class="list small">
+    <thead><tr><th>When (UTC)</th><th>Actor</th><th>Action</th><th class="hide-sm">Entity</th><th class="hide-sm">Details</th></tr></thead>
     <tbody>
     {% for a in items %}
-    <tr><td class="nowrap">{{ a.at|date }}</td><td>{{ a.actor }}</td><td>{{ a.action }}</td><td>{{ a.entity }}{% if a.entity_id %} <span class="mono">{{ a.entity_id }}</span>{% endif %}</td><td class="mono small details-cell">{{ a.details|tojson }}</td></tr>
+    <tr><td class="nowrap">{{ a.at|date }}</td><td>{{ a.actor }}</td><td>{{ a.action }}</td><td class="hide-sm">{{ a.entity }}{% if a.entity_id %} <span class="mono">{{ a.entity_id }}</span>{% endif %}</td><td class="hide-sm mono small details-cell">{{ a.details|tojson }}</td></tr>
     {% endfor %}
     </tbody>
-  </table>
+  </table></div>
   <nav class="pager">
     {% if page > 1 %}<a href="/activity?page={{ page - 1 }}">← Newer</a>{% endif %}
     {% if has_next %}<a href="/activity?page={{ page + 1 }}">Older →</a>{% endif %}

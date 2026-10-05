@@ -161,10 +161,9 @@ def _csv(rows: list[list]) -> str:
     return buf.getvalue()
 
 
-def build_pack(db: Session, fw: Framework, settings: Settings, summary_html: str) -> bytes:
+def build_pack(db: Session, fw: Framework, settings: Settings, summary_html: str, out) -> None:
     payload = assessment_payload(db, fw)
-    buf = io.BytesIO()
-    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
+    with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
         z.writestr("README.txt", __doc__.strip() + f"\n\nGenerated {payload['generated_at']} by CyFun Basic Single Pane of Glass.\n")
         z.writestr("summary.html", summary_html)
         z.writestr("assessment.json", json.dumps(payload, indent=1, ensure_ascii=False))
@@ -247,4 +246,3 @@ def build_pack(db: Session, fw: Framework, settings: Settings, summary_html: str
                 p = (settings.snapshots_dir / run.snapshot_file).resolve()
                 if settings.snapshots_dir.resolve() in p.parents and p.exists():
                     z.write(p, f"checks/{key}.json")
-    return buf.getvalue()
