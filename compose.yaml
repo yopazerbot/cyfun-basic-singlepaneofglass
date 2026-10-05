@@ -32,7 +32,10 @@ services:
     image: caddy:2-alpine
     container_name: cyfun-caddy
     restart: unless-stopped
-    env_file: .env
+    # Only the two values the proxy needs; the application secrets in .env stay out of this container.
+    environment:
+      APP_HOSTNAME: ${APP_HOSTNAME:?set APP_HOSTNAME in .env}
+      CADDY_TLS: ${CADDY_TLS:-internal}
     ports:
       - "80:80"
       - "443:443"

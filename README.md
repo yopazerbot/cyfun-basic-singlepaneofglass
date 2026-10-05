@@ -96,7 +96,7 @@ cp .env.example .env            # APP_BASE_URL, APP_HOSTNAME, CYFUN_SECRET_KEY, 
 docker compose up -d --build
 ```
 
-Caddy serves `https://$APP_HOSTNAME` with an internal CA by default (set `CADDY_TLS` to an e-mail address for Let's Encrypt). Configure Entra ID sign-in when ready (docs/entra-id-sso.md) and set `AUTH_LOCAL_ENABLED=false` once it works, or keep local accounts for an external auditor.
+For a Proxmox host, follow [docs/deployment-proxmox.md](docs/deployment-proxmox.md) from an empty host to backups and updates. Caddy serves `https://$APP_HOSTNAME` with an internal CA by default (set `CADDY_TLS` to an e-mail address for Let's Encrypt). Configure Entra ID sign-in when ready (docs/entra-id-sso.md) and set `AUTH_LOCAL_ENABLED=false` once it works, or keep local accounts for an external auditor.
 
 ## Documentation
 
@@ -108,7 +108,7 @@ Caddy serves `https://$APP_HOSTNAME` with an internal CA by default (set `CADDY_
 | [docs/entra-id-sso.md](docs/entra-id-sso.md) | Entra ID app registration, app roles, environment variables |
 | [docs/connectors.md](docs/connectors.md) | Per connector: credentials, permissions, checks and their requirement mapping |
 | [docs/ai-assistance.md](docs/ai-assistance.md) | Claude-assisted scoring: setup, what is sent, placeholders, guard rules, cost, accountability |
-| [docs/deployment-proxmox.md](docs/deployment-proxmox.md) | Proxmox VM or LXC, Docker, DNS and TLS, backup and restore, updates |
+| [docs/deployment-proxmox.md](docs/deployment-proxmox.md) | Step by step on Proxmox: VM, Docker, firewall, DNS and TLS, first sign-in, Entra ID, backup and restore, updates |
 | [docs/audit-verification.md](docs/audit-verification.md) | Using the tool for the self-declaration and during the CAB verification |
 
 ## Repository layout
