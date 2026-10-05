@@ -7,14 +7,14 @@ browser ──TLS──> caddy (reverse proxy, HSTS, certificates)
                    │ http, internal network only
                    ▼
                  app (FastAPI + uvicorn, one worker)
-                   ├── Jinja2 server-rendered HTML, htmx for two partial updates
-                   ├── SQLite (WAL) in /data/cyfun.sqlite3
+                   ├── Jinja2 server-rendered HTML, htmx for partial updates
+                   ├── SQLite (WAL) in /data/cyfun.sqlite3, secrets encrypted with CYFUN_SECRET_KEY
                    ├── /data/evidence/<random>.<ext>          uploaded evidence
                    ├── /data/connector_snapshots/<key>/*.json  raw connector output
-                   └── APScheduler thread: connector runs every CONNECTOR_SYNC_HOURS
+                   └── APScheduler threads: connector runs, Claude reviews, batch polling
                           │ outbound HTTPS only
                           ▼
-            Microsoft Graph · GitHub API · Railway GraphQL · Cloudflare API
+            Microsoft Graph · GitHub API · Railway GraphQL · Cloudflare API · Anthropic API (optional)
                           ▲
    login.microsoftonline.com (OIDC discovery, authorization, token, JWKS)
 ```
@@ -33,10 +33,12 @@ Two containers, one named volume for data, one for Caddy state. No database serv
 | Local accounts with scrypt | Standard-library hashing, no extra dependency; lets the application run before single sign-on exists and gives an external auditor an account without a tenant. Off switch in one variable. |
 | XML-level workbook filling | The CCB workbook is protected and carries a chart, defined names and conditional formatting; rewriting it with a spreadsheet library drops parts of it. Editing only the value cells keeps it byte-identical elsewhere. |
 | Caddy | Automatic TLS (internal CA or ACME), few moving parts, sensible defaults. |
+| Settings page with encrypted secrets | Connector credentials and the Anthropic key change more often than the deployment; editing them in the application avoids shell access and restarts. AES-256-GCM from the `cryptography` package, key from the environment so a copy of the database alone reveals nothing. Sign-in configuration stays environment-only. |
+| Claude through the official SDK, one request per requirement | One requirement is a bounded task: a single Messages API call with a JSON schema output, no tools and no agent loop. The same request body goes into the Batches API for whole levels at half price. |
 
 ## Data model
 
-Single organisation (row id 1). Tables: organisation, user, login_state, session, score, snapshot, risk_assessment, risk_item, asset, document, evidence, action, connector_run, check_result, activity. See `app/cyfun/models.py`. JSON columns hold lists of requirement identifiers and connector details.
+Single organisation (row id 1). Tables: organisation, user, login_state, session, score, snapshot, risk_assessment, risk_item, asset, document, evidence, action, connector_run, check_result, activity, app_setting (Settings page values; secrets as ciphertext), ai_proposal (one Claude review: input as sent, answer, guard results, cost, decision), ai_batch (Message Batches submissions). See `app/cyfun/models.py`. JSON columns hold lists of requirement identifiers and connector details.
 
 Framework content is not in the database. `basic_2025.json`, `important_2025.json`, `essential_2025.json` and `risk_model.json` are generated from the CCB workbooks by `scripts/build_framework.py` and `scripts/build_risk_sectors.py`; `goals_2025.json` is extracted from the CCB booklets by `scripts/build_goals.py`; `guidance_basic_2025.json` holds guidance summaries written for this project. Each level file carries its thresholds, N/A rules and the cell layout of its workbook (columns, completion date cell, summary sheet). The organisation's target level selects which file is loaded. A new CCB tool version means regenerating the JSON and, if rows moved, nothing else: the export locates cells by sheet and row from the JSON and validates the uploaded workbook against it.
 
@@ -48,7 +50,11 @@ Framework content is not in the database. `basic_2025.json`, `important_2025.jso
 
 ## Connector flow
 
-`scheduler.run_connector` creates a `connector_run`, calls `Connector.sync()`, upserts assets by `(source, external_id)`, retires assets no longer seen, stores `check_result` rows, writes the raw snapshot to disk, marks the run `ok` or `error`. A manual run is queued on the same scheduler so two runs of one connector never overlap. Connector credentials are read from settings; nothing is stored in the database.
+`scheduler.run_connector` reads the effective credentials (`appsettings.load_config`: environment, then Settings page, then default), creates a `connector_run`, calls `Connector.sync()`, upserts assets by `(source, external_id)`, retires assets no longer seen, stores `check_result` rows, writes the raw snapshot to disk, refreshes one automated evidence item per check (snapshot SHA-256, requirement mapping), and marks the run `ok` or `error`. A manual run is queued on the same scheduler so two runs of one connector never overlap.
+
+## Claude review flow
+
+`ai/packet.py` builds the requirement packet from the database and replaces personal data with placeholders (`ai/pseudonym.py`). `ai/service.start_review` stores an `ai_proposal` with the exact input and queues `run_review`, which sends one request through `ai/claude.py` (official `anthropic` SDK; adaptive thinking, effort from Settings, JSON schema output, cached system prompt, server-side refusal fallback). `ai/guard.py` validates the answer, removes unverifiable citations, applies the CCB limits and restores the placeholders. `accept` is the only path to the `score` table and runs on an administrator's request. Batches build the same request bodies, submit them to the Message Batches API, and a scheduler job collects results every 5 minutes.
 
 ## Exports
 
@@ -57,4 +63,4 @@ Framework content is not in the database. `basic_2025.json`, `important_2025.jso
 
 ## Adding a connector
 
-Create `app/cyfun/connectors/<name>.py` with a `Connector` subclass: `key`, `name`, `description`, `env_vars`, `configured()`, `sync()` returning `SyncResult(inventory, checks, raw)`. Keep evaluation logic in pure functions (see `evaluate_*` in the existing connectors) so it can be unit tested without network access. Register the class in `connectors/__init__.py`, add settings fields in `config.py` and document the credentials in docs/connectors.md.
+Create `app/cyfun/connectors/<name>.py` with a `Connector` subclass: `key`, `name`, `description`, `env_vars`, `configured()`, `test()`, `sync()` returning `SyncResult(inventory, checks, raw)`. Credentials come from `self.config`. Keep evaluation logic in pure functions (see `evaluate_*` in the existing connectors) so it can be unit tested without network access. Register the class in `connectors/__init__.py`, add a settings group and fields in `appsettings.py` and the environment override in `config.py`, and document the credentials in docs/connectors.md.

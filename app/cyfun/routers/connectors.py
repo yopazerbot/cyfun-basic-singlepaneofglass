@@ -8,6 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from .. import scheduler
+from ..appsettings import load_config
 from ..auth import require_admin, require_user
 from ..config import get_settings
 from ..connectors import registry
@@ -21,10 +22,10 @@ router = APIRouter(prefix="/connectors", tags=["connectors"])
 
 @router.get("")
 def list_connectors(request: Request, user: User = Depends(require_user), db: Session = Depends(get_db)):
-    settings = get_settings()
+    config = load_config(db)
     runs = latest_runs(db)
     rows = []
-    for key, c in registry(settings).items():
+    for key, c in registry(config).items():
         run = runs.get(key)
         checks = db.execute(select(CheckResult).where(CheckResult.run_id == run.id)).scalars().all() if run and run.status == "ok" else []
         counts = {s: sum(1 for x in checks if x.status == s) for s in ("pass", "fail", "warn", "info", "error")}
@@ -40,13 +41,12 @@ def list_connectors(request: Request, user: User = Depends(require_user), db: Se
                 "counts": counts,
             }
         )
-    return render(request, "connectors.html", {"active": "connectors", "rows": rows, "sync_hours": settings.connector_sync_hours})
+    return render(request, "connectors.html", {"active": "connectors", "rows": rows, "sync_hours": config.connector_sync_hours})
 
 
 @router.get("/{key}")
 def connector_detail(request: Request, key: str, user: User = Depends(require_user), db: Session = Depends(get_db)):
-    settings = get_settings()
-    c = registry(settings).get(key)
+    c = registry(load_config(db)).get(key)
     if c is None:
         return redirect("/connectors", err="Unknown connector.")
     fw = current_framework(db)
@@ -68,9 +68,9 @@ def connector_detail(request: Request, key: str, user: User = Depends(require_us
 @router.post("/{key}/run")
 def run_now(request: Request, key: str, user: User = Depends(require_admin), db: Session = Depends(get_db)):
     settings = get_settings()
-    c = registry(settings).get(key)
+    c = registry(load_config(db, settings)).get(key)
     if c is None or not c.configured():
-        return redirect("/connectors", err="Connector is not configured. Set its environment variables and restart the application.")
+        return redirect("/connectors", err="Connector is not configured. Add its credentials on the Settings page.")
     running = db.execute(select(ConnectorRun).where(ConnectorRun.connector == key, ConnectorRun.status == "running")).scalars().first()
     if running:
         return redirect(f"/connectors/{key}", err="A run is already in progress.")

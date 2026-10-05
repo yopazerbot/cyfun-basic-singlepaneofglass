@@ -47,8 +47,10 @@
       <div class="actions">
         <button class="btn" type="submit" name="go" value="stay">Save</button>
         {% if next_unscored %}<button class="btn secondary" type="submit" name="go" value="next_unscored">Save and next unscored</button>{% elif next %}<button class="btn secondary" type="submit" name="go" value="next">Save and next</button>{% endif %}
-        {% if score %}<span class="muted small">Last saved {{ score.updated_at|date }} by {{ score.updated_by }}</span>{% endif %}
+        {% if score %}<span class="muted small">Last saved {{ score.updated_at|date }} by {{ score.updated_by }}{% if score.ai_proposal_id %}, from <a href="/ai/proposals/{{ score.ai_proposal_id }}">Claude's proposal</a>{% endif %}</span>{% endif %}
       </div>
+      {% elif score and score.ai_proposal_id %}
+      <p class="muted small">Scores proposed by Claude and accepted by {{ score.updated_by }} on {{ score.updated_at|date }}.</p>
       {% endif %}
       <details class="small">
         <summary>Maturity level definitions (CCB self-assessment tool)</summary>
@@ -61,13 +63,15 @@
       </details>
     </form>
 
+    {% if admin %}{% include "partials/ai_panel.html" %}{% endif %}
+
     <div class="card">
       <div class="card-head"><h2>Evidence</h2><a class="link" href="/evidence?requirement={{ req.id }}">All evidence</a></div>
       {% if evidence %}
       <ul class="plain-list">
         {% for e in evidence %}
-        <li>{% if e.kind == 'file' %}<a href="/evidence/{{ e.id }}/download">{{ e.title }}</a>{% elif e.kind == 'link' %}<a href="{{ e.url }}" rel="noopener noreferrer" target="_blank">{{ e.title }}</a>{% else %}{{ e.title }}{% endif %}
-          <div class="muted small">{{ e.kind }} · {{ e.collected_on|date }}{% if e.sha256 %} · <span class="mono" title="{{ e.sha256 }}">{{ e.sha256[:12] }}</span>{% endif %}{% if e.description %} · {{ e.description }}{% endif %}</div></li>
+        <li>{% if e.kind == 'file' %}<a href="/evidence/{{ e.id }}/download">{{ e.title }}</a>{% elif e.kind == 'link' %}<a href="{{ e.url }}" rel="noopener noreferrer" target="_blank">{{ e.title }}</a>{% elif e.kind == 'automated' and e.run_id %}<a href="{{ e.url }}">{{ e.title }}</a>{% else %}{{ e.title }}{% endif %}
+          <div class="muted small">{{ e.kind }} · {{ e.collected_on|date }}{% if e.sha256 %} · <span class="mono" title="{{ e.sha256 }}">{{ e.sha256[:12] }}</span>{% endif %}{% if e.share_with_ai %} · Claude may read it{% endif %}{% if e.description %} · {{ e.description }}{% endif %}</div></li>
         {% endfor %}
       </ul>
       {% else %}<p class="muted">No evidence linked yet.</p>{% endif %}
@@ -78,6 +82,7 @@
           <label>File<input type="file" name="file"></label>
           <label>or a link<input name="url" placeholder="https://" inputmode="url"></label>
           <label class="span-all">Description<input name="description" maxlength="1000"></label>
+          <label class="check span-all small"><input type="checkbox" name="share_with_ai" value="1"> Claude may read this file when it reviews the linked requirements (PDF, image or text; names inside the file are not replaced)</label>
         </div>
         <div class="actions"><button class="btn secondary" type="submit">Add evidence</button></div>
       </form>
@@ -134,7 +139,8 @@
     {% if history %}
     <div class="card">
       <div class="card-head"><h2>History</h2></div>
-      <ul class="plain-list small">{% for h in history %}<li><span class="muted">{{ h.at|date }} · {{ h.actor }}</span><br>{{ h.action.replace('_',' ') }}{% if h.details.after %}: documentation {{ h.details.after.doc }}, implementation {{ h.details.after.impl }}{% if h.details.after.na %}, not applicable{% endif %}{% endif %}</li>{% endfor %}</ul>
+      {% set labels = {'score_update': 'Scores changed', 'justification_update': 'Justification changed', 'ai_review_start': 'Claude review started', 'ai_review_done': 'Claude review finished', 'ai_review_failed': 'Claude review without result', 'ai_proposal_reject': "Claude's proposal rejected"} %}
+      <ul class="plain-list small">{% for h in history %}<li><span class="muted">{{ h.at|date }} · {{ h.actor }}</span><br>{{ labels.get(h.action, h.action.replace('_',' ')) }}{% if h.details.after %}: documentation {{ h.details.after.doc }}, implementation {{ h.details.after.impl }}{% if h.details.after.na %}, not applicable{% endif %}{% if h.details.ai %} (Claude's proposal{{ ', edited' if h.details.ai.edited }}){% endif %}{% elif h.action == 'ai_review_done' and h.details.documentation %}: proposed {{ h.details.documentation }} and {{ h.details.implementation }}{% endif %}</li>{% endfor %}</ul>
     </div>
     {% endif %}
   </div>

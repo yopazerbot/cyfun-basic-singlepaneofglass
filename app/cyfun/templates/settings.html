@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block title %}Settings · {{ settings.app_name }}{% endblock %}
+{% block content %}
+<header class="page-head">
+  <div class="eyebrow">Administration · connectors and Claude</div>
+  <h1>Settings</h1>
+  <p class="lead">Credentials of the connected systems, the connector schedule and Claude. Secrets are encrypted in the database with the server key and are never shown again after saving; you can replace or clear them. A value set as an environment variable on the server takes precedence and is shown read-only. Sign-in and session settings stay in environment variables.</p>
+</header>
+
+{% if key_problem %}
+<div class="flash bad" role="alert">Secrets cannot be stored: {{ key_problem }} Set CYFUN_SECRET_KEY to a random value of at least 32 characters and restart the application. Settings without secrets can still be saved.</div>
+{% endif %}
+
+{% macro field(it) %}
+{% set f = it.f %}
+{% if f.secret %}
+  <div class="setting">
+    <label>{{ f.label }}
+      <input type="password" name="{{ f.name }}" autocomplete="new-password" spellcheck="false" autocapitalize="off" maxlength="4000"
+             placeholder="{{ 'Enter a new value' if it.row else 'Paste the value' }}" {{ 'disabled' if it.locked or key_problem }}>
+    </label>
+    <p class="setting-state small {{ 'bad' if it.problem else 'muted' }}">
+      {% if it.locked %}Set by the environment variable <span class="mono">{{ f.env }}</span>.
+      {% elif it.problem %}The stored value cannot be used ({{ it.problem }}). Enter it again.
+      {% elif it.row %}Stored{% if it.row.hint %}, ends in <span class="mono">…{{ it.row.hint }}</span>{% endif %}. Saved {{ it.row.updated_at|date }} by {{ it.row.updated_by }}.
+      {% else %}Not set.{% endif %}
+    </p>
+    {% if it.row and not it.locked %}<label class="check small"><input type="checkbox" name="{{ f.name }}__clear" value="1"> Clear the stored value</label>{% endif %}
+    {% if f.help %}<p class="muted small">{{ f.help }}</p>{% endif %}
+  </div>
+{% elif f.kind == 'bool' %}
+  <div class="setting span-all">
+    <label class="check"><input type="checkbox" name="{{ f.name }}" value="1" {{ 'checked' if it.value }} {{ 'disabled' if it.locked }}> {{ f.label }}</label>
+    <p class="muted small">{% if it.locked %}Set by the environment variable <span class="mono">{{ f.env }}</span>. {% endif %}{{ f.help }}</p>
+  </div>
+{% else %}
+  <div class="setting">
+    <label>{{ f.label }}
+      {% if f.kind == 'choice' %}
+      <select name="{{ f.name }}" {{ 'disabled' if it.locked }}>{% for k, v in f.choices.items() %}<option value="{{ k }}" {{ 'selected' if it.value == k }}>{{ v }}</option>{% endfor %}</select>
+      {% elif f.kind == 'int' %}
+      <input type="number" name="{{ f.name }}" value="{{ it.value }}" min="{{ f.minimum }}" max="{{ f.maximum }}" step="1" inputmode="numeric" {{ 'disabled' if it.locked }}>
+      {% else %}
+      <input name="{{ f.name }}" value="{{ it.value }}" maxlength="300" spellcheck="false" autocapitalize="off" placeholder="{{ f.placeholder }}" {{ 'disabled' if it.locked }}>
+      {% endif %}
+    </label>
+    {% if it.locked %}<p class="setting-state muted small">Set by the environment variable <span class="mono">{{ f.env }}</span>.</p>{% endif %}
+    {% if f.help %}<p class="muted small">{{ f.help }}</p>{% endif %}
+  </div>
+{% endif %}
+{% endmacro %}
+
+{% macro group_form(grp) %}
+{% set g = grp.g %}
+<form class="card form" id="{{ g.key }}" method="post" action="/settings/{{ g.key }}" autocomplete="off">
+  <div class="card-head">
+    <h2>{{ g.title }}</h2>
+    {% if g.connector %}<span class="chip {{ 'ok' if configured[g.connector] }}">{{ 'configured' if configured[g.connector] else 'not configured' }}</span>
+    {% elif g.key == 'claude' %}<span class="chip {{ 'ok' if ai.configured }}">{{ 'configured' if ai.configured else 'no API key' }}</span>{% endif %}
+  </div>
+  <p class="muted small">{{ g.help }}{% if g.connector %} Permissions and checks: docs/connectors.md.{% endif %}</p>
+  {% if g.key == 'claude' %}
+  <p class="small">This month: {{ ai.spend|usd }} of USD {{ ai.cap }}. <a href="/ai">Claude review</a></p>
+  {% endif %}
+  <div class="form-grid">
+    {% for it in grp['items'] %}{{ field(it) }}{% endfor %}
+  </div>
+  <div class="actions">
+    <button class="btn" type="submit">Save</button>
+    {% if g.connector or g.key == 'claude' %}<button class="btn secondary" type="submit" formaction="/settings/{{ g.key }}/test">Test connection</button>{% endif %}
+  </div>
+</form>
+{% endmacro %}
+
+<h2 class="section-title">Connected systems</h2>
+<section class="grid two">
+  {% for grp in groups if grp.g.connector or grp.g.key == 'schedule' %}{{ group_form(grp) }}{% endfor %}
+</section>
+
+<h2 class="section-title">Claude</h2>
+<section class="grid two-one">
+  {% for grp in groups if grp.g.key == 'claude' %}{{ group_form(grp) }}{% endfor %}
+  <div class="card">
+    <div class="card-head"><h2>What Claude receives</h2></div>
+    <ul class="guidance small">
+      <li>The requirement, its CCB goal and guidance, the current score and justification.</li>
+      <li>Metadata of linked documents, evidence and open actions, the titles of other register documents, and the latest automated checks.</li>
+      <li>Names, e-mail addresses, device names and account lists are replaced by placeholders before sending and restored in the answer.</li>
+      <li>The content of an evidence file only when it is marked "Claude may read this file" on the Evidence page. Text inside PDFs and images is sent as it is.</li>
+    </ul>
+    <p class="muted small">Requests go from this server to api.anthropic.com over HTTPS. Anthropic's commercial terms for the API govern retention and use of the data; check your organisation's agreement. Every review and every decision is in the activity log.</p>
+  </div>
+</section>
+{% endblock %}

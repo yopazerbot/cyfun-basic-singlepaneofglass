@@ -70,6 +70,7 @@ async def create_evidence(request: Request, file: UploadFile | None = File(None)
         ev.kind, ev.stored_name, ev.file_name, ev.sha256, ev.size = "file", stored, original, digest, size
         ev.mime = (file.content_type or "")[:100]
         ev.title = ev.title or original
+        ev.share_with_ai = form.get("share_with_ai") == "1"
     elif url:
         if not url.lower().startswith(("https://", "http://")):
             return redirect("/evidence", err="Links must start with https:// or http://.")
@@ -79,7 +80,14 @@ async def create_evidence(request: Request, file: UploadFile | None = File(None)
         return redirect("/evidence", err="Provide a file or a link.")
     db.add(ev)
     db.commit()
-    log_activity(db, user.label, "evidence_add", "evidence", str(ev.id), {"title": ev.title, "requirements": reqs, "sha256": ev.sha256})
+    log_activity(
+        db,
+        user.label,
+        "evidence_add",
+        "evidence",
+        str(ev.id),
+        {"title": ev.title, "requirements": reqs, "sha256": ev.sha256, "share_with_ai": ev.share_with_ai},
+    )
     return redirect("/evidence", msg="Evidence added.")
 
 
@@ -97,8 +105,12 @@ async def update_evidence(request: Request, ev_id: int, user: User = Depends(req
         url = (form.get("url") or "").strip()
         if url.lower().startswith(("https://", "http://")):
             ev.url = url[:1000]
+    if ev.kind == "file":
+        ev.share_with_ai = form.get("share_with_ai") == "1"
     db.commit()
-    log_activity(db, user.label, "evidence_update", "evidence", str(ev.id), {"title": ev.title, "requirements": ev.requirement_ids})
+    log_activity(
+        db, user.label, "evidence_update", "evidence", str(ev.id), {"title": ev.title, "requirements": ev.requirement_ids, "share_with_ai": ev.share_with_ai}
+    )
     return redirect("/evidence", msg="Evidence updated.")
 
 

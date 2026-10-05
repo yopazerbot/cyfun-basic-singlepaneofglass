@@ -50,14 +50,14 @@ The scoring module reproduces the workbook formulas of the three levels. The agg
 
 * **Documents.** Documentation maturity 2 requires formally approved documents; 3 and higher require review within two years and documented exceptions. The register records version, approver, approval and review dates, and the requirements each document supports. Review-due documents are flagged on the dashboard.
 * **Assets.** ID.AM-01.1 (infrastructure), ID.AM-02.1 (software and services), ID.AM-05.1 (classification, criticality, primary/secondary, owner) and ID.AM-07.1 (data) share one inventory with a kind field. Connectors populate it; the user owns classification and ownership.
-* **Evidence.** Files are stored under random names with their SHA-256 hash, size and collection date, and mapped to requirements. Links are stored as URLs. Both appear in the audit pack.
+* **Evidence.** Files are stored under random names with their SHA-256 hash, size and collection date, and mapped to requirements. Links are stored as URLs. Every connector check result is kept as automated evidence that points at the run's snapshot and its SHA-256 hash, refreshed by every run. All three appear in the audit pack.
 * **Actions.** Remediation planning with owner, priority, due date and status. Internal; excluded from every export.
 
 ## 5. Connected systems
 
 The booklets ask for automated discovery where possible (ID.AM-01.1, ID.AM-02.1) and for continuous facts: MFA on remote access (PR.AA-03.2), managed identities and reviewed access (PR.AA-01.1, PR.AA-05.x), no day-to-day administrative privileges (PR.AA-05.4), patched systems (ID.AM-08.2), anti-malware (DE.CM-01.2), logging (PR.PS-04.1, DE.AE-03.1), firewalls (PR.IR-01.1), web and e-mail filtering (PR.PS-05.1), vulnerability awareness (ID.RA-01.1).
 
-Each connector produces inventory items and checks with a status (pass, fail, warn, info, error), a one-line summary, structured details and the requirement identifiers it supports. Results are shown on the dashboard, on each requirement and in the audit view; a raw snapshot of every run is kept and included in the audit pack. See docs/connectors.md for the mapping.
+Each connector produces inventory items and checks with a status (pass, fail, warn, info, error), a one-line summary, structured details and the requirement identifiers it supports. Results are shown on the dashboard, on each requirement and in the audit view, and each check is registered as automated evidence; a raw snapshot of every run is kept and included in the audit pack. Credentials are entered on the Settings page (encrypted) or set as environment variables. See docs/connectors.md for the mapping.
 
 ## 6. Verification support
 
@@ -66,6 +66,10 @@ Each connector produces inventory items and checks with a status (pass, fail, wa
 * **Official workbook export.** The CCB workbook of the target level is filled in place: scores, comments, completion date, cached formula values recomputed, everything else byte-identical. The CCB file is uploaded by the user, not bundled; a workbook of another level is refused.
 * **Audit pack.** ZIP with a self-contained summary page, assessment and risk JSON, document and asset registers, every evidence file with hash, latest checks and connector snapshots.
 
-## 7. Deliberately out of scope
+## 7. Claude-assisted scoring (optional)
 
-Multi-tenant use, e-mail notifications, workflow approvals, AI-generated text, policy templates. The CCB toolbox on cyfun.eu provides policy templates; the document register links to wherever they live.
+Translating connector results, documents and evidence into the CCB maturity scale is the slow part of the self-assessment. With an Anthropic API key on the Settings page, Claude proposes the documentation and implementation score of a requirement with a justification, the cited material, the gaps to the next level and remediation actions. Guard rules hold proposals to the CCB definitions where the material allows a mechanical check, and an administrator accepts, edits or rejects every proposal; nothing changes a score on its own. Names, e-mail addresses and devices are replaced by placeholders before sending. See docs/ai-assistance.md.
+
+## 8. Deliberately out of scope
+
+Multi-tenant use, e-mail notifications, workflow approvals, automatic score changes, policy templates. The CCB toolbox on cyfun.eu provides policy templates; the document register links to wherever they live.

@@ -28,7 +28,7 @@ class RailwayConnector(Connector):
     docs = "docs/connectors.md#railway"
 
     def configured(self) -> bool:
-        return bool(self.settings.railway_token)
+        return bool(self.config.railway_token)
 
     def _query(self, c, query: str) -> dict:
         r = c.post(ENDPOINT, json={"query": query})
@@ -38,9 +38,17 @@ class RailwayConnector(Connector):
             raise RuntimeError("; ".join(e.get("message", "") for e in data["errors"])[:300])
         return data.get("data") or {}
 
+    def test(self) -> str:
+        with self.client({"Authorization": f"Bearer {self.config.railway_token}", "Content-Type": "application/json"}) as c:
+            try:
+                projects = _edges(self._query(c, QUERY_ME).get("me"), "projects")
+            except Exception:  # noqa: BLE001 - team tokens have no "me"; try the root query
+                projects = _edges(self._query(c, QUERY_ROOT), "projects")
+        return f"Token works; {len(projects)} projects visible."
+
     def sync(self) -> SyncResult:
         res = SyncResult()
-        c = self.client({"Authorization": f"Bearer {self.settings.railway_token}", "Content-Type": "application/json"})
+        c = self.client({"Authorization": f"Bearer {self.config.railway_token}", "Content-Type": "application/json"})
         projects: list[dict] = []
         owner = ""
         try:

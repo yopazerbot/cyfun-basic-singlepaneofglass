@@ -90,18 +90,30 @@ class GitHubConnector(Connector):
     docs = "docs/connectors.md#github"
 
     def configured(self) -> bool:
-        return bool(self.settings.github_token)
+        return bool(self.config.github_token)
 
     def _client(self) -> httpx.Client:
         return self.client(
             {
-                "Authorization": f"Bearer {self.settings.github_token}",
+                "Authorization": f"Bearer {self.config.github_token}",
                 "Accept": "application/vnd.github+json",
                 "X-GitHub-Api-Version": "2022-11-28",
                 "User-Agent": "cyfun-basic-spog",
             },
             API,
         )
+
+    def test(self) -> str:
+        org = self.config.github_org.strip()
+        with self._client() as c:
+            u = c.get("/user")
+            u.raise_for_status()
+            login = u.json().get("login", "")
+            if org:
+                o = c.get(f"/orgs/{org}")
+                o.raise_for_status()
+                return f"Token works for {login}; organisation {org} is readable."
+        return f"Token works for {login} (user mode)."
 
     @staticmethod
     def _paged(c: httpx.Client, url: str, limit: int = 1000) -> list[dict]:
@@ -121,7 +133,7 @@ class GitHubConnector(Connector):
 
     def sync(self) -> SyncResult:
         res = SyncResult()
-        org = self.settings.github_org.strip()
+        org = self.config.github_org.strip()
         c = self._client()
         raw: dict = {"mode": "organisation" if org else "user", "org": org}
 

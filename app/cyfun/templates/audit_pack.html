@@ -76,8 +76,9 @@
   </div>
   <p>{{ r.text }}</p>
   {% if sc and sc.justification %}<p><b>Justification.</b> {{ sc.justification|nl2br }}</p>{% endif %}
+  {% set origin = ai_origin.get(r.id) %}{% if origin %}<p class="muted small">Scores proposed by Claude ({{ origin.model }}) and accepted by {{ origin.accepted_by }} on {{ origin.accepted_at|date }}{{ ' after editing' if origin.edited_before_acceptance }}.</p>{% endif %}
   <div class="cols small">
-    <div><b>Evidence</b>{% set evs = evidence.get(r.id, []) %}{% if evs %}<ul>{% for e in evs %}<li>{{ e.title }} ({{ e.kind }}{% if e.file_name %}, evidence/{{ e.id }}_{{ e.file_name }}{% endif %}{% if e.url %}, {{ e.url }}{% endif %}){% if e.sha256 %}<br><span class="mono">{{ e.sha256 }}</span>{% endif %}</li>{% endfor %}</ul>{% else %}<p class="muted">none</p>{% endif %}</div>
+    <div><b>Evidence</b>{% set evs = evidence.get(r.id, []) %}{% if evs %}<ul>{% for e in evs %}<li>{{ e.title }} ({{ e.kind }}{% if e.kind == 'automated' %}, checks/snapshots/{{ e.source }}-{{ e.file_name }}{% else %}{% if e.file_name %}, evidence/{{ e.id }}_{{ e.file_name }}{% endif %}{% if e.url %}, {{ e.url }}{% endif %}{% endif %}){% if e.sha256 %}<br><span class="mono">{{ e.sha256 }}</span>{% endif %}</li>{% endfor %}</ul>{% else %}<p class="muted">none</p>{% endif %}</div>
     <div><b>Documents</b>{% set ds = documents.get(r.id, []) %}{% if ds %}<ul>{% for d in ds %}<li>{{ d.title }}{% if d.version %} v{{ d.version }}{% endif %} · {{ d.status }}{% if d.approved_on %} · approved {{ d.approved_on|date }}{% if d.approved_by %} by {{ d.approved_by }}{% endif %}{% endif %}{% if d.last_review %} · reviewed {{ d.last_review|date }}{% endif %}</li>{% endfor %}</ul>{% else %}<p class="muted">none</p>{% endif %}</div>
     <div><b>Automated checks</b>{% set cs = checks.get(r.id, []) %}{% if cs %}<ul>{% for ch in cs %}<li><span class="chip {{ ch.status }}">{{ ch.status }}</span> {{ ch.title }}: {{ ch.summary }} <span class="muted">({{ ch.connector }}, {{ ch.checked_at|date }})</span></li>{% endfor %}</ul>{% else %}<p class="muted">none</p>{% endif %}</div>
   </div>

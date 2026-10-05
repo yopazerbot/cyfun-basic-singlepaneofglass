@@ -4,7 +4,7 @@
 <header class="page-head">
   <div class="eyebrow">Connectors · scheduled every {{ sync_hours }} h</div>
   <h1>Connected systems</h1>
-  <p class="lead">Read-only connections to live systems. Each run refreshes the inventory and produces checks mapped to requirements; a raw snapshot is kept as evidence. Credentials live only in environment variables; a connector is active when its variables are set.</p>
+  <p class="lead">Read-only connections to live systems. Each run refreshes the inventory, produces checks mapped to requirements and keeps a raw snapshot; every check result is registered as automated evidence with the snapshot's SHA-256 hash. Credentials are set on the {% if user.role == 'admin' %}<a href="/settings">Settings page</a>{% else %}Settings page{% endif %} (encrypted) or as environment variables on the server.</p>
 </header>
 
 <section class="grid cards">
@@ -14,7 +14,7 @@
       {% if not c.configured %}<span class="chip">not configured</span>{% elif not c.run %}<span class="chip">never run</span>{% elif c.run.status == 'ok' %}<span class="chip ok">ok</span>{% elif c.run.status == 'running' %}<span class="chip info">running</span>{% else %}<span class="chip bad">error</span>{% endif %}
     </div>
     <p>{{ c.description }}</p>
-    <p class="muted small">Environment: {% for v in c.env_vars %}<span class="mono">{{ v }}</span>{{ ", " if not loop.last }}{% endfor %}</p>
+    {% if not c.configured and user.role == 'admin' %}<p class="small"><a href="/settings#{{ c.key }}">Add credentials on the Settings page</a></p>{% endif %}
     {% if c.run %}
     <p class="small">Last run {{ (c.run.finished_at or c.run.started_at)|date }} by {{ c.run.triggered_by }}{% if c.run.status == 'ok' %}: {{ c.run.inventory_count }} inventory items, {{ c.run.check_count }} checks ({{ c.counts.pass }} pass, {{ c.counts.fail }} fail, {{ c.counts.warn }} warn, {{ c.counts.error }} error){% elif c.run.status == 'error' %}<br><span class="bad">{{ c.run.error[:300] }}</span>{% endif %}</p>
     {% endif %}

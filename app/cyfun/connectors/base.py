@@ -1,7 +1,7 @@
 """Connector contract.
 
 A connector talks to one external system with read-only credentials from the
-environment and returns two things:
+Settings page (or their environment overrides) and returns two things:
 
 * inventory items: facts for the asset inventory (ID.AM-01.1, ID.AM-02.1, ...)
 * check results: automated observations mapped to CyFun requirements, each with a
@@ -59,10 +59,14 @@ class Connector:
     env_vars: tuple[str, ...] = ()
     docs: str = ""
 
-    def __init__(self, settings):
-        self.settings = settings
+    def __init__(self, config):
+        self.config = config  # appsettings.Config: effective credential values
 
     def configured(self) -> bool:
+        raise NotImplementedError
+
+    def test(self) -> str:
+        """Cheap read-only call that proves the credentials work. Returns a one-line result; raises on failure."""
         raise NotImplementedError
 
     def sync(self) -> SyncResult:
@@ -78,10 +82,22 @@ class Connector:
         return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     @staticmethod
-    def error_check(check_id: str, title: str, requirement_ids: list[str], exc: Exception) -> Check:
-        msg = str(exc)
+    def describe_error(exc: Exception) -> str:
+        """One line about a failed call, without response bodies (they can echo credentials)."""
         if isinstance(exc, httpx.HTTPStatusError):
             msg = f"HTTP {exc.response.status_code} from {exc.request.url.host}"
-            if exc.response.status_code in (401, 403):
+            if exc.response.status_code == 401:
+                msg += " (credentials rejected or access missing)"
+            elif exc.response.status_code == 403:
                 msg += " (permission or licence missing)"
+            return msg
+        if isinstance(exc, httpx.TimeoutException):
+            return f"timeout connecting to {exc.request.url.host}" if exc.request else "timeout"
+        if isinstance(exc, httpx.TransportError):
+            return f"no connection ({type(exc).__name__})"
+        return str(exc)[:300]
+
+    @staticmethod
+    def error_check(check_id: str, title: str, requirement_ids: list[str], exc: Exception) -> Check:
+        msg = Connector.describe_error(exc)
         return Check(check_id, title, ERROR, msg[:300], requirement_ids, {"error": str(exc)[:1000]})

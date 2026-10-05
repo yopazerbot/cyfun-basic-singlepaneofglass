@@ -81,10 +81,10 @@ class CloudflareConnector(Connector):
     docs = "docs/connectors.md#cloudflare"
 
     def configured(self) -> bool:
-        return bool(self.settings.cloudflare_api_token)
+        return bool(self.config.cloudflare_api_token)
 
     def _client(self) -> httpx.Client:
-        return self.client({"Authorization": f"Bearer {self.settings.cloudflare_api_token}"}, API)
+        return self.client({"Authorization": f"Bearer {self.config.cloudflare_api_token}"}, API)
 
     @staticmethod
     def _result(r: httpx.Response):
@@ -93,6 +93,17 @@ class CloudflareConnector(Connector):
         if not data.get("success", False):
             raise RuntimeError("; ".join(e.get("message", "") for e in data.get("errors", []))[:300])
         return data.get("result")
+
+    def test(self) -> str:
+        acc = self.config.cloudflare_account_id.strip()
+        with self._client() as c:
+            status = (self._result(c.get("/user/tokens/verify")) or {}).get("status", "")
+            if status != "active":
+                raise RuntimeError(f"token status is {status or 'unknown'}")
+            if acc:
+                name = (self._result(c.get(f"/accounts/{acc}")) or {}).get("name", acc)
+                return f"Token is active; account {name} is readable."
+        return "Token is active."
 
     def sync(self) -> SyncResult:
         res = SyncResult()
@@ -177,7 +188,7 @@ class CloudflareConnector(Connector):
         raw["waf"] = waf
 
         # Account level ----------------------------------------------------------------
-        acc = self.settings.cloudflare_account_id.strip()
+        acc = self.config.cloudflare_account_id.strip()
         if acc:
             try:
                 apps = self._result(c.get(f"/accounts/{acc}/access/apps")) or []

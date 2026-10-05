@@ -21,7 +21,7 @@ git clone https://github.com/yopazerbot/cyfun-basic-singlepaneofglass.git
 cd cyfun-basic-singlepaneofglass
 cp .env.example .env
 chmod 600 .env
-nano .env                     # APP_BASE_URL, APP_HOSTNAME, AUTH_*, connectors
+nano .env                     # APP_BASE_URL, APP_HOSTNAME, CYFUN_SECRET_KEY, AUTH_*
 docker compose up -d --build
 docker compose ps             # app must be "healthy", caddy "running"
 docker compose logs -f app
@@ -45,7 +45,7 @@ docker run --rm -v cyfun-basic-singlepaneofglass_data:/data:ro -v /srv/backups/c
 find /srv/backups/cyfun -name 'cyfun-data-*.tgz' -mtime +30 -delete
 ```
 
-Add the guest to a Proxmox Backup Server job as well. Keep `.env` in the password manager, not in the backup set that leaves the organisation.
+Add the guest to a Proxmox Backup Server job as well. Keep `.env` in the password manager, not in the backup set that leaves the organisation. `CYFUN_SECRET_KEY` in particular: the credentials stored on the Settings page cannot be decrypted without it, so a restore needs the same key, and a backup of the volume alone does not expose them.
 
 Restore: stop the stack, recreate the volume, extract the tarball into it, start the stack.
 

@@ -11,7 +11,7 @@
 </header>
 
 {% if not c.configured() %}
-<section class="card warn-card">Not configured. Set {% for v in c.env_vars %}<span class="mono">{{ v }}</span>{{ ", " if not loop.last }}{% endfor %} and restart the application. See docs/connectors.md.</section>
+<section class="card warn-card">Not configured. {% if user.role == 'admin' %}Add the credentials on the <a href="/settings#{{ key }}">Settings page</a>{% else %}An administrator adds the credentials on the Settings page{% endif %}, or set {% for v in c.env_vars %}<span class="mono">{{ v }}</span>{{ ", " if not loop.last }}{% endfor %} on the server. See docs/connectors.md.</section>
 {% endif %}
 
 <section class="card">

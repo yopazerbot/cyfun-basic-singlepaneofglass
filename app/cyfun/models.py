@@ -85,6 +85,8 @@ class Score(Base):
     justification: Mapped[str] = mapped_column(Text, default="")
     updated_by: Mapped[str] = mapped_column(String(320), default="")
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
+    # Set when the current scores come from an accepted Claude proposal; cleared by a manual save.
+    ai_proposal_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
 
 class Snapshot(Base):
@@ -193,6 +195,12 @@ class Evidence(Base):
     collected_on: Mapped[date | None] = mapped_column(Date, nullable=True)
     collected_by: Mapped[str] = mapped_column(String(320), default="")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    # Automated evidence: the connector and check that produce it, and the run behind the current content.
+    source: Mapped[str] = mapped_column(String(30), default="")
+    source_ref: Mapped[str] = mapped_column(String(60), default="")
+    run_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # File evidence only: the administrator allowed sending the file's content to Claude.
+    share_with_ai: Mapped[bool] = mapped_column(Boolean, default=False)
 
 
 class Action(Base):
@@ -251,3 +259,79 @@ class Activity(Base):
     entity: Mapped[str] = mapped_column(String(40), default="")
     entity_id: Mapped[str] = mapped_column(String(60), default="")
     details: Mapped[dict] = mapped_column(JSON, default=dict)
+
+
+class AppSetting(Base):
+    """A value managed on the Settings page. Secrets are stored encrypted (AES-256-GCM) and never shown again."""
+
+    __tablename__ = "app_setting"
+    key: Mapped[str] = mapped_column(String(60), primary_key=True)
+    value: Mapped[str] = mapped_column(Text, default="")  # non-secret settings
+    ciphertext: Mapped[str] = mapped_column(Text, default="")  # secrets: base64(nonce | ciphertext | tag)
+    key_id: Mapped[str] = mapped_column(String(16), default="")  # identifies the server key that encrypted it
+    hint: Mapped[str] = mapped_column(String(16), default="")  # last characters of a long secret, for recognition
+    updated_by: Mapped[str] = mapped_column(String(320), default="")
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
+
+
+class AiBatch(Base):
+    """A Message Batches API submission that reviews several requirements at half price."""
+
+    __tablename__ = "ai_batch"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    anthropic_id: Mapped[str] = mapped_column(String(100), default="")
+    status: Mapped[str] = mapped_column(String(12), default="submitted", index=True)  # submitted|ended|failed|canceled
+    scope: Mapped[str] = mapped_column(String(10), default="changed")  # changed|all
+    level: Mapped[str] = mapped_column(String(20), default="BASIC")
+    model: Mapped[str] = mapped_column(String(40), default="")
+    request_count: Mapped[int] = mapped_column(Integer, default=0)
+    succeeded: Mapped[int] = mapped_column(Integer, default=0)
+    failed: Mapped[int] = mapped_column(Integer, default=0)
+    estimate_usd: Mapped[float] = mapped_column(Float, default=0.0)
+    error: Mapped[str] = mapped_column(Text, default="")
+    created_by: Mapped[str] = mapped_column(String(320), default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    checked_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    ended_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+
+class AiProposal(Base):
+    """Claude's proposed scores for one requirement. Changes nothing until an administrator accepts it."""
+
+    __tablename__ = "ai_proposal"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    requirement_id: Mapped[str] = mapped_column(String(20), index=True)
+    level: Mapped[str] = mapped_column(String(20), default="BASIC")
+    # queued (in a batch) | running | ready | accepted | rejected | superseded | failed | declined
+    status: Mapped[str] = mapped_column(String(12), default="running", index=True)
+    origin: Mapped[str] = mapped_column(String(10), default="single")  # single | batch
+    batch_id: Mapped[int | None] = mapped_column(ForeignKey("ai_batch.id", ondelete="SET NULL"), nullable=True, index=True)
+    model: Mapped[str] = mapped_column(String(40), default="")  # requested model
+    served_model: Mapped[str] = mapped_column(String(40), default="")  # model that answered (differs after a fallback)
+    effort: Mapped[str] = mapped_column(String(10), default="")
+    prompt_version: Mapped[str] = mapped_column(String(20), default="")
+    input_text: Mapped[str] = mapped_column(Text, default="")  # the requirement packet exactly as sent, with placeholders
+    input_sha256: Mapped[str] = mapped_column(String(64), default="")
+    basis_hash: Mapped[str] = mapped_column(String(64), default="", index=True)  # change detection for batch reviews
+    pseudonyms: Mapped[dict] = mapped_column(JSON, default=dict)  # placeholder -> original value; never sent
+    meta: Mapped[dict] = mapped_column(JSON, default=dict)  # references, facts for the guard rules, attachments
+    doc_score: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    impl_score: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    confidence: Mapped[str] = mapped_column(String(10), default="")
+    justification: Mapped[str] = mapped_column(Text, default="")
+    result: Mapped[dict] = mapped_column(JSON, default=dict)  # rationale, references, gaps, actions, caps applied
+    raw_output: Mapped[str] = mapped_column(Text, default="")  # Claude's answer as returned
+    error: Mapped[str] = mapped_column(Text, default="")
+    request_id: Mapped[str] = mapped_column(String(100), default="")
+    input_tokens: Mapped[int] = mapped_column(Integer, default=0)
+    output_tokens: Mapped[int] = mapped_column(Integer, default=0)
+    cache_read_tokens: Mapped[int] = mapped_column(Integer, default=0)
+    cache_write_tokens: Mapped[int] = mapped_column(Integer, default=0)
+    cost_usd: Mapped[float] = mapped_column(Float, default=0.0)
+    created_by: Mapped[str] = mapped_column(String(320), default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, index=True)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    decision: Mapped[str] = mapped_column(String(10), default="")  # accepted | edited | rejected
+    decided_by: Mapped[str] = mapped_column(String(320), default="")
+    decided_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    decision_note: Mapped[str] = mapped_column(Text, default="")

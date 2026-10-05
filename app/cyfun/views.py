@@ -56,7 +56,12 @@ def nl2br_safe(value: str) -> str:
     return Markup("<br>".join(escape(value or "").split("\n")))  # noqa: S704 - every fragment is escaped
 
 
+def fmt_usd(value) -> str:
+    return "USD " + fmt_score(value or 0.0, 2)
+
+
 templates.env.filters["score"] = fmt_score
+templates.env.filters["usd"] = fmt_usd
 templates.env.filters["date"] = fmt_date
 templates.env.filters["status_word"] = status_word
 templates.env.filters["pct"] = pct
@@ -111,9 +116,11 @@ def render(request: Request, name: str, context: dict | None = None, status_code
 
 
 def redirect(path: str, msg: str = "", err: str = "") -> RedirectResponse:
+    """303 to `path`; the signed message goes into the query string, before any #fragment."""
+    path, hash_, fragment = path.partition("#")
     sep = "&" if "?" in path else "?"
     if msg:
         path = f"{path}{sep}msg={quote(msg)}&s={_flash_sig('msg', msg)}"
     elif err:
         path = f"{path}{sep}err={quote(err)}&s={_flash_sig('err', err)}"
-    return RedirectResponse(path, status_code=303)
+    return RedirectResponse(path + hash_ + fragment, status_code=303)

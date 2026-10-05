@@ -1,0 +1,109 @@
+{# Claude review panel of one requirement. Administrators only. Polls itself while a review runs. #}
+{% set polling = prop and prop.status in ('running', 'queued') and not standalone %}
+{% set open = prop and prop.status == 'ready' and not standalone %}
+<section class="card ai-panel" id="claude" aria-live="polite" {% if polling %}hx-get="/ai/proposals/{{ prop.id }}/panel" hx-trigger="every {{ '4s' if prop.status == 'running' else '60s' }}" hx-swap="outerHTML"{% endif %}>
+  <div class="card-head">
+    <h2>Claude review</h2>
+    {% if prop and prop.status in ('ready', 'accepted', 'rejected', 'superseded') and prop.confidence %}<span class="chip {{ {'high': 'ok', 'medium': 'warn', 'low': 'bad'}[prop.confidence] }}">{{ prop.confidence }} confidence</span>{% endif %}
+  </div>
+
+  {% if not prop or (prop.status in ('failed', 'declined') and not standalone) %}
+    {% if prop %}<p class="small bad">{{ prop.error }}</p>{% endif %}
+    {% if ai.configured %}
+    <p class="small muted">Claude reads this requirement with its linked documents, evidence and automated checks and proposes both scores with a justification. Nothing changes until you accept. About {{ ai.single_estimate|usd }} per review with {{ ai.model_label }}.</p>
+    <form method="post" action="/ai/review/{{ rid }}"><button class="btn secondary" type="submit">{{ 'Try again' if prop else 'Ask Claude for a proposal' }}</button></form>
+    {% else %}
+    <p class="small muted">Set an Anthropic API key on the <a href="/settings#claude">Settings page</a> to get scoring proposals from Claude.</p>
+    {% endif %}
+
+  {% elif prop.status == 'running' %}
+    <p class="small">Claude is reviewing {{ rid }} with {{ prop.model }}, started {{ prop.created_at|date }} UTC. This panel updates by itself; a review usually takes under a minute.</p>
+
+  {% elif prop.status == 'queued' %}
+    <p class="small">Queued in a batch submitted {{ prop.created_at|date }} UTC. Results arrive within 24 hours, usually within an hour. Status: <a href="/ai">Claude review</a>.</p>
+
+  {% else %}
+    {% set res = prop.result or {} %}
+    {% if standalone %}
+    <p class="small muted">{{ prop.status|capitalize }}{% if prop.decided_by %} by {{ prop.decided_by }} on {{ prop.decided_at|date }}{% if prop.decision == 'edited' %} after editing{% endif %}{% endif %}{% if prop.decision_note %}: {{ prop.decision_note }}{% endif %}.{% if prop.error %} {{ prop.error }}{% endif %}</p>
+    {% endif %}
+    {% if prop.doc_score %}
+    <div class="ai-dims">
+      {% for dim, label, cur, new in [('documentation', 'Documentation', score.doc_score if score else None, prop.doc_score), ('implementation', 'Implementation', score.impl_score if score else None, prop.impl_score)] %}
+      <div class="ai-dim">
+        <div class="ai-dim-head">
+          <h3>{{ label }}</h3>
+          <span class="muted small">current {{ cur if cur is not none else 'none' }}</span>
+          <span class="chip {{ 'ok' if cur is none or new == cur else 'warn' }}">proposed {{ new }}</span>
+        </div>
+        <p class="small">{{ (res.rationale or {}).get(dim, '') }}</p>
+        {% for c in res.caps or [] if c.dimension == dim %}<p class="ai-cap small">Claude proposed {{ c.proposed }}; limited to {{ c.applied }}. {{ c.reason }}</p>{% endfor %}
+      </div>
+      {% endfor %}
+    </div>
+    {% if score and score.not_applicable and open %}<p class="small warn">{{ rid }} is marked not applicable. Accepting removes that mark.</p>{% endif %}
+
+    {% if res.contradictions %}
+    <div class="ai-flag"><strong>Conflicts with the current assessment</strong><ul>{% for c in res.contradictions %}<li>{{ c }}</li>{% endfor %}</ul></div>
+    {% endif %}
+    {% if res.notes_for_reviewer %}<div class="ai-flag"><strong>Check before accepting</strong><p>{{ res.notes_for_reviewer }}</p></div>{% endif %}
+
+    {% if res.references %}
+    <h3>Material cited</h3>
+    <ul class="plain-list small">
+      {% for r in res.references %}
+      <li><span class="mono">{{ r.ref }}</span> <a href="{{ r.link }}">{{ r.title }}</a> <span class="muted">· supports {{ r.supports }}</span>{% if r.quote %}<div class="ai-quote">{{ r.quote }}</div>{% endif %}</li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+    {% if res.guard_notes %}<p class="small muted">{% for n in res.guard_notes %}{{ n }} {% endfor %}</p>{% endif %}
+
+    {% if res.gaps %}
+    <h3>Gaps to the next level</h3>
+    <ul class="guidance small">{% for g in res.gaps %}<li><strong>{{ g.dimension|capitalize }} {{ g.next_level }}:</strong> {{ g.missing }}</li>{% endfor %}</ul>
+    {% endif %}
+    {% if res.evidence_to_collect %}
+    <h3>Evidence to collect</h3>
+    <ul class="guidance small">{% for e in res.evidence_to_collect %}<li>{{ e }}</li>{% endfor %}</ul>
+    {% endif %}
+
+    {% if open %}
+    <form class="form ai-accept" method="post" action="/ai/proposals/{{ prop.id }}/accept">
+      <div class="form-grid">
+        {% for name, label, value in [('doc_score', 'Documentation', prop.doc_score), ('impl_score', 'Implementation', prop.impl_score)] %}
+        <label>{{ label }}<select name="{{ name }}">{% for m in fw.maturity_levels %}<option value="{{ m.value }}" {{ 'selected' if m.value == value }}>{{ m.value }} · {{ m.name.split(' - ')[-1] }}</option>{% endfor %}</select></label>
+        {% endfor %}
+        <label class="span-all">Justification <span class="small">(exported to the CCB workbook comments column; edit before accepting)</span>
+          <textarea name="justification" rows="7">{{ prop.justification }}</textarea>
+        </label>
+      </div>
+      {% if res.proposed_actions %}
+      <fieldset class="ai-actions">
+        <legend class="field-label">Create remediation actions</legend>
+        {% for a in res.proposed_actions %}
+        <label class="check small"><input type="checkbox" name="action" value="{{ loop.index0 }}"> <span>{{ a.title }}<span class="muted"> · {{ a.reason }}</span></span></label>
+        {% endfor %}
+      </fieldset>
+      {% endif %}
+      <div class="actions">
+        <button class="btn" type="submit">Accept and save scores</button>
+        <span class="muted small">Replaces the current scores and justification of {{ rid }}.</span>
+      </div>
+    </form>
+    <form class="form compact" method="post" action="/ai/proposals/{{ prop.id }}/reject">
+      <label>Reason for rejecting (optional)<input name="note" maxlength="1000"></label>
+      <div class="actions"><button class="btn secondary" type="submit">Reject proposal</button></div>
+    </form>
+    {% elif prop.justification %}
+    <h3>Proposed justification</h3>
+    <p class="justification small">{{ prop.justification|nl2br }}</p>
+    {% endif %}
+    {% endif %}
+
+    <details class="small">
+      <summary>What was sent to Claude</summary>
+      <p class="muted">Model {{ prop.served_model or prop.model }}{% if prop.served_model and prop.served_model != prop.model %} (fallback from {{ prop.model }}){% endif %} · effort {{ prop.effort }} · prompt {{ prop.prompt_version }} · input SHA-256 <span class="mono">{{ prop.input_sha256[:16] }}</span> · {{ prop.input_tokens + prop.cache_read_tokens + prop.cache_write_tokens }} input and {{ prop.output_tokens }} output tokens · {{ prop.cost_usd|usd }}{% if prop.origin == 'batch' %} (batch price){% endif %}</p>
+      <pre class="details">{{ prop.input_text }}</pre>
+    </details>
+  {% endif %}
+</section>

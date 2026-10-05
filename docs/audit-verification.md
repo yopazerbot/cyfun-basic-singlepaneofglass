@@ -5,6 +5,7 @@
 1. **Scope, level and journey**: organisation, legal entity, enterprise number, scope statement, exclusions, CAB, self-assessment completion date, target assurance level.
 2. **Risk assessment**: sector, size, matrix, rationale saved. If the method points to a different level than the target, record why in the rationale (for example BASIC as a first step towards IMPORTANT).
 3. **Self-assessment**: all requirements of the level scored, N/A within the level's limit and never on key measures (at ESSENTIAL also never on management-aspect controls), a justification on every requirement that states where the documentation lives and how implementation is evidenced.
+   Optional: ask Claude for proposals per requirement or in a batch (docs/ai-assistance.md). Read the cited material and the gaps, edit the justification where needed, then accept or reject; a proposal changes nothing until it is accepted.
 4. **Dashboard**: total maturity at or above the level's threshold, all key measures at or above theirs, at ESSENTIAL every category ≥ 3, no rule problems shown.
 5. **Documents and evidence**: every requirement has at least one approved document or one evidence item. The dashboard shows the coverage percentage.
 6. **Connected systems**: run every connector, look at every `fail`, decide and document.
@@ -18,7 +19,8 @@
 * The Audit view answers each requirement in one block: statement, level, flags, scores, justification, evidence with hashes, documents with approval dates, latest automated checks with timestamps.
 * Snapshots show what was declared on the self-assessment date versus the state at verification.
 * Connector snapshots (JSON) show raw facts at run time; the auditor can compare them with the live systems.
-* Remediation actions, journey notes and the activity log are internal and not in the pack. Share them only if you want to.
+* Scores that came from a Claude proposal carry a line in the audit view and the pack summary, and `score_origin` in assessment.json: the model, who accepted the proposal, when, and whether it was edited first. The CAB sees that a person decided each score.
+* Remediation actions, journey notes, Claude proposals and the activity log are internal and not in the pack. Share them only if you want to.
 
 ## What the CCB workbook export changes, and what it leaves alone
 

@@ -21,8 +21,13 @@
     <label>or a link<input name="url" placeholder="https://" inputmode="url"></label>
     {% elif edit.kind == 'link' %}
     <label class="span-all">Link<input name="url" value="{{ edit.url }}" inputmode="url"></label>
+    {% elif edit.kind == 'automated' %}
+    <p class="span-all muted small">Automated evidence from the {{ edit.source }} connector, refreshed by every run. Snapshot {{ edit.file_name }} · SHA-256 <span class="mono">{{ edit.sha256 }}</span>{% if edit.run_id %} · <a href="{{ edit.url }}">open snapshot</a>{% endif %}. Requirements you add are kept; the connector's own mapping is restored at each run.</p>
     {% else %}
     <p class="span-all muted small">File {{ edit.file_name }} · SHA-256 <span class="mono">{{ edit.sha256 }}</span> · <a href="/evidence/{{ edit.id }}/download">download</a></p>
+    {% endif %}
+    {% if not edit or edit.kind == 'file' %}
+    <label class="check span-all small"><input type="checkbox" name="share_with_ai" value="1" {{ 'checked' if edit and edit.share_with_ai }}> Claude may read this file when it reviews the linked requirements (PDF, image or text; names inside the file are not replaced)</label>
     {% endif %}
     <label>Collected on<input type="date" name="collected_on" value="{{ edit.collected_on|date if edit else today|date }}"></label>
     <div class="span-all"><span class="field-label">Requirements this evidence supports</span>{{ req_picker(fw, edit.requirement_ids if edit else ([f_requirement] if f_requirement else []), "Requirements") }}</div>
@@ -48,7 +53,7 @@
     {% for e in items %}
     <tr>
       <td><a href="/evidence/{{ e.id }}">{{ e.title }}</a>
-        <div class="muted small">{% if e.kind == 'file' %}<a href="/evidence/{{ e.id }}/download">download</a>{% elif e.kind == 'link' %}<a href="{{ e.url }}" rel="noopener noreferrer" target="_blank">open link</a>{% endif %}{% if e.description %} · {{ e.description }}{% endif %}{% if e.size %} · {{ (e.size / 1024)|round|int }} KB{% endif %}</div></td>
+        <div class="muted small">{% if e.kind == 'file' %}<a href="/evidence/{{ e.id }}/download">download</a>{% elif e.kind == 'link' %}<a href="{{ e.url }}" rel="noopener noreferrer" target="_blank">open link</a>{% elif e.kind == 'automated' and e.run_id %}<a href="{{ e.url }}">open snapshot</a>{% endif %}{% if e.description %} · {{ e.description }}{% endif %}{% if e.size %} · {{ (e.size / 1024)|round|int }} KB{% endif %}{% if e.share_with_ai %} · Claude may read it{% endif %}</div></td>
       <td class="hide-sm"><span class="chip">{{ e.kind }}</span></td>
       <td class="small">{{ req_links(e.requirement_ids) }}</td>
       <td class="hide-sm muted small nowrap">{{ e.collected_on|date }}<br>{{ e.collected_by }}</td>

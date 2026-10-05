@@ -1,7 +1,9 @@
-"""Application settings. Every value comes from environment variables (or a .env file).
+"""Server settings from environment variables (or a .env file). See .env.example.
 
-Secrets never live in the database or in the repository. See .env.example for the
-full list with explanations.
+Sign-in, sessions, paths and the key that protects stored secrets are environment-only.
+Connector credentials, the connector schedule and the Claude settings are managed on the
+Settings page (app/cyfun/appsettings.py); the matching environment variables below are
+optional overrides that win over the stored values.
 """
 
 from __future__ import annotations
@@ -24,6 +26,9 @@ class Settings(BaseSettings):
     data_dir: Path = Field(Path("./data"), alias="DATA_DIR")
     log_level: str = Field("INFO", alias="LOG_LEVEL")
     max_upload_mb: int = Field(25, alias="MAX_UPLOAD_MB")
+    # Key that encrypts the secrets stored on the Settings page (AES-256-GCM). At least 32 characters.
+    # Without it the Settings page cannot store secrets. Keep a copy outside the data volume backup.
+    secret_key: str = Field("", alias="CYFUN_SECRET_KEY")
 
     # --- Sign-in ---------------------------------------------------------------
     # Local username/password accounts. Enabled by default so the application is usable
@@ -46,7 +51,7 @@ class Settings(BaseSettings):
     # Requests per minute per client address on /auth/* before 429 is returned.
     auth_rate_per_minute: int = Field(60, alias="AUTH_RATE_LIMIT_PER_MINUTE")
 
-    # --- Connectors (each is enabled when its variables are present) ---------
+    # --- Optional overrides of the Settings page (a non-empty value wins) ------
     ms_graph_tenant_id: str = Field("", alias="MS_GRAPH_TENANT_ID")
     ms_graph_client_id: str = Field("", alias="MS_GRAPH_CLIENT_ID")
     ms_graph_client_secret: str = Field("", alias="MS_GRAPH_CLIENT_SECRET")
@@ -59,8 +64,20 @@ class Settings(BaseSettings):
     cloudflare_api_token: str = Field("", alias="CLOUDFLARE_API_TOKEN")
     cloudflare_account_id: str = Field("", alias="CLOUDFLARE_ACCOUNT_ID")
 
-    connector_sync_hours: int = Field(24, alias="CONNECTOR_SYNC_HOURS")
+    connector_sync_hours: int | None = Field(None, alias="CONNECTOR_SYNC_HOURS")
+
+    anthropic_api_key: str = Field("", alias="ANTHROPIC_API_KEY")
+    ai_model: str = Field("", alias="AI_MODEL")
+    ai_effort: str = Field("", alias="AI_EFFORT")
+    ai_monthly_cap_usd: int | None = Field(None, alias="AI_MONTHLY_CAP_USD")
+    ai_review_after_sync: bool | None = Field(None, alias="AI_REVIEW_AFTER_SYNC")
+
     scheduler_enabled: bool = Field(True, alias="SCHEDULER_ENABLED")
+
+    @field_validator("connector_sync_hours", "ai_monthly_cap_usd", "ai_review_after_sync", mode="before")
+    @classmethod
+    def _empty_is_unset(cls, v):
+        return None if isinstance(v, str) and not v.strip() else v
 
     @field_validator("app_base_url")
     @classmethod
@@ -84,6 +101,16 @@ class Settings(BaseSettings):
     def origin(self) -> str:
         u = urlsplit(self.app_base_url)
         return f"{u.scheme}://{u.netloc}"
+
+    @property
+    def secret_key_problem(self) -> str:
+        """Why stored secrets cannot be used, or an empty string when the key is usable."""
+        key = self.secret_key.strip()
+        if not key:
+            return "CYFUN_SECRET_KEY is not set on the server."
+        if len(key) < 32:
+            return "CYFUN_SECRET_KEY is shorter than 32 characters."
+        return ""
 
     @property
     def db_path(self) -> Path:

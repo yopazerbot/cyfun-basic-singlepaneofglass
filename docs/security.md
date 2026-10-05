@@ -28,7 +28,12 @@ Set `AUTH_LOCAL_ENABLED=false` once Entra ID works. Local accounts then cannot s
 | Oversized requests and crafted workbooks | Requests above `MAX_UPLOAD_MB` + 2 MB are refused with 413 before the body is read (Caddy also caps bodies at 64 MB). An uploaded workbook is checked for part count and declared sizes before anything is decompressed, which stops zip bombs and limits regex work on the XML. The audit pack is built in a temporary file on the data volume, not in memory. |
 | Spoofed client addresses | Uvicorn trusts `X-Forwarded-For` only from `FORWARDED_ALLOW_IPS`, which compose sets to the internal Docker network (`CYFUN_SUBNET`) where Caddy is the only other member; the rate limiter and the session log therefore see the real client address. |
 | Malicious uploads | Extension allow-list, size limit, random storage name outside the web root, downloads as attachments with nosniff, path containment check. |
-| Credential exposure | Secrets only in environment variables (`.env`, excluded from git and from the image). Nothing in the database or in exports. Connector credentials are read-only by design. Temporary passwords are shown once in the response body, never in URLs or logs. |
+| Credential exposure | Connector credentials and the Anthropic API key entered on the Settings page are encrypted with AES-256-GCM under a key derived (HKDF-SHA256) from `CYFUN_SECRET_KEY`, a random nonce per value and the setting name as associated data, so a value copied into another setting does not decrypt. The page never displays a stored secret (only the last four characters of long values), the activity log records which setting changed but never the value, and exports and the audit pack contain none. Without a valid key the page refuses to store secrets. Environment variables (`.env`, excluded from git and from the image) still work and take precedence. Sign-in secrets (`AUTH_CLIENT_SECRET`) are environment-only, so a stolen administrator session cannot redirect sign-in. Connector credentials are read-only by design. Temporary passwords are shown once in the response body, never in URLs or logs. |
+| Theft of the database or a backup | Stored secrets are ciphertext; the key lives in the environment, not on the data volume. Keep the key out of the volume's backup set. A value stored under another key is reported as unreadable instead of failing silently. |
+| Misuse of the Settings page | Administrators only, every change and connection test in the activity log. Connection tests call fixed provider endpoints; no URL is configurable, so the page cannot be used to reach internal hosts. |
+| Data sent to Claude | Optional; nothing is sent without an API key and an administrator's request (or the opt-in review after scheduled runs). Names, e-mail addresses, device names and account lists are replaced by placeholders and restored locally. File contents only for evidence an administrator marks for sharing. Each proposal stores exactly what was sent. A monthly spend limit stops new reviews. Auditors cannot start reviews or see proposals. See docs/ai-assistance.md. |
+| Prompt injection through connector data or evidence | The material is marked as data in the prompt; Claude has no tools and no write access; the answer must match a JSON schema; references and quotes are verified against the material; CCB limits cap unsupported scores; a person accepts every change and sees the cited material first. |
+| Over-reliance on proposed scores | Proposals change nothing on their own; accepted scores carry their origin (model, accepting user, date, edited or not) in the audit view, the audit pack and the JSON export, so the CAB sees how each score came about. |
 | Privilege escalation in the container | Non-root user, read-only root filesystem, `cap_drop: ALL`, `no-new-privileges`, tmpfs for /tmp, only `/data` writable, application port not published, pip removed from the runtime image. |
 | Transport | TLS terminated by Caddy; HSTS set by Caddy and by the application when `APP_BASE_URL` is https. |
 | Supply chain | Pinned dependencies, Dependabot, `pip-audit` clean at release, image scan in CI (Trivy, fails on fixable critical and high), no pip in the runtime image. |
@@ -43,7 +48,9 @@ Text contrast meets WCAG AA (4.5:1) everywhere, focus is always visible, every f
 
 * A compromised Entra tenant or Global Administrator: SSO trusts the tenant.
 * Host compromise: anyone with Docker or root access to the Proxmox guest can read `/data` and `.env`. Use full-disk encryption on the guest, restrict SSH, keep the host patched.
-* Secrets in `.env` on the host: protect the file (`chmod 600`), keep it out of backups that leave the organisation's control, rotate the client secret and connector tokens on a schedule.
+* Secrets in `.env` on the host, `CYFUN_SECRET_KEY` included: protect the file (`chmod 600`), keep it out of backups that leave the organisation's control, rotate the client secret and connector tokens on a schedule. Anyone with the key and the database can decrypt the stored credentials.
+* Text inside PDF and image evidence shared with Claude: placeholders cannot be applied to it. Share only files whose content may leave the organisation under your agreement with Anthropic.
+* Processing at Anthropic: requests are handled under the terms of your API key; the application cannot enforce retention there.
 * A weak local password chosen by a user: the policy enforces length and blocks common passwords, nothing more. Prefer Entra ID with MFA.
 * Lockout as denial of service: anyone who can reach the sign-in page can lock a known local account for `LOGIN_LOCKOUT_MINUTES` by guessing wrongly. Keep the host off the internet and prefer Entra ID.
 * Role changes in Entra ID take effect at the next sign-in; an existing session keeps its role until it expires (`SESSION_ABSOLUTE_HOURS`). Disable the user on the Users page to end it at once.
@@ -51,13 +58,15 @@ Text contrast meets WCAG AA (4.5:1) everywhere, focus is always visible, every f
 ## Operating checklist
 
 1. Complete the first login of `admin` and set a strong password, or create your own local administrator and delete `admin`.
+1. Set `CYFUN_SECRET_KEY` to a random value (`python -c "import secrets; print(secrets.token_urlsafe(32))"`) before entering credentials on the Settings page, and store it in the password manager.
 2. Separate app registrations for sign-in (delegated, ID tokens) and for the Graph connector (application permissions, least privilege as listed in docs/connectors.md).
 3. "User assignment required" on the sign-in application; assign named users to Admin or Auditor. `AUTH_DEFAULT_ROLE` empty.
 4. Once Entra ID works: `AUTH_LOCAL_ENABLED=false`, or keep one local account for the external auditor and delete it after the verification.
 5. `APP_BASE_URL` https, matching the Caddy hostname and the Entra redirect URI.
 6. DNS record for the hostname resolvable only where users are (LAN or VPN); do not publish the host to the internet unless the CAB needs remote access, and then only for the verification window.
 7. Nightly backup of the `/data` volume (docs/deployment-proxmox.md). Test a restore.
-8. Review the activity log (failed sign-ins, user changes) and connector run errors monthly.
+8. Review the activity log (failed sign-ins, user changes, settings changes) and connector run errors monthly.
+8. If Claude is used: a separate Anthropic workspace with its own spend limit, outbound HTTPS to `api.anthropic.com` only from the application, and a decision per evidence file whether its content may be sent.
 9. Update the image monthly (`docker compose pull && docker compose up -d --build`) and read the CI scan results.
 
 ## Reporting a vulnerability

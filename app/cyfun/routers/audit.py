@@ -14,7 +14,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 from starlette.background import BackgroundTask
 
-from ..audit_pack import assessment_payload, build_pack
+from ..audit_pack import ai_origins, assessment_payload, build_pack
 from ..auth import require_admin, require_user
 from ..config import get_settings
 from ..db import get_db
@@ -51,6 +51,7 @@ def _verification_context(db: Session):
         "checks": checks_by_requirement(latest_checks(db)),
         "runs": latest_runs(db),
         "snapshots": db.execute(select(Snapshot).order_by(Snapshot.id.desc())).scalars().all(),
+        "ai_origin": ai_origins(db),
     }
 
 

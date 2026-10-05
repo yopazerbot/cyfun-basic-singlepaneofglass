@@ -11,6 +11,10 @@ Contents
     evidence/<id>_<file>       uploaded evidence files
     checks/latest_checks.json  latest automated check results per connector
     checks/<connector>.json    raw connector snapshot behind those results
+    checks/snapshots/<connector>-<file>  snapshot behind each automated evidence item
+
+Scores that came from a proposal by Claude (Anthropic) carry "score_origin" in
+assessment.json and a line in summary.html: the model, who accepted it and when.
 
 Not included on purpose: remediation actions, journey notes and the activity log.
 Those are internal working data; the auditor verifies the state, not the planning.
@@ -29,13 +33,36 @@ from sqlalchemy.orm import Session
 
 from .config import Settings
 from .framework import Framework
-from .models import Asset, Document, Evidence, RiskItem
+from .models import AiProposal, Asset, Document, Evidence, RiskItem, Score
 from .scoring import summary_to_dict
 from .services import current_summary, evidence_path, get_org, get_risk, latest_checks, latest_runs, scores_by_id
 
 
+def ai_origins(db: Session) -> dict[str, dict]:
+    """Requirement id -> origin of scores accepted from a Claude proposal (model, who accepted, when, edited)."""
+    scores = db.execute(select(Score).where(Score.ai_proposal_id.is_not(None))).scalars().all()
+    if not scores:
+        return {}
+    ids = [s.ai_proposal_id for s in scores]
+    props = {p.id: p for p in db.execute(select(AiProposal).where(AiProposal.id.in_(ids))).scalars().all()}
+    out = {}
+    for s in scores:
+        p = props.get(s.ai_proposal_id)
+        if p is None:
+            continue
+        out[s.requirement_id] = {
+            "proposed_by": "Claude (Anthropic)",
+            "model": p.served_model or p.model,
+            "accepted_by": p.decided_by,
+            "accepted_at": p.decided_at.isoformat(timespec="minutes") if p.decided_at else None,
+            "edited_before_acceptance": p.decision == "edited",
+        }
+    return out
+
+
 def assessment_payload(db: Session, fw: Framework) -> dict:
     org = get_org(db)
+    origins = ai_origins(db)
     summary = current_summary(db, fw)
     scores = scores_by_id(db)
     evidence = db.execute(select(Evidence).order_by(Evidence.id)).scalars().all()
@@ -60,6 +87,7 @@ def assessment_payload(db: Session, fw: Framework) -> dict:
                 "not_applicable": bool(s and s.not_applicable),
                 "maturity": res.maturity,
                 "justification": s.justification if s else "",
+                "score_origin": origins.get(r.id),
                 "evidence_ids": [e.id for e in evidence if r.id in (e.requirement_ids or [])],
                 "document_ids": [d.id for d in documents if r.id in (d.requirement_ids or [])],
                 "checks": [
@@ -206,8 +234,16 @@ def build_pack(db: Session, fw: Framework, settings: Settings, summary_html: str
             )
         z.writestr("assets.csv", _csv(assets))
         index = [["id", "title", "kind", "file", "url", "sha256", "collected_on", "requirements"]]
+        added: set[str] = set()
         for e in db.execute(select(Evidence).order_by(Evidence.id)).scalars().all():
             fname = ""
+            if e.kind == "automated" and e.source and e.file_name:
+                p = (settings.snapshots_dir / e.source / e.file_name).resolve()
+                if settings.snapshots_dir.resolve() in p.parents and p.exists():
+                    fname = f"checks/snapshots/{e.source}-{e.file_name}"
+                    if fname not in added:
+                        z.write(p, fname)
+                        added.add(fname)
             if e.kind == "file" and e.stored_name:
                 try:
                     p = evidence_path(settings, e)

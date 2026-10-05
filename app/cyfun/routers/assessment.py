@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from ..ai import service as ai_service
 from ..auth import require_admin, require_user
 from ..config import get_settings
 from ..db import get_db
@@ -97,11 +98,18 @@ def detail(request: Request, rid: str, user: User = Depends(require_user), db: S
     documents = [d for d in db.execute(select(Document).order_by(Document.title)).scalars().all() if rid in (d.requirement_ids or [])]
     checks = [c for c in latest_checks(db) if rid in (c.requirement_ids or [])]
     actions = db.execute(select(Action).where(Action.requirement_id == rid).order_by(Action.status, Action.due_date)).scalars().all()
-    history = db.execute(select(Activity).where(Activity.entity == "score", Activity.entity_id == rid).order_by(Activity.id.desc()).limit(10)).scalars().all()
+    hq = select(Activity).where(Activity.entity == "score", Activity.entity_id == rid)
+    if user.role != "admin":
+        hq = hq.where(Activity.action.not_like("ai!_%", escape="!"))  # Claude review events are internal working data
+    history = db.execute(hq.order_by(Activity.id.desc()).limit(10)).scalars().all()
     prev_, next_ = fw.neighbours(rid)
     next_unscored = _next_unscored(fw, summary, rid)
     blocked = na_blocked_reason(req, fw.thresholds)
     na_available = blocked is None and (summary.na_count < summary.na_allowed or (score is not None and score.not_applicable))
+    claude = {}
+    if user.role == "admin":
+        ai_service.recover_stale(db)
+        claude = {"prop": ai_service.latest_for(db, rid), "ai": ai_service.status(db, get_settings()), "rid": rid}
     return render(
         request,
         "assessment_detail.html",
@@ -122,6 +130,7 @@ def detail(request: Request, rid: str, user: User = Depends(require_user), db: S
             "next_unscored": next_unscored,
             "na_available": na_available,
             "na_blocked": blocked,
+            **claude,
         },
     )
 
@@ -175,6 +184,7 @@ def save_score(
     score.not_applicable = na
     score.justification = justification.strip()
     score.updated_by = user.label
+    score.ai_proposal_id = None  # a manual save makes the scores a manual decision again
     db.commit()
     after = {"doc": score.doc_score, "impl": score.impl_score, "na": score.not_applicable}
     if before != after:
@@ -200,6 +210,7 @@ def add_evidence(
     title: str = Form(""),
     description: str = Form(""),
     url: str = Form(""),
+    share_with_ai: str = Form(""),
     file: UploadFile | None = File(None),
     user: User = Depends(require_admin),
     db: Session = Depends(get_db),
@@ -218,6 +229,7 @@ def add_evidence(
         ev.stored_name, ev.file_name, ev.sha256, ev.size = stored, original, digest, size
         ev.mime = (file.content_type or "")[:100]
         ev.title = ev.title or original
+        ev.share_with_ai = share_with_ai == "1"
     elif url.strip():
         if not url.strip().lower().startswith(("https://", "http://")):
             return redirect(f"/assessment/{rid}", err="Links must start with https:// or http://.")
@@ -228,7 +240,14 @@ def add_evidence(
         return redirect(f"/assessment/{rid}", err="Provide a file or a link.")
     db.add(ev)
     db.commit()
-    log_activity(db, user.label, "evidence_add", "evidence", str(ev.id), {"title": ev.title, "requirements": [rid], "sha256": ev.sha256})
+    log_activity(
+        db,
+        user.label,
+        "evidence_add",
+        "evidence",
+        str(ev.id),
+        {"title": ev.title, "requirements": [rid], "sha256": ev.sha256, "share_with_ai": ev.share_with_ai},
+    )
     return redirect(f"/assessment/{rid}", msg="Evidence added.")
 
 

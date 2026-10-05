@@ -167,3 +167,14 @@ def test_security_headers_present(client):
     for name in ("content-security-policy", "x-frame-options", "x-content-type-options", "referrer-policy", "permissions-policy", "cross-origin-opener-policy"):
         assert name in h, name
     assert h["x-permitted-cross-domain-policies"] == "none"
+
+
+def test_flash_message_goes_before_the_fragment():
+    from urllib.parse import urlsplit
+
+    from cyfun.views import redirect
+
+    loc = redirect("/settings#claude", err="Test failed").headers["location"]
+    parts = urlsplit(loc)
+    assert parts.path == "/settings" and parts.fragment == "claude" and "err=Test%20failed" in parts.query and "s=" in parts.query
+    assert redirect("/x?a=1#y", msg="ok").headers["location"].startswith("/x?a=1&msg=ok&s=")

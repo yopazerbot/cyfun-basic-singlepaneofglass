@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Proposal {{ prop.id }} · {{ settings.app_name }}{% endblock %}
+{% block content %}
+<header class="page-head">
+  <div class="eyebrow">Claude review · proposal {{ prop.id }} · {{ prop.level }}</div>
+  <h1><span class="mono">{{ prop.requirement_id }}</span></h1>
+  <nav class="pager" aria-label="Related pages"><a href="/assessment/{{ prop.requirement_id }}">Requirement page</a><a href="/ai">Claude review</a></nav>
+</header>
+{% include "partials/ai_panel.html" %}
+{% endblock %}

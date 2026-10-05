@@ -157,11 +157,11 @@ class MicrosoftConnector(Connector):
     docs = "docs/connectors.md#microsoft-365--entra-id"
 
     def configured(self) -> bool:
-        s = self.settings
+        s = self.config
         return bool(s.ms_graph_tenant_id and s.ms_graph_client_id and s.ms_graph_client_secret)
 
     def _token(self) -> str:
-        s = self.settings
+        s = self.config
         r = httpx.post(
             f"https://login.microsoftonline.com/{s.ms_graph_tenant_id}/oauth2/v2.0/token",
             data={
@@ -174,6 +174,13 @@ class MicrosoftConnector(Connector):
         )
         r.raise_for_status()
         return r.json()["access_token"]
+
+    def test(self) -> str:
+        with self.client({"Authorization": f"Bearer {self._token()}"}, GRAPH) as c:
+            r = c.get("/organization?$select=displayName")
+            r.raise_for_status()
+            org = (r.json().get("value") or [{}])[0]
+        return f"Signed in to tenant {org.get('displayName') or self.config.ms_graph_tenant_id} and read the organisation."
 
     @staticmethod
     def _get_all(c: httpx.Client, url: str, limit: int = 5000) -> list[dict]:

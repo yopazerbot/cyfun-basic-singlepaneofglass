@@ -11,6 +11,7 @@ from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from . import __version__, auth, db, scheduler
+from .ai import service as ai_service
 from .config import Settings, get_settings
 from .framework import LEVELS, load_framework
 from .security import SecurityMiddleware
@@ -33,6 +34,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         for level in LEVELS:
             load_framework(level)
         auth.ensure_default_admin(settings)
+        with db.session() as s:
+            ai_service.recover_stale(s, minutes=0)
         if settings.scheduler_enabled:
             scheduler.start(settings)
         yield
@@ -42,10 +45,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.add_middleware(SecurityMiddleware, settings=settings)
     app.mount("/static", StaticFiles(directory=str(HERE / "static")), name="static")
 
-    from .routers import actions, activity, assessment, assets, audit, connectors, dashboard, documents, evidence, journey, risk
+    from .routers import actions, activity, ai, assessment, assets, audit, connectors, dashboard, documents, evidence, journey, risk
+    from .routers import settings as settings_router
 
     app.include_router(auth.router)
-    for r in (dashboard, journey, risk, assessment, assets, documents, evidence, actions, connectors, audit, activity):
+    for r in (dashboard, journey, risk, assessment, ai, assets, documents, evidence, actions, connectors, audit, activity, settings_router):
         app.include_router(r.router)
 
     @app.get("/favicon.ico", include_in_schema=False)

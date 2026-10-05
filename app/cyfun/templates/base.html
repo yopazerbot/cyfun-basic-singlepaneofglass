@@ -27,6 +27,7 @@
         <a href="/journey" class="{{ 'on' if active == 'journey' }}" {{ 'aria-current=page' if active == 'journey' }}>Scope, level and journey</a>
         <a href="/risk" class="{{ 'on' if active == 'risk' }}" {{ 'aria-current=page' if active == 'risk' }}>Risk assessment</a>
         <a href="/assessment" class="{{ 'on' if active == 'assessment' }}" {{ 'aria-current=page' if active == 'assessment' }}>Self-assessment</a>
+        {% if user and user.role == 'admin' %}<a href="/ai" class="{{ 'on' if active == 'ai' }}" {{ 'aria-current=page' if active == 'ai' }}>Claude review</a>{% endif %}
         <div class="nav-group">Manage</div>
         <a href="/assets" class="{{ 'on' if active == 'assets' }}" {{ 'aria-current=page' if active == 'assets' }}>Assets</a>
         <a href="/documents" class="{{ 'on' if active == 'documents' }}" {{ 'aria-current=page' if active == 'documents' }}>Documents</a>
@@ -37,7 +38,8 @@
         <div class="nav-group">Verify</div>
         <a href="/audit" class="{{ 'on' if active == 'audit' }}" {{ 'aria-current=page' if active == 'audit' }}>Audit view and export</a>
         <a href="/activity" class="{{ 'on' if active == 'activity' }}" {{ 'aria-current=page' if active == 'activity' }}>Activity log</a>
-        {% if user and user.role == 'admin' %}<a href="/auth/users" class="{{ 'on' if active == 'users' }}" {{ 'aria-current=page' if active == 'users' }}>Users</a>{% endif %}
+        {% if user and user.role == 'admin' %}<a href="/auth/users" class="{{ 'on' if active == 'users' }}" {{ 'aria-current=page' if active == 'users' }}>Users</a>
+        <a href="/settings" class="{{ 'on' if active == 'settings' }}" {{ 'aria-current=page' if active == 'settings' }}>Settings</a>{% endif %}
       </nav>
       <div class="side-foot">
         {% if user %}

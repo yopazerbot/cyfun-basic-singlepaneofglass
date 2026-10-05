@@ -28,6 +28,22 @@ os.environ.update(
         "AUTH_CLIENT_SECRET": "",
         "LOG_LEVEL": "WARNING",
         "AUTH_RATE_LIMIT_PER_MINUTE": "100000",
+        # Isolate the tests from a developer's .env and shell: no real credentials, a fixed key.
+        "CYFUN_SECRET_KEY": "test-secret-key-0123456789abcdef-0123456789",
+        "ANTHROPIC_API_KEY": "",
+        "AI_MODEL": "",
+        "AI_EFFORT": "",
+        "AI_MONTHLY_CAP_USD": "",
+        "AI_REVIEW_AFTER_SYNC": "",
+        "CONNECTOR_SYNC_HOURS": "",
+        "MS_GRAPH_TENANT_ID": "",
+        "MS_GRAPH_CLIENT_ID": "",
+        "MS_GRAPH_CLIENT_SECRET": "",
+        "GITHUB_TOKEN": "",
+        "GITHUB_ORG": "",
+        "RAILWAY_TOKEN": "",
+        "CLOUDFLARE_API_TOKEN": "",
+        "CLOUDFLARE_ACCOUNT_ID": "",
     }
 )
 

@@ -1,7 +1,8 @@
-"""Connector execution: scheduled runs and on-demand runs, persisted as runs, checks and inventory."""
+"""Background work: connector runs (scheduled and on demand), automated evidence, Claude reviews."""
 
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 from datetime import UTC, datetime
@@ -10,18 +11,21 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from sqlalchemy import select
 
 from . import db as database
+from .appsettings import load_config
 from .config import Settings
 from .connectors import registry
-from .models import Asset, CheckResult, ConnectorRun, utcnow
+from .connectors.base import ERROR, Check, Connector
+from .models import Asset, CheckResult, ConnectorRun, Evidence, utcnow
 from .services import log_activity
 
 log = logging.getLogger("cyfun.scheduler")
 _scheduler: BackgroundScheduler | None = None
+AI_POLL_MINUTES = 5
 
 
 def run_connector(settings: Settings, key: str, actor: str = "scheduler") -> int:
     """Run one connector synchronously. Returns the run id."""
-    connector = registry(settings).get(key)
+    connector = registry(load_config(settings=settings)).get(key)
     if connector is None or not connector.configured():
         raise ValueError(f"connector {key} is not configured")
     db = database.session()
@@ -71,34 +75,33 @@ def run_connector(settings: Settings, key: str, actor: str = "scheduler") -> int
         snap_dir.mkdir(parents=True, exist_ok=True)
         stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
         snap_file = snap_dir / f"{stamp}.json"
-        snap_file.write_text(
-            json.dumps(
-                {
-                    "connector": key,
-                    "collected_at": stamp,
-                    "checks": [
-                        {
-                            "id": c.id,
-                            "title": c.title,
-                            "status": c.status,
-                            "summary": c.summary,
-                            "requirements": c.requirement_ids,
-                            "details": _jsonable(c.details),
-                        }
-                        for c in result.checks
-                    ],
-                    "inventory_count": len(result.inventory),
-                    "raw": _jsonable(result.raw),
-                },
-                indent=1,
-                ensure_ascii=False,
-                default=str,
-            ),
-            encoding="utf-8",
-        )
+        snap_bytes = json.dumps(
+            {
+                "connector": key,
+                "collected_at": stamp,
+                "checks": [
+                    {
+                        "id": c.id,
+                        "title": c.title,
+                        "status": c.status,
+                        "summary": c.summary,
+                        "requirements": c.requirement_ids,
+                        "details": _jsonable(c.details),
+                    }
+                    for c in result.checks
+                ],
+                "inventory_count": len(result.inventory),
+                "raw": _jsonable(result.raw),
+            },
+            indent=1,
+            ensure_ascii=False,
+            default=str,
+        ).encode("utf-8")
+        snap_file.write_bytes(snap_bytes)
         run.snapshot_file = f"{key}/{snap_file.name}"
         run.inventory_count = len(result.inventory)
         run.check_count = len(result.checks)
+        register_evidence(db, connector, run, result.checks, hashlib.sha256(snap_bytes).hexdigest(), len(snap_bytes))
         run.status = "ok"
         run.finished_at = utcnow()
         db.commit()
@@ -118,13 +121,63 @@ def run_connector(settings: Settings, key: str, actor: str = "scheduler") -> int
     return run.id
 
 
+def register_evidence(db, connector: Connector, run: ConnectorRun, checks: list[Check], digest: str, size: int) -> None:
+    """Keep one automated evidence item per check, refreshed by every successful run.
+
+    The item points at the run's snapshot (SHA-256 of the JSON file) and carries the check's
+    requirement mapping. Requirements an administrator added to the item are kept. A check that
+    ends in an error leaves its item as it was, with the date of the last real result."""
+    existing = {e.source_ref: e for e in db.execute(select(Evidence).where(Evidence.kind == "automated", Evidence.source == connector.key)).scalars().all()}
+    for ch in checks:
+        if ch.status == ERROR:
+            continue
+        ev = existing.get(ch.id[:60])
+        if ev is None:
+            ev = Evidence(kind="automated", source=connector.key, source_ref=ch.id[:60], requirement_ids=[], collected_by=f"connector {connector.name}")
+            db.add(ev)
+        ev.requirement_ids = sorted(set(ev.requirement_ids or []) | set(ch.requirement_ids))
+        ev.title = f"{connector.name}: {ch.title}"[:300]
+        ev.description = f"{ch.status.upper()}: {ch.summary}"[:2000]
+        ev.run_id = run.id
+        ev.url = f"/connectors/{connector.key}/snapshot/{run.id}"
+        ev.file_name = run.snapshot_file.rsplit("/", 1)[-1]
+        ev.mime = "application/json"
+        ev.sha256 = digest
+        ev.size = size
+        ev.collected_on = utcnow().date()
+
+
 def run_all(settings: Settings, actor: str = "scheduler") -> None:
-    for key, connector in registry(settings).items():
+    config = load_config(settings=settings)
+    ran = False
+    for key, connector in registry(config).items():
         if connector.configured():
+            ran = True
             try:
                 run_connector(settings, key, actor)
             except Exception:  # noqa: BLE001
                 log.exception("connector %s crashed", key)
+    if ran and actor == "scheduler" and config.ai_review_after_sync:
+        from .ai import service as ai
+
+        db = database.session()
+        try:
+            ai.submit_batch(db, settings, scope="changed", actor="scheduler")
+        except ai.AiError as exc:
+            log_activity(db, "scheduler", "ai_batch_skipped", "ai", "", {"reason": str(exc)})
+        except Exception:  # noqa: BLE001
+            log.exception("review after sync failed")
+        finally:
+            db.close()
+
+
+def poll_ai_batches(settings: Settings) -> None:
+    from .ai import service as ai
+
+    try:
+        ai.poll_batches(settings)
+    except Exception:  # noqa: BLE001
+        log.exception("polling Claude batches failed")
 
 
 def start(settings: Settings) -> BackgroundScheduler:
@@ -132,19 +185,31 @@ def start(settings: Settings) -> BackgroundScheduler:
     if _scheduler is not None:
         return _scheduler
     sched = BackgroundScheduler(timezone="UTC", job_defaults={"coalesce": True, "max_instances": 1})
-    hours = max(1, settings.connector_sync_hours)
+    hours = max(1, int(load_config(settings=settings).connector_sync_hours))
     sched.add_job(run_all, "interval", hours=hours, args=[settings], id="sync-all", replace_existing=True)
+    sched.add_job(poll_ai_batches, "interval", minutes=AI_POLL_MINUTES, args=[settings], id="ai-batches", replace_existing=True)
     sched.start()
     _scheduler = sched
     return sched
 
 
-def trigger(settings: Settings, key: str, actor: str) -> None:
-    """Queue an immediate run without blocking the request."""
+def reschedule(hours: int) -> None:
+    """Apply a new connector interval without a restart."""
+    if _scheduler is not None and _scheduler.get_job("sync-all") is not None:
+        _scheduler.reschedule_job("sync-all", trigger="interval", hours=max(1, int(hours)))
+
+
+def submit(func, *args, job_id: str) -> None:
+    """Run work in the background thread pool, or inline when the scheduler is off (tests, one-off scripts)."""
     if _scheduler is None:
-        run_connector(settings, key, actor)
+        func(*args)
         return
-    _scheduler.add_job(run_connector, args=[settings, key, actor], id=f"manual-{key}", replace_existing=True, misfire_grace_time=60)
+    _scheduler.add_job(func, args=list(args), id=job_id, replace_existing=True, misfire_grace_time=60)
+
+
+def trigger(settings: Settings, key: str, actor: str) -> None:
+    """Queue an immediate connector run without blocking the request."""
+    submit(run_connector, settings, key, actor, job_id=f"manual-{key}")
 
 
 def shutdown() -> None:

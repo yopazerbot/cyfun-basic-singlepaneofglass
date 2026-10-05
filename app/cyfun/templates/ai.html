@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}Claude review · {{ settings.app_name }}{% endblock %}
+{% block content %}
+<header class="page-head">
+  <div class="eyebrow">Self-assessment · {{ fw.level }} · proposals by Claude</div>
+  <h1>Claude review</h1>
+  <p class="lead">Claude reads each requirement with its linked documents, evidence and automated checks and proposes a documentation and an implementation score with a justification. Scores change only when you accept a proposal on the requirement page. Names, e-mail addresses and devices are replaced by placeholders before anything is sent.</p>
+</header>
+
+{% if not ai.configured %}
+<section class="card warn-card">
+  {% if ai.key_problem %}The stored Anthropic API key cannot be used ({{ ai.key_problem }}).{% else %}No Anthropic API key is set.{% endif %}
+  Add one on the <a href="/settings#claude">Settings page</a>.
+</section>
+{% endif %}
+
+<section class="grid stats four">
+  <div class="card stat"><div class="stat-label">Model</div><div class="stat-value small-value">{{ ai.model_label }}</div><div class="stat-sub">effort {{ ai.effort }}</div></div>
+  <div class="card stat {{ 'bad' if ai.cap and ai.spend >= ai.cap }}"><div class="stat-label">Spend this month</div><div class="stat-value small-value">{{ ai.spend|usd }}</div><div class="stat-sub">limit USD {{ ai.cap }}</div></div>
+  <div class="card stat"><div class="stat-label">Waiting for review</div><div class="stat-value">{{ ready|length }}</div><div class="stat-sub">proposals</div></div>
+  <div class="card stat"><div class="stat-label">In progress</div><div class="stat-value">{{ active_props|length }}</div><div class="stat-sub">{{ 'batch running' if open_batch else 'reviews' }}</div></div>
+</section>
+
+{% if ai.configured %}
+<section class="card">
+  <div class="card-head"><h2>Review several requirements</h2><span class="muted small">Message Batches API · half price · results within 24 hours</span></div>
+  {% if open_batch %}
+  <p class="small">A batch submitted {{ open_batch.created_at|date }} UTC is being processed ({{ open_batch.request_count }} requirements). New results are collected every 5 minutes.</p>
+  <div class="actions">
+    <form method="post" action="/ai/batches/{{ open_batch.id }}/check" class="inline"><button class="btn secondary small" type="submit">Check now</button></form>
+    <form method="post" action="/ai/batches/{{ open_batch.id }}/cancel" class="inline"><button class="btn link-danger small" type="submit" data-confirm="Cancel the running batch? Requests that already ran keep their results.">Cancel batch</button></form>
+  </div>
+  {% elif preview %}
+  <form method="post" action="/ai/batch" class="form">
+    <div class="ai-scope">
+      <label class="check"><input type="radio" name="scope" value="changed" checked {{ 'disabled' if not preview.changed }}> <span><strong>Changed or never reviewed</strong> · {{ preview.changed }} of {{ preview.all }} requirements · about {{ preview.changed_usd|usd }}</span></label>
+      <label class="check"><input type="radio" name="scope" value="all"> <span><strong>All requirements of {{ fw.level }}</strong> · {{ preview.all }} requirements · about {{ preview.all_usd|usd }}</span></label>
+    </div>
+    <div class="actions"><button class="btn" type="submit">Submit batch</button><span class="muted small">Estimates are upper bounds from the input size and the effort setting.</span></div>
+  </form>
+  {% endif %}
+</section>
+{% endif %}
+
+<section class="card">
+  <div class="card-head"><h2>Proposals waiting for a decision</h2></div>
+  {% if ready %}
+  <div class="table-wrap">
+  <table class="list">
+    <thead><tr><th>Requirement</th><th class="num">Current</th><th class="num">Proposed</th><th>Confidence</th><th class="hide-sm">Flags</th><th class="hide-sm">Created</th></tr></thead>
+    <tbody>
+    {% for p in ready %}
+    {% set s = scores.get(p.requirement_id) %}
+    {% set r = fw.get(p.requirement_id) %}
+    <tr>
+      <td><a class="mono" href="/assessment/{{ p.requirement_id }}#claude">{{ p.requirement_id }}</a>{% if r.key_measure %} <span class="tag km">KM</span>{% endif %}<div class="muted small">{{ r.text[:110] }}{{ '…' if r.text|length > 110 }}</div></td>
+      <td class="num nowrap">{% if s and s.not_applicable %}N/A{% elif s and s.doc_score %}{{ s.doc_score }} / {{ s.impl_score }}{% else %}-{% endif %}</td>
+      <td class="num nowrap"><strong>{{ p.doc_score }} / {{ p.impl_score }}</strong></td>
+      <td><span class="chip {{ {'high': 'ok', 'medium': 'warn', 'low': 'bad'}[p.confidence] }}">{{ p.confidence }}</span></td>
+      <td class="hide-sm small nowrap">{% set caps = (p.result or {}).get('caps', []) %}{% set con = (p.result or {}).get('contradictions', []) %}{% if caps %}{{ caps|length }} limited{% endif %}{% if caps and con %} · {% endif %}{% if con %}{{ con|length }} conflict(s){% endif %}</td>
+      <td class="hide-sm muted small nowrap">{{ p.created_at|date }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  <p class="muted small">Scores are shown as documentation / implementation.</p>
+  {% else %}<p class="muted">No open proposals. Ask for one on a requirement page{{ ' or submit a batch above' if ai.configured }}.</p>{% endif %}
+</section>
+
+{% if failed %}
+<section class="card">
+  <div class="card-head"><h2>Reviews without a result</h2></div>
+  <ul class="plain-list small">{% for p in failed %}<li><a class="mono" href="/assessment/{{ p.requirement_id }}#claude">{{ p.requirement_id }}</a> <span class="muted">{{ p.created_at|date }}</span><br>{{ p.error }}</li>{% endfor %}</ul>
+</section>
+{% endif %}
+
+<section class="grid two">
+  <div class="card">
+    <div class="card-head"><h2>Recent decisions</h2></div>
+    {% if decided %}
+    <ul class="plain-list small">{% for p in decided %}<li><a class="mono" href="/ai/proposals/{{ p.id }}">{{ p.requirement_id }}</a> {{ {'accepted': 'accepted', 'edited': 'accepted after editing', 'rejected': 'rejected'}[p.decision] }} by {{ p.decided_by }} <span class="muted">· {{ p.decided_at|date }}</span></li>{% endfor %}</ul>
+    {% else %}<p class="muted">None yet.</p>{% endif %}
+  </div>
+  <div class="card">
+    <div class="card-head"><h2>Batches</h2></div>
+    {% if batches %}
+    <ul class="plain-list small">{% for b in batches %}<li>{{ b.created_at|date }} · {{ b.request_count }} requirements ({{ b.scope }}) · <span class="chip {{ 'ok' if b.status == 'ended' else ('info' if b.status == 'submitted' else 'bad') }}">{{ b.status }}</span>{% if b.status == 'ended' %} {{ b.succeeded }} with result, {{ b.failed }} without{% endif %}<div class="muted">by {{ b.created_by }} · estimate {{ b.estimate_usd|usd }}{% if b.error %} · {{ b.error }}{% endif %}</div></li>{% endfor %}</ul>
+    {% else %}<p class="muted">No batches yet.</p>{% endif %}
+  </div>
+</section>
+{% endblock %}

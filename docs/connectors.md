@@ -1,6 +1,6 @@
 # Connected systems
 
-A connector is enabled when its environment variables are set; restart the application after changing them. Runs happen every `CONNECTOR_SYNC_HOURS` hours and on demand (Admin, "Run now"). Each run stores a raw snapshot under `/data/connector_snapshots/<connector>/` and the checks below. Statuses: `pass`, `fail`, `warn` (needs a look), `info` (fact, no judgement), `error` (the connector could not evaluate; usually a missing permission or licence).
+Enter the credentials on the Settings page (Administration, Settings). Secrets are encrypted in the database with `CYFUN_SECRET_KEY` and never shown again; "Test connection" checks typed or stored values with one read-only call before or after saving. A connector is enabled as soon as its credentials are set, without a restart. The environment variables listed per connector still work and take precedence over the page. Runs happen at the interval set on the Settings page (default 24 hours, `CONNECTOR_SYNC_HOURS` overrides it) and on demand (Admin, "Run now"). Each run stores a raw snapshot under `/data/connector_snapshots/<connector>/`, the checks below, and one automated evidence item per check that points at the snapshot and its SHA-256 hash. Statuses: `pass`, `fail`, `warn` (needs a look), `info` (fact, no judgement), `error` (the connector could not evaluate; usually a missing permission or licence).
 
 All credentials are read-only. Never grant write scopes.
 
@@ -20,6 +20,8 @@ Create a second app registration ("CyFun Graph reader"), single tenant, no redir
 | DeviceManagementManagedDevices.Read.All | Intune managed devices (only if Intune is used) |
 
 Sign-in activity and the MFA registration report need an Entra ID P1 licence; without it those two checks report `error` and everything else works.
+
+Settings page fields, or these environment variables:
 
 ```
 MS_GRAPH_TENANT_ID=
@@ -45,6 +47,8 @@ MS_GRAPH_CLIENT_SECRET=
 
 Fine-grained personal access token (preferred) with read-only permissions: for an organisation, resource owner = the organisation; repository permissions Metadata, Contents, Administration (read, for branch protection), Dependabot alerts (read); organisation permissions Members (read), Administration (read, for the two-factor requirement). A classic token needs `read:org`, `repo` and `security_events`. Set `GITHUB_ORG` for organisation mode; leave it empty to read the token owner's repositories.
 
+Settings page fields, or these environment variables:
+
 ```
 GITHUB_TOKEN=
 GITHUB_ORG=
@@ -62,6 +66,8 @@ GITHUB_ORG=
 
 Account token (Account settings → Tokens) or a team token. Read access is enough.
 
+Settings page fields, or these environment variables:
+
 ```
 RAILWAY_TOKEN=
 ```
@@ -73,6 +79,8 @@ RAILWAY_TOKEN=
 ## Cloudflare
 
 API token (My Profile → API Tokens → Create Token, custom): Zone → Zone Read, DNS Read, Zone Settings Read, Zone WAF Read, for all zones. For the account-level checks add Account → Access: Apps and Policies Read, Zero Trust Read (Gateway), Logs Read (Logpush), Account Settings Read, and set `CLOUDFLARE_ACCOUNT_ID` (Overview page of any zone, right column).
+
+Settings page fields, or these environment variables:
 
 ```
 CLOUDFLARE_API_TOKEN=
