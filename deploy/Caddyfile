@@ -1,0 +1,32 @@
+# Reverse proxy with TLS in front of the application container.
+# APP_HOSTNAME comes from .env. CADDY_TLS selects the certificate source:
+#   internal            Caddy's own CA (default; import its root cert on your devices), good for a LAN-only host
+#   you@example.com     public certificate via Let's Encrypt (host must be reachable on 80/443 from the internet,
+#                       or use the DNS challenge with a custom Caddy build)
+{
+	admin off
+}
+
+{$APP_HOSTNAME} {
+	tls {$CADDY_TLS:internal}
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=63072000; includeSubDomains"
+		-Server
+	}
+
+	request_body {
+		max_size 64MB
+	}
+
+	reverse_proxy app:8000 {
+		header_up X-Forwarded-Proto {scheme}
+		header_up X-Forwarded-Host {host}
+	}
+
+	log {
+		output stdout
+		format json
+	}
+}

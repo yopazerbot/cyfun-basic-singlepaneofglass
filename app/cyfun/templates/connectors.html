@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Connected systems · {{ settings.app_name }}{% endblock %}
+{% block content %}
+<header class="page-head">
+  <div class="eyebrow">Connectors · scheduled every {{ sync_hours }} h</div>
+  <h1>Connected systems</h1>
+  <p class="lead">Read-only connections to live systems. Each run refreshes the inventory and produces checks mapped to requirements; a raw snapshot is kept as evidence. Credentials live only in environment variables; a connector is active when its variables are set.</p>
+</header>
+
+<section class="grid cards">
+  {% for c in rows %}
+  <div class="card connector">
+    <div class="card-head"><h2><a href="/connectors/{{ c.key }}">{{ c.name }}</a></h2>
+      {% if not c.configured %}<span class="chip">not configured</span>{% elif not c.run %}<span class="chip">never run</span>{% elif c.run.status == 'ok' %}<span class="chip ok">ok</span>{% elif c.run.status == 'running' %}<span class="chip info">running</span>{% else %}<span class="chip bad">error</span>{% endif %}
+    </div>
+    <p>{{ c.description }}</p>
+    <p class="muted small">Environment: {% for v in c.env_vars %}<span class="mono">{{ v }}</span>{{ ", " if not loop.last }}{% endfor %}</p>
+    {% if c.run %}
+    <p class="small">Last run {{ (c.run.finished_at or c.run.started_at)|date }} by {{ c.run.triggered_by }}{% if c.run.status == 'ok' %}: {{ c.run.inventory_count }} inventory items, {{ c.run.check_count }} checks ({{ c.counts.pass }} pass, {{ c.counts.fail }} fail, {{ c.counts.warn }} warn, {{ c.counts.error }} error){% elif c.run.status == 'error' %}<br><span class="bad">{{ c.run.error[:300] }}</span>{% endif %}</p>
+    {% endif %}
+    <div class="actions">
+      <a class="btn secondary small" href="/connectors/{{ c.key }}">Details</a>
+      {% if user.role == 'admin' and c.configured %}<form method="post" action="/connectors/{{ c.key }}/run" class="inline"><button class="btn small" type="submit">Run now</button></form>{% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</section>
+<p class="muted small">Setup per connector, required permissions and the check-to-requirement mapping: docs/connectors.md in the repository.</p>
+{% endblock %}

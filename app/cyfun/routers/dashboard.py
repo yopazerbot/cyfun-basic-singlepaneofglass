@@ -1,0 +1,76 @@
+"""Dashboard: the single pane."""
+
+from __future__ import annotations
+
+from datetime import date
+
+from fastapi import APIRouter, Depends, Request
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
+from ..auth import require_user
+from ..config import get_settings
+from ..connectors import registry
+from ..db import get_db
+from ..framework import load_framework
+from ..models import Activity, Document, Evidence, User
+from ..services import JOURNEY_STAGES, current_summary, documents_due, get_org, get_risk, latest_checks, latest_runs, open_actions
+from ..views import render
+
+router = APIRouter(tags=["dashboard"])
+
+
+@router.get("/")
+def dashboard(request: Request, user: User = Depends(require_user), db: Session = Depends(get_db)):
+    fw = load_framework()
+    summary = current_summary(db, fw)
+    org = get_org(db)
+    risk = get_risk(db)
+
+    evidence = db.execute(select(Evidence)).scalars().all()
+    documents = db.execute(select(Document).where(Document.status == "approved")).scalars().all()
+    covered: set[str] = set()
+    for e in evidence:
+        covered.update(e.requirement_ids or [])
+    for d in documents:
+        covered.update(d.requirement_ids or [])
+    covered &= set(fw.by_id)
+
+    checks = latest_checks(db)
+    check_counts = {s: sum(1 for c in checks if c.status == s) for s in ("pass", "fail", "warn", "info", "error")}
+    runs = latest_runs(db)
+    settings = get_settings()
+    conns = []
+    for key, c in registry(settings).items():
+        conns.append({"key": key, "name": c.name, "configured": c.configured(), "run": runs.get(key)})
+
+    actions = open_actions(db)
+    today = date.today()
+    overdue = [a for a in actions if a.due_date and a.due_date < today]
+    journey = org.journey or {}
+    stages = [{"key": k, "label": lbl, **(journey.get(k) or {"status": "not_started"})} for k, lbl in JOURNEY_STAGES]
+    done_stages = sum(1 for s in stages if s.get("status") == "done")
+    recent = db.execute(select(Activity).order_by(Activity.id.desc()).limit(8)).scalars().all()
+
+    return render(
+        request,
+        "dashboard.html",
+        {
+            "active": "dashboard",
+            "fw": fw,
+            "summary": summary,
+            "org": org,
+            "risk": risk,
+            "covered": covered,
+            "coverage_pct": round(100 * len(covered) / len(fw.requirements)) if fw.requirements else 0,
+            "checks": checks,
+            "check_counts": check_counts,
+            "connectors": conns,
+            "actions": actions,
+            "overdue": overdue,
+            "docs_due": documents_due(db),
+            "stages": stages,
+            "done_stages": done_stages,
+            "recent": recent,
+        },
+    )

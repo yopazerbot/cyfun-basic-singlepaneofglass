@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Self-assessment · {{ settings.app_name }}{% endblock %}
+{% block content %}
+<header class="page-head">
+  <div class="eyebrow">CyFun 2025 BASIC · {{ fw.requirements|length }} requirements · {{ fw.key_measures|length }} key measures</div>
+  <h1>Self-assessment</h1>
+  <p class="lead">
+    Total maturity <strong class="{{ summary.total_maturity|status_word }}">{{ summary.total_maturity|score }}</strong> (target 2,50) ·
+    {{ summary.scored_count }} of {{ summary.total_count }} scored ·
+    {{ summary.key_measures_passing }} of {{ summary.key_measures|length }} key measures at target ·
+    {{ summary.na_count }} not applicable (max 1).
+  </p>
+</header>
+
+{% if summary.problems %}<section class="card warn-card"><ul>{% for p in summary.problems %}<li>{{ p }}</li>{% endfor %}</ul></section>{% endif %}
+
+<section class="card">
+  <div class="table-wrap">
+  <table class="list assessment">
+    <thead>
+      <tr><th>Requirement</th><th class="num">Doc</th><th class="num">Impl</th><th class="num">Maturity</th><th class="num">Evidence</th><th class="num">Docs</th><th>Checks</th><th class="num">Actions</th></tr>
+    </thead>
+    <tbody>
+    {% for f in fw.functions %}
+      <tr class="function-row"><th colspan="8"><span class="mono">{{ f.id }}</span> {{ f.name }} <span class="muted">doc {{ summary.functions[f.id].doc|score }} · impl {{ summary.functions[f.id].impl|score }}</span></th></tr>
+      {% for c in f.categories %}
+        {% set g = summary.categories[c.id] %}
+        <tr class="category-row">
+          <th><span class="mono">{{ c.id }}</span> {{ c.name }}</th>
+          <td class="num">{{ g.doc|score }}</td><td class="num">{{ g.impl|score }}</td>
+          <td class="num"><span class="chip {{ g.maturity|status_word }}">{{ g.maturity|score }}</span></td>
+          <td colspan="4"></td>
+        </tr>
+        {% for s in c.subcategories %}{% for r in s.requirements %}
+          {% set res = summary.requirements[r.id] %}
+          {% set ch = checks.get(r.id, []) %}
+          {% set fails = ch|selectattr("status", "equalto", "fail")|list %}
+          <tr>
+            <td>
+              <a href="/assessment/{{ r.id }}" class="req-link"><span class="mono">{{ r.id }}</span>{% if r.key_measure %} <span class="tag km">KM</span>{% endif %}</a>
+              <div class="req-text">{{ r.text }}</div>
+            </td>
+            <td class="num">{% if res.not_applicable %}<span class="chip">N/A</span>{% else %}{{ res.doc|score(0) if res.doc is not none else "·" }}{% endif %}</td>
+            <td class="num">{% if res.not_applicable %}<span class="chip">N/A</span>{% else %}{{ res.impl|score(0) if res.impl is not none else "·" }}{% endif %}</td>
+            <td class="num">{% if res.maturity is not none %}<span class="chip {{ res.maturity|status_word }}">{{ res.maturity|score }}</span>{% else %}<span class="chip none">not scored</span>{% endif %}</td>
+            <td class="num">{{ evidence.get(r.id, [])|length or "" }}</td>
+            <td class="num">{{ documents.get(r.id, [])|length or "" }}</td>
+            <td>{% if ch %}{% if fails %}<span class="chip bad">{{ fails|length }} fail</span>{% else %}<span class="chip ok">{{ ch|length }}</span>{% endif %}{% endif %}</td>
+            <td class="num">{{ actions.get(r.id, [])|length or "" }}</td>
+          </tr>
+        {% endfor %}{% endfor %}
+      {% endfor %}
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% block title %}{{ req.id }} · {{ settings.app_name }}{% endblock %}
+{% block content %}
+{% set admin = user.role == 'admin' %}
+<header class="page-head">
+  <div class="eyebrow"><span class="mono">{{ req.function_id }}</span> {{ req.function_name }} · <span class="mono">{{ req.category_id }}</span> {{ req.category_name }} · <span class="mono">{{ req.subcategory_id }}</span> {{ req.subcategory_title }}</div>
+  <h1><span class="mono">{{ req.id }}</span>{% if req.key_measure %} <span class="tag km">Key measure</span>{% endif %}</h1>
+  <p class="req-statement">{{ req.text }}</p>
+  <nav class="pager">
+    {% if prev %}<a href="/assessment/{{ prev.id }}">← {{ prev.id }}</a>{% endif %}
+    <a href="/assessment">All requirements</a>
+    {% if next %}<a href="/assessment/{{ next.id }}">{{ next.id }} →</a>{% endif %}
+  </nav>
+</header>
+
+<section class="grid two-one">
+  <div class="stack">
+    <form class="card form" method="post" action="/assessment/{{ req.id }}/score">
+      <div class="card-head"><h2>Maturity scores</h2>
+        <span>{% if res.maturity is not none %}<span class="chip {{ res.maturity|status_word }}">{{ res.maturity|score }}</span>{% else %}<span class="chip none">not scored</span>{% endif %}</span>
+      </div>
+      <fieldset class="scores" {{ 'disabled' if not admin }}>
+        <div class="score-row">
+          <div class="score-title">Documentation</div>
+          <div class="radios">{% for v in (1,2,3,4,5) %}<label class="radio"><input type="radio" name="doc_score" value="{{ v }}" {{ 'checked' if score and score.doc_score == v and not score.not_applicable }}><span>{{ v }}</span></label>{% endfor %}</div>
+        </div>
+        <div class="score-row">
+          <div class="score-title">Implementation</div>
+          <div class="radios">{% for v in (1,2,3,4,5) %}<label class="radio"><input type="radio" name="impl_score" value="{{ v }}" {{ 'checked' if score and score.impl_score == v and not score.not_applicable }}><span>{{ v }}</span></label>{% endfor %}</div>
+        </div>
+        {% if not req.key_measure %}
+        <label class="check {{ 'muted' if not na_available }}"><input type="checkbox" name="not_applicable" value="1" {{ 'checked' if score and score.not_applicable }} {{ 'disabled' if not na_available }}> Not applicable (counts as 2,5 for both; allowed for one requirement at BASIC){% if not na_available %} · already used by another requirement{% endif %}</label>
+        {% endif %}
+        <label>Justification and comments (exported to the CCB workbook, column "Comments and/or additional information")
+          <textarea name="justification" rows="5" placeholder="State what exists, where it is documented, how it is implemented and what evidence shows it.">{{ score.justification if score }}</textarea>
+        </label>
+      </fieldset>
+      {% if admin %}
+      <div class="actions">
+        <button class="btn" type="submit" name="go" value="stay">Save</button>
+        {% if next %}<button class="btn secondary" type="submit" name="go" value="next">Save and next</button>{% endif %}
+        {% if score %}<span class="muted small">Last saved {{ score.updated_at|date }} by {{ score.updated_by }}</span>{% endif %}
+      </div>
+      {% endif %}
+    </form>
+
+    <div class="card">
+      <div class="card-head"><h2>Maturity level definitions</h2><span class="muted">CCB self-assessment tool</span></div>
+      <table class="list small levels">
+        <thead><tr><th>Level</th><th>Documentation</th><th>Implementation</th></tr></thead>
+        <tbody>{% for m in fw.maturity_levels %}<tr><th class="nowrap">{{ m.value }} · {{ m.name.split(' - ')[-1] }}</th><td>{{ m.documentation }}</td><td>{{ m.implementation }}</td></tr>{% endfor %}</tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>Evidence</h2><a class="link" href="/evidence?requirement={{ req.id }}">All evidence</a></div>
+      {% if evidence %}
+      <table class="list">
+        {% for e in evidence %}
+        <tr>
+          <td>{% if e.kind == 'file' %}<a href="/evidence/{{ e.id }}/download">{{ e.title }}</a>{% elif e.kind == 'link' %}<a href="{{ e.url }}" rel="noopener noreferrer" target="_blank">{{ e.title }}</a>{% else %}{{ e.title }}{% endif %}
+            {% if e.description %}<div class="muted small">{{ e.description }}</div>{% endif %}</td>
+          <td class="muted small nowrap">{{ e.kind }}{% if e.sha256 %} · <span class="mono" title="{{ e.sha256 }}">{{ e.sha256[:12] }}</span>{% endif %}</td>
+          <td class="muted small nowrap">{{ e.collected_on|date }}</td>
+        </tr>
+        {% endfor %}
+      </table>
+      {% else %}<p class="muted">No evidence linked yet.</p>{% endif %}
+      {% if admin %}
+      <form class="form compact" method="post" action="/assessment/{{ req.id }}/evidence" enctype="multipart/form-data">
+        <div class="row">
+          <label>Title<input name="title" maxlength="300" placeholder="What this evidence shows"></label>
+          <label>File<input type="file" name="file"></label>
+          <label>or link<input name="url" placeholder="https://..."></label>
+        </div>
+        <label>Description<input name="description" maxlength="1000"></label>
+        <div class="actions"><button class="btn secondary" type="submit">Add evidence</button></div>
+      </form>
+      {% endif %}
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>Automated checks</h2><a class="link" href="/connectors">Connected systems</a></div>
+      {% if checks %}
+      <table class="list">
+        {% for c in checks %}
+        <tr><td><span class="chip {{ c.status }}">{{ c.status }}</span></td><td><strong>{{ c.title }}</strong><div class="small">{{ c.summary }}</div></td><td class="muted small nowrap">{{ c.connector }}<br>{{ c.checked_at|date }}</td></tr>
+        {% endfor %}
+      </table>
+      {% else %}<p class="muted">No connector check is mapped to this requirement, or no connector has run yet.</p>{% endif %}
+    </div>
+  </div>
+
+  <div class="stack">
+    <div class="card">
+      <div class="card-head"><h2>Guidance</h2><span class="muted">summary</span></div>
+      <ul class="guidance">{% for g in req.guidance %}<li>{{ g }}</li>{% endfor %}</ul>
+      <h3>Typical evidence</h3>
+      <ul class="guidance">{% for g in req.evidence_examples %}<li>{{ g }}</li>{% endfor %}</ul>
+      <p class="muted small">Authoritative text: CCB booklet CyberFundamentals 2025 BASIC, <a href="https://www.cyfun.eu" rel="noopener noreferrer" target="_blank">cyfun.eu</a>.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>Documents</h2><a class="link" href="/documents">Register</a></div>
+      {% if documents %}
+      <ul class="plain-list">{% for d in documents %}<li><a href="/documents/{{ d.id }}">{{ d.title }}</a> <span class="chip {{ 'ok' if d.status == 'approved' else '' }}">{{ d.status }}</span>{% if d.version %} <span class="muted small">v{{ d.version }}</span>{% endif %}{% if d.approved_on %}<div class="muted small">approved {{ d.approved_on|date }}{% if d.next_review %} · review {{ d.next_review|date }}{% endif %}</div>{% endif %}</li>{% endfor %}</ul>
+      {% else %}<p class="muted">No document in the register is mapped to this requirement.</p>{% endif %}
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>Actions</h2><a class="link" href="/actions">All actions</a></div>
+      {% if actions %}
+      <ul class="plain-list">{% for a in actions %}<li><span class="chip {{ 'ok' if a.status == 'done' else ('info' if a.status == 'in_progress' else '') }}">{{ a.status.replace('_',' ') }}</span> <a href="/actions/{{ a.id }}">{{ a.title }}</a>{% if a.due_date %} <span class="muted small">due {{ a.due_date|date }}</span>{% endif %}</li>{% endfor %}</ul>
+      {% else %}<p class="muted">No actions.</p>{% endif %}
+      {% if admin %}
+      <form class="form compact" method="post" action="/assessment/{{ req.id }}/action">
+        <label>New action<input name="title" required maxlength="300" placeholder="What has to be done"></label>
+        <div class="row">
+          <label>Owner<input name="owner" maxlength="200"></label>
+          <label>Due<input type="date" name="due_date"></label>
+          <label>Priority<select name="priority"><option>high</option><option selected>medium</option><option>low</option></select></label>
+        </div>
+        <div class="actions"><button class="btn secondary" type="submit">Add action</button></div>
+      </form>
+      {% endif %}
+    </div>
+
+    {% if history %}
+    <div class="card">
+      <div class="card-head"><h2>History</h2></div>
+      <table class="list small">{% for h in history %}<tr><td class="muted nowrap">{{ h.at|date }}</td><td>{{ h.action.replace('_',' ') }}{% if h.details.after %} → doc {{ h.details.after.doc }}, impl {{ h.details.after.impl }}{% if h.details.after.na %}, N/A{% endif %}{% endif %}</td><td class="muted">{{ h.actor }}</td></tr>{% endfor %}</table>
+    </div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

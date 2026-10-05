@@ -1,0 +1,92 @@
+"""Connected systems: status, manual runs, latest checks, snapshots."""
+
+from __future__ import annotations
+
+from fastapi import APIRouter, Depends, Request
+from fastapi.responses import FileResponse
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
+from .. import scheduler
+from ..auth import require_admin, require_user
+from ..config import get_settings
+from ..connectors import registry
+from ..db import get_db
+from ..framework import load_framework
+from ..models import Asset, CheckResult, ConnectorRun, User
+from ..services import latest_runs, log_activity
+from ..views import redirect, render
+
+router = APIRouter(prefix="/connectors", tags=["connectors"])
+
+
+@router.get("")
+def list_connectors(request: Request, user: User = Depends(require_user), db: Session = Depends(get_db)):
+    settings = get_settings()
+    runs = latest_runs(db)
+    rows = []
+    for key, c in registry(settings).items():
+        run = runs.get(key)
+        checks = db.execute(select(CheckResult).where(CheckResult.run_id == run.id)).scalars().all() if run and run.status == "ok" else []
+        counts = {s: sum(1 for x in checks if x.status == s) for s in ("pass", "fail", "warn", "info", "error")}
+        rows.append(
+            {
+                "key": key,
+                "name": c.name,
+                "description": c.description,
+                "env_vars": c.env_vars,
+                "docs": c.docs,
+                "configured": c.configured(),
+                "run": run,
+                "counts": counts,
+            }
+        )
+    return render(request, "connectors.html", {"active": "connectors", "rows": rows, "sync_hours": settings.connector_sync_hours})
+
+
+@router.get("/{key}")
+def connector_detail(request: Request, key: str, user: User = Depends(require_user), db: Session = Depends(get_db)):
+    settings = get_settings()
+    c = registry(settings).get(key)
+    if c is None:
+        return redirect("/connectors", err="Unknown connector.")
+    fw = load_framework()
+    runs = db.execute(select(ConnectorRun).where(ConnectorRun.connector == key).order_by(ConnectorRun.id.desc()).limit(20)).scalars().all()
+    latest_ok = next((r for r in runs if r.status == "ok"), None)
+    checks = (
+        db.execute(select(CheckResult).where(CheckResult.run_id == latest_ok.id).order_by(CheckResult.status, CheckResult.check_id)).scalars().all()
+        if latest_ok
+        else []
+    )
+    assets = db.execute(select(Asset).where(Asset.source == key, Asset.lifecycle != "retired").order_by(Asset.kind, Asset.name)).scalars().all()
+    return render(
+        request,
+        "connector_detail.html",
+        {"active": "connectors", "c": c, "key": key, "runs": runs, "latest": latest_ok, "checks": checks, "assets": assets, "fw": fw},
+    )
+
+
+@router.post("/{key}/run")
+def run_now(request: Request, key: str, user: User = Depends(require_admin), db: Session = Depends(get_db)):
+    settings = get_settings()
+    c = registry(settings).get(key)
+    if c is None or not c.configured():
+        return redirect("/connectors", err="Connector is not configured. Set its environment variables and restart the application.")
+    running = db.execute(select(ConnectorRun).where(ConnectorRun.connector == key, ConnectorRun.status == "running")).scalars().first()
+    if running:
+        return redirect(f"/connectors/{key}", err="A run is already in progress.")
+    log_activity(db, user.email, "connector_trigger", "connector", key, {})
+    scheduler.trigger(settings, key, user.email)
+    return redirect(f"/connectors/{key}", msg="Run started. Refresh in a moment to see the results.")
+
+
+@router.get("/{key}/snapshot/{run_id}")
+def snapshot(request: Request, key: str, run_id: int, user: User = Depends(require_user), db: Session = Depends(get_db)):
+    settings = get_settings()
+    run = db.get(ConnectorRun, run_id)
+    if run is None or run.connector != key or not run.snapshot_file:
+        return redirect(f"/connectors/{key}", err="Snapshot not found.")
+    path = (settings.snapshots_dir / run.snapshot_file).resolve()
+    if settings.snapshots_dir.resolve() not in path.parents or not path.exists():
+        return redirect(f"/connectors/{key}", err="Snapshot file missing.")
+    return FileResponse(path, filename=f"{key}-{path.name}", media_type="application/json")

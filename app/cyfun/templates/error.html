@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Error {{ status }} · {{ settings.app_name }}{% endblock %}
+{% block content %}
+<header class="page-head">
+  <div class="eyebrow">Error {{ status }}</div>
+  <h1>{% if status == 403 %}Not allowed{% elif status == 404 %}Not found{% else %}Something went wrong{% endif %}</h1>
+</header>
+<section class="card">
+  <p>{{ detail }}</p>
+  <p><a class="btn" href="/">Back to the dashboard</a></p>
+</section>
+{% endblock %}

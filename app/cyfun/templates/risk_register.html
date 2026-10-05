@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Risk register · {{ settings.app_name }}{% endblock %}
+{% block content %}
+<header class="page-head">
+  <div class="eyebrow">ID.RA-01.1 · ID.RA-05.1</div>
+  <h1>Risk register</h1>
+  <p class="lead">A simple list of threats and vulnerabilities with likelihood (1 to 3), impact (1 to 3), treatment and owner. Score = likelihood × impact. Review it when systems change or new threats appear.</p>
+  <nav class="tabs"><a href="/risk">Assurance level</a><a class="on" href="/risk/register">Risk register</a></nav>
+</header>
+
+<section class="grid two-one">
+  <div class="card">
+    <div class="card-head"><h2>Risks</h2><span class="muted">{{ items|length }} entries</span></div>
+    {% if items %}
+    <table class="list">
+      <thead><tr><th>Risk</th><th>Assets</th><th class="num">L</th><th class="num">I</th><th class="num">Score</th><th>Treatment</th><th>Owner</th><th>Status</th><th>Review</th><th></th></tr></thead>
+      <tbody>
+      {% for r in items %}
+      <tr>
+        <td><a href="/risk/register/{{ r.id }}">{{ r.title }}</a>{% if r.threat %}<br><small class="muted">{{ r.threat[:120] }}</small>{% endif %}</td>
+        <td class="muted">{{ r.assets }}</td>
+        <td class="num">{{ r.likelihood }}</td><td class="num">{{ r.impact }}</td>
+        <td class="num"><span class="chip {{ 'bad' if r.score >= 6 else ('warn' if r.score >= 3 else 'ok') }}">{{ r.score }}</span></td>
+        <td>{{ r.treatment }}</td><td class="muted">{{ r.owner }}</td><td><span class="chip">{{ r.status }}</span></td><td class="muted">{{ r.review_date|date }}</td>
+        <td>{% if user.role == 'admin' %}<form method="post" action="/risk/register/{{ r.id }}/delete" class="inline"><button class="btn link-danger small" data-confirm="Delete this risk?">Delete</button></form>{% endif %}</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% else %}<p class="muted">No risks recorded yet.</p>{% endif %}
+  </div>
+
+  <form class="card form" method="post" action="{{ '/risk/register/' ~ edit.id if edit else '/risk/register' }}">
+    <div class="card-head"><h2>{{ "Edit risk" if edit else "Add risk" }}</h2>{% if edit %}<a class="link" href="/risk/register">Cancel</a>{% endif %}</div>
+    <label>Title<input name="title" required maxlength="200" value="{{ edit.title if edit }}"></label>
+    <label>Threat<textarea name="threat" rows="2">{{ edit.threat if edit }}</textarea></label>
+    <label>Vulnerability<textarea name="vulnerability" rows="2">{{ edit.vulnerability if edit }}</textarea></label>
+    <label>Affected assets<input name="assets" maxlength="300" value="{{ edit.assets if edit }}"></label>
+    <div class="row">
+      <label>Likelihood<select name="likelihood">{% for v in (1,2,3) %}<option value="{{ v }}" {{ 'selected' if edit and edit.likelihood == v }}>{{ v }}</option>{% endfor %}</select></label>
+      <label>Impact<select name="impact">{% for v in (1,2,3) %}<option value="{{ v }}" {{ 'selected' if edit and edit.impact == v }}>{{ v }}</option>{% endfor %}</select></label>
+    </div>
+    <div class="row">
+      <label>Treatment<select name="treatment">{% for t in treatments %}<option value="{{ t }}" {{ 'selected' if edit and edit.treatment == t }}>{{ t }}</option>{% endfor %}</select></label>
+      <label>Status<select name="status">{% for s in statuses %}<option value="{{ s }}" {{ 'selected' if edit and edit.status == s }}>{{ s }}</option>{% endfor %}</select></label>
+    </div>
+    <label>Measures<textarea name="measures" rows="2">{{ edit.measures if edit }}</textarea></label>
+    <div class="row">
+      <label>Owner<input name="owner" maxlength="200" value="{{ edit.owner if edit }}"></label>
+      <label>Review date<input type="date" name="review_date" value="{{ edit.review_date|date if edit }}"></label>
+    </div>
+    {% if user.role == 'admin' %}<div class="actions"><button class="btn" type="submit">{{ "Save" if edit else "Add" }}</button></div>{% endif %}
+  </form>
+</section>
+{% endblock %}

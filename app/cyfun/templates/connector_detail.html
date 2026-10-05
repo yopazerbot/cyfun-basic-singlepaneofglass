@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}{{ c.name }} · {{ settings.app_name }}{% endblock %}
+{% block content %}
+<header class="page-head">
+  <div class="eyebrow">Connector · <span class="mono">{{ key }}</span></div>
+  <h1>{{ c.name }}</h1>
+  <p class="lead">{{ c.description }}</p>
+  <nav class="pager"><a href="/connectors">← Connected systems</a>
+    {% if user.role == 'admin' and c.configured() %}<form method="post" action="/connectors/{{ key }}/run" class="inline"><button class="btn small" type="submit">Run now</button></form>{% endif %}
+  </nav>
+</header>
+
+{% if not c.configured() %}
+<section class="card warn-card">Not configured. Set {% for v in c.env_vars %}<span class="mono">{{ v }}</span>{{ ", " if not loop.last }}{% endfor %} and restart the application. See docs/connectors.md.</section>
+{% endif %}
+
+<section class="card">
+  <div class="card-head"><h2>Latest checks</h2>{% if latest %}<span class="muted">{{ latest.finished_at|date }} · <a href="/connectors/{{ key }}/snapshot/{{ latest.id }}">download snapshot</a></span>{% endif %}</div>
+  {% if checks %}
+  <table class="list checks">
+    <thead><tr><th>Status</th><th>Check</th><th>Requirements</th></tr></thead>
+    <tbody>
+    {% for ch in checks %}
+    <tr>
+      <td><span class="chip {{ ch.status }}">{{ ch.status }}</span></td>
+      <td><strong>{{ ch.title }}</strong><div>{{ ch.summary }}</div>
+        {% if ch.details %}<details><summary class="muted small">details</summary><pre class="details">{{ ch.details|tojson(indent=1) }}</pre></details>{% endif %}</td>
+      <td class="small">{% for r in ch.requirement_ids %}<a class="mono" href="/assessment/{{ r }}">{{ r }}</a>{{ " " }}{% endfor %}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}<p class="muted">No successful run yet.</p>{% endif %}
+</section>
+
+<section class="grid two">
+  <div class="card">
+    <div class="card-head"><h2>Runs</h2></div>
+    {% if runs %}
+    <table class="list small">
+      <thead><tr><th>Started</th><th>Status</th><th>By</th><th class="num">Items</th><th class="num">Checks</th><th></th></tr></thead>
+      <tbody>{% for r in runs %}<tr><td class="nowrap">{{ r.started_at|date }}</td><td><span class="chip {{ 'ok' if r.status == 'ok' else ('info' if r.status == 'running' else 'bad') }}">{{ r.status }}</span>{% if r.error %}<div class="bad small">{{ r.error[:200] }}</div>{% endif %}</td><td class="muted">{{ r.triggered_by }}</td><td class="num">{{ r.inventory_count }}</td><td class="num">{{ r.check_count }}</td><td>{% if r.snapshot_file %}<a href="/connectors/{{ key }}/snapshot/{{ r.id }}">snapshot</a>{% endif %}</td></tr>{% endfor %}</tbody>
+    </table>
+    {% else %}<p class="muted">No runs yet.</p>{% endif %}
+  </div>
+  <div class="card">
+    <div class="card-head"><h2>Inventory from this source</h2><a class="link" href="/assets?source={{ key }}">Open in assets</a></div>
+    {% if assets %}
+    <table class="list small">{% for a in assets[:40] %}<tr><td><span class="chip">{{ a.kind }}</span></td><td><a href="/assets/{{ a.id }}">{{ a.name }}</a></td><td class="muted">{{ a.description[:80] }}</td></tr>{% endfor %}</table>
+    {% if assets|length > 40 %}<p class="muted small">{{ assets|length - 40 }} more in the asset inventory.</p>{% endif %}
+    {% else %}<p class="muted">No inventory items.</p>{% endif %}
+  </div>
+</section>
+{% endblock %}

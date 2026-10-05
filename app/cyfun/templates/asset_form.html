@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}{{ edit.name }} · Assets · {{ settings.app_name }}{% endblock %}
+{% block content %}
+{% set manual = edit.source == 'manual' %}
+<header class="page-head">
+  <div class="eyebrow">Asset · {{ edit.kind }} · source {{ edit.source }}</div>
+  <h1>{{ edit.name }}</h1>
+  <nav class="pager"><a href="/assets">← Inventory</a></nav>
+</header>
+<section class="grid two-one">
+  <form class="card form" method="post" action="/assets/{{ edit.id }}">
+    <div class="card-head"><h2>Details</h2>{% if not manual %}<span class="muted small">Name, kind, description and location come from the connector.</span>{% endif %}</div>
+    <div class="row">
+      <label>Kind<select name="kind" {{ 'disabled' if not manual }}>{% for k in kinds %}<option value="{{ k }}" {{ 'selected' if k == edit.kind }}>{{ k }}</option>{% endfor %}</select></label>
+      <label>Name<input name="name" value="{{ edit.name }}" maxlength="300" {{ 'readonly' if not manual }}></label>
+    </div>
+    <label>Description<input name="description" value="{{ edit.description }}" maxlength="2000" {{ 'readonly' if not manual }}></label>
+    <label>Location / environment<input name="location" value="{{ edit.location }}" maxlength="200" {{ 'readonly' if not manual }}></label>
+    <div class="row">
+      <label>Owner<input name="owner" value="{{ edit.owner }}" maxlength="200"></label>
+      <label>Classification<select name="classification">{% for c in classifications %}<option {{ 'selected' if c == edit.classification }}>{{ c }}</option>{% endfor %}</select></label>
+      <label>Criticality<select name="criticality">{% for c in criticality %}<option {{ 'selected' if c == edit.criticality }}>{{ c }}</option>{% endfor %}</select></label>
+      <label>Lifecycle<select name="lifecycle" {{ 'disabled' if not manual }}>{% for l in lifecycles %}<option {{ 'selected' if l == edit.lifecycle }}>{{ l }}</option>{% endfor %}</select></label>
+    </div>
+    <label class="check"><input type="checkbox" name="primary_asset" value="1" {{ 'checked' if edit.primary_asset }}> Primary asset</label>
+    {% if user.role == 'admin' %}<div class="actions"><button class="btn" type="submit">Save</button></div>{% endif %}
+  </form>
+  <div class="stack">
+    <div class="card">
+      <div class="card-head"><h2>Attributes</h2><span class="muted small">{{ edit.source }}{% if edit.external_id %} · <span class="mono">{{ edit.external_id }}</span>{% endif %}</span></div>
+      {% if edit.attributes %}
+      <table class="list small">{% for k, v in edit.attributes.items() %}<tr><th class="nowrap">{{ k }}</th><td>{{ v }}</td></tr>{% endfor %}</table>
+      {% else %}<p class="muted">No attributes.</p>{% endif %}
+      <p class="muted small">Created {{ edit.created_at|date }} · updated {{ edit.updated_at|date }}{% if edit.last_seen_at %} · last seen by connector {{ edit.last_seen_at|date }}{% endif %}</p>
+    </div>
+    {% if manual and user.role == 'admin' %}
+    <form class="card" method="post" action="/assets/{{ edit.id }}/delete"><button class="btn link-danger" data-confirm="Delete this asset?">Delete asset</button></form>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

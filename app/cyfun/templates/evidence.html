@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Evidence · {{ settings.app_name }}{% endblock %}
+{% block content %}
+<header class="page-head">
+  <div class="eyebrow">Evidence register · files hashed with SHA-256</div>
+  <h1>Evidence</h1>
+  <p class="lead">Files and links that show a requirement is documented and implemented. Each file is stored under a random name with its hash, so the auditor can verify integrity from the audit pack.</p>
+</header>
+
+<section class="grid two-one">
+  <div class="card">
+    <form class="filters" method="get" action="/evidence">
+      <select name="requirement"><option value="">All requirements</option>{% for r in fw.requirements %}<option value="{{ r.id }}" {{ 'selected' if r.id == f_requirement }}>{{ r.id }}</option>{% endfor %}</select>
+      <button class="btn secondary small" type="submit">Filter</button>
+    </form>
+    {% if items %}
+    <div class="table-wrap">
+    <table class="list">
+      <thead><tr><th>Evidence</th><th>Kind</th><th>Requirements</th><th>Collected</th><th>Hash</th><th></th></tr></thead>
+      <tbody>
+      {% for e in items %}
+      <tr>
+        <td>{% if e.kind == 'file' %}<a href="/evidence/{{ e.id }}/download">{{ e.title }}</a>{% elif e.kind == 'link' %}<a href="{{ e.url }}" rel="noopener noreferrer" target="_blank">{{ e.title }}</a>{% else %}{{ e.title }}{% endif %}
+          <div class="muted small">{{ e.description }}{% if e.file_name and e.file_name != e.title %} · {{ e.file_name }}{% endif %}{% if e.size %} · {{ (e.size / 1024)|round|int }} KB{% endif %}</div></td>
+        <td><span class="chip">{{ e.kind }}</span></td>
+        <td class="small">{% for r in e.requirement_ids %}<a class="mono" href="/assessment/{{ r }}">{{ r }}</a>{{ " " }}{% endfor %}</td>
+        <td class="muted small">{{ e.collected_on|date }}<br>{{ e.collected_by }}</td>
+        <td class="mono small" title="{{ e.sha256 }}">{{ e.sha256[:12] }}</td>
+        <td class="nowrap"><a class="btn ghost small" href="/evidence/{{ e.id }}">Edit</a>{% if user.role == 'admin' %}<form method="post" action="/evidence/{{ e.id }}/delete" class="inline"><button class="btn link-danger small" data-confirm="Delete this evidence? The file is removed from disk.">Delete</button></form>{% endif %}</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+    {% else %}<p class="muted">No evidence yet.</p>{% endif %}
+  </div>
+
+  <form class="card form" method="post" action="{{ '/evidence/' ~ edit.id if edit else '/evidence' }}" enctype="multipart/form-data">
+    <div class="card-head"><h2>{{ "Edit evidence" if edit else "Add evidence" }}</h2>{% if edit %}<a class="link" href="/evidence">Cancel</a>{% endif %}</div>
+    <label>Title<input name="title" maxlength="300" value="{{ edit.title if edit }}" placeholder="What this evidence shows"></label>
+    <label>Description<textarea name="description" rows="2">{{ edit.description if edit }}</textarea></label>
+    {% if not edit %}
+    <label>File (max {{ settings.max_upload_mb }} MB)<input type="file" name="file"></label>
+    <label>or link<input name="url" placeholder="https://"></label>
+    {% elif edit.kind == 'link' %}
+    <label>Link<input name="url" value="{{ edit.url }}"></label>
+    {% else %}
+    <p class="muted small">File {{ edit.file_name }} · <span class="mono">{{ edit.sha256 }}</span></p>
+    {% endif %}
+    <label>Collected on<input type="date" name="collected_on" value="{{ edit.collected_on|date if edit else today|date }}"></label>
+    <label>Requirements
+      <select name="requirement_ids" multiple size="10">
+        {% for r in fw.requirements %}<option value="{{ r.id }}" {{ 'selected' if (edit and r.id in edit.requirement_ids) or (not edit and r.id == f_requirement) }}>{{ r.id }}{{ " · KM" if r.key_measure }} · {{ r.text[:60] }}</option>{% endfor %}
+      </select>
+    </label>
+    {% if user.role == 'admin' %}<div class="actions"><button class="btn" type="submit">{{ "Save" if edit else "Add evidence" }}</button></div>{% endif %}
+  </form>
+</section>
+{% endblock %}

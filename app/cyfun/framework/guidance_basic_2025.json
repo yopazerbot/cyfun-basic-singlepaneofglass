@@ -1,0 +1,417 @@
+{
+  "_about": "Short implementation notes and typical evidence per CyFun 2025 BASIC requirement. Written for this tool as a working summary; the authoritative text is the CCB booklet 'CyberFundamentals 2025, BASIC' (version 2025-10-01) on https://www.cyfun.eu. Guidance items use 'should' and are not requirements.",
+  "GV.OC-03.1": {
+    "guidance": [
+      "Keep a list of the laws, regulations and contracts that impose information or cybersecurity obligations on the organisation (NIS2, GDPR, sector rules, customer contracts, insurance terms).",
+      "Name an owner and a review trigger (at least yearly and when the business changes).",
+      "Trace each obligation to the policy, procedure or control that implements it."
+    ],
+    "evidence": [
+      "Compliance register or obligations list with owner and review date",
+      "References from policies to the obligations they implement",
+      "Minutes or a record of the last review"
+    ]
+  },
+  "GV.RM-03.1": {
+    "guidance": [
+      "Write a short information and cybersecurity risk management strategy: risk appetite, how risks are assessed (criteria for probability and impact), how they are treated and who decides.",
+      "Treat cybersecurity risks together with other business risks and allocate budget and people to protect business-critical assets.",
+      "Update the strategy when the organisation, its systems or the threat landscape change."
+    ],
+    "evidence": [
+      "Approved risk management strategy or policy with risk criteria",
+      "Risk register with treatment decisions",
+      "Management review record showing cybersecurity risk on the agenda"
+    ]
+  },
+  "GV.RR-04.1": {
+    "guidance": [
+      "Identify who has access to the most critical information and technology and make sure that access is authenticated, preferably with MFA.",
+      "Cover the whole HR cycle: recruitment, onboarding, role changes and offboarding, including removal of access.",
+      "Consider background checks for sensitive roles, within the limits of the law."
+    ],
+    "evidence": [
+      "List of critical systems with named authorised users",
+      "Onboarding and offboarding checklist including account provisioning and removal",
+      "MFA registration report for privileged users"
+    ]
+  },
+  "GV.PO-01.1": {
+    "guidance": [
+      "Have an approved information security policy and the procedures that support it; keep them short and practical.",
+      "Communicate the policy at onboarding and after every significant change; keep it easy to find.",
+      "Review at least yearly and after organisational or technological change; record approval and review dates.",
+      "Include the risk assessment criteria (probability, impact) in the policy set."
+    ],
+    "evidence": [
+      "Policy document with version, approver and date",
+      "Document register with review dates",
+      "Proof of communication (onboarding record, intranet page, acknowledgement)"
+    ]
+  },
+  "ID.AM-01.1": {
+    "guidance": [
+      "Keep an inventory of physical and virtual infrastructure: servers, workstations, network devices, storage, cloud environments and hosting accounts.",
+      "Record type, location or provider, owner, configuration or model and lifecycle status.",
+      "Use automated discovery where available (device management, cloud provider APIs) and review after deployments, decommissions and moves."
+    ],
+    "evidence": [
+      "Asset inventory export (this tool: Assets, kinds hardware, network, cloud)",
+      "Connector snapshot of managed devices or cloud resources",
+      "Record of the last inventory review"
+    ]
+  },
+  "ID.AM-02.1": {
+    "guidance": [
+      "Keep an inventory of software, SaaS services, APIs and business systems with version, owner, purpose, licence and environment.",
+      "Automate discovery where possible (tenant application lists, code repositories, hosting platforms).",
+      "Link software and services to the infrastructure they run on."
+    ],
+    "evidence": [
+      "Software and service inventory (this tool: Assets, kinds software, service)",
+      "Connector snapshot of repositories, hosted services and enterprise applications",
+      "Record of the last inventory review"
+    ]
+  },
+  "ID.AM-05.1": {
+    "guidance": [
+      "Classify assets as primary (directly support core business) or secondary (support or protect primary assets) and document the definitions.",
+      "Assess criticality on operational, financial, legal, safety and reputational impact; use one consistent scoring method.",
+      "Assign an owner to every asset and review priorities at least yearly or after major change."
+    ],
+    "evidence": [
+      "Asset register with classification, criticality and owner",
+      "Documented criticality criteria and primary/secondary definitions",
+      "Record of the yearly review"
+    ]
+  },
+  "ID.AM-07.1": {
+    "guidance": [
+      "Identify the data the organisation stores and processes, regardless of format or location.",
+      "Classify it (for example Public, Internal, Confidential, Restricted) and map it to the systems and services that hold it.",
+      "Keep the data inventory updated together with the hardware and software inventories."
+    ],
+    "evidence": [
+      "Data inventory with classification and storage location (this tool: Assets, kind data)",
+      "Data classification scheme",
+      "Mapping of data types to systems"
+    ]
+  },
+  "ID.AM-08.2": {
+    "guidance": [
+      "Install patches and security updates for operating systems and critical components as soon as possible; enable automatic updates on trusted networks.",
+      "Use central patch management where available and keep only supported, vendor-maintained software; decommission end-of-life software.",
+      "Where automation is not possible, follow a fixed schedule (for example monthly) and keep a rollback procedure.",
+      "Download updates from trusted sources only."
+    ],
+    "evidence": [
+      "Patch or update policy and schedule",
+      "Device compliance or update status report from the management platform",
+      "Dependency vulnerability alerts and their resolution for in-house software",
+      "List of unsupported software with decommissioning decisions"
+    ]
+  },
+  "ID.RA-01.1": {
+    "guidance": [
+      "List the relevant assets (software, networks, systems, facilities) and the threats and vulnerabilities that apply to them.",
+      "Act on vulnerabilities reported by vendors, service providers and government advisories; active scanning is not required at BASIC.",
+      "Keep a simple risk register and review it when systems are added or the threat landscape changes."
+    ],
+    "evidence": [
+      "Risk register (this tool: Risk register)",
+      "Subscription to vendor or CCB advisories and examples of follow-up",
+      "Open vulnerability alerts and their treatment"
+    ]
+  },
+  "ID.RA-05.1": {
+    "guidance": [
+      "Perform and document a risk assessment that combines threats, vulnerabilities and business impact for critical processes and assets.",
+      "Include human factors and, where relevant, operational technology.",
+      "Review and update the assessment regularly and after significant change."
+    ],
+    "evidence": [
+      "Assurance level risk assessment (this tool: Risk assessment) with rationale",
+      "Risk register with likelihood, impact and treatment",
+      "Record of review dates"
+    ]
+  },
+  "ID.IM-03.1": {
+    "guidance": [
+      "After every incident, hold a structured review: what happened, why, how the response went, what to change.",
+      "Document lessons learned and share them with the people involved.",
+      "Update policies, procedures and tooling from the findings; review the policy set at least yearly."
+    ],
+    "evidence": [
+      "Post-incident review template and completed reviews",
+      "Change log of procedures showing updates driven by lessons learned",
+      "Incident log"
+    ]
+  },
+  "PR.AA-01.1": {
+    "guidance": [
+      "Request, approve and document access formally; use individual accounts, no shared passwords.",
+      "Change default passwords before activation, disable unused accounts immediately and limit administrator accounts.",
+      "Enforce a password policy and assign rights through groups or roles.",
+      "Give devices a unique identifier and label them; secure remote access with encrypted protocols and MFA."
+    ],
+    "evidence": [
+      "Access management procedure and password policy",
+      "User and account inventory from the identity provider (connector snapshot)",
+      "Access request and approval records",
+      "Stale or disabled account report"
+    ]
+  },
+  "PR.AA-03.1": {
+    "guidance": [
+      "Change default administrative credentials of wireless access points, use WPA2 or WPA3 with AES and keep firmware updated.",
+      "Isolate guest Wi-Fi from internal systems (separate SSID or VLAN) and restrict it; disable it when not needed.",
+      "Restrict physical access to access points and monitor for rogue access points."
+    ],
+    "evidence": [
+      "Wireless configuration export or screenshots (encryption, guest isolation)",
+      "Access point inventory with firmware version",
+      "Network diagram showing guest separation"
+    ]
+  },
+  "PR.AA-03.2": {
+    "guidance": [
+      "Require MFA for all remote access: email, VPN, remote desktop, cloud services and web portals, including third parties.",
+      "Prefer phishing-resistant methods (FIDO2, passkeys); avoid SMS and e-mail codes.",
+      "Combine MFA with strong passwords, up-to-date anti-malware and phishing awareness."
+    ],
+    "evidence": [
+      "Conditional Access policy or security defaults requiring MFA (connector check)",
+      "MFA registration report showing coverage of all users",
+      "VPN or remote access configuration showing MFA"
+    ]
+  },
+  "PR.AA-05.1": {
+    "guidance": [
+      "Define access permissions per system and review the lists periodically and at role changes or departures; revoke unnecessary rights at once.",
+      "Give every user and contractor a separate account; restrict guest accounts; use single sign-on where appropriate.",
+      "Document the permission management procedure."
+    ],
+    "evidence": [
+      "Access control procedure",
+      "Latest access review with sign-off",
+      "Role or group definitions and membership exports"
+    ]
+  },
+  "PR.AA-05.2": {
+    "guidance": [
+      "Determine who needs access to business-critical information and technology and limit access to those people.",
+      "Define the means of access (keys, accounts, codes, administrative privileges) and manage and monitor them.",
+      "Allow only healthy endpoints (patched, anti-malware active) to reach critical systems."
+    ],
+    "evidence": [
+      "List of business-critical systems with authorised users and access method",
+      "Device compliance requirement in access policies",
+      "Review record of critical access"
+    ]
+  },
+  "PR.AA-05.3": {
+    "guidance": [
+      "Apply least privilege: start with low privileges, elevate only when justified and for a limited time.",
+      "Keep an inventory of accounts and their permissions; use separate accounts for contractors.",
+      "Use role-based access control where feasible and harden systems (disable unused ports, services and legacy protocols)."
+    ],
+    "evidence": [
+      "Account and permission inventory",
+      "Role definitions with assigned permissions",
+      "Hardening baseline or configuration export"
+    ]
+  },
+  "PR.AA-05.4": {
+    "guidance": [
+      "Separate administrative accounts from daily-use accounts; nobody works, browses or reads mail with administrative privileges.",
+      "Use unique local administrator passwords per system and disable unused accounts.",
+      "Limit the number of global or domain administrators and review them regularly."
+    ],
+    "evidence": [
+      "List of privileged accounts and their owners (connector check: global administrators)",
+      "Policy statement on separate admin accounts",
+      "Local administrator password management (for example LAPS) configuration"
+    ]
+  },
+  "PR.AA-06.1": {
+    "guidance": [
+      "Manage keys, badges and alarm codes; collect them at departure and change codes regularly.",
+      "Give external providers time-limited, logged access only when needed.",
+      "Protect critical zones (server room, network cabinets) with locks, alarms or cameras; do not expose network ports in public areas."
+    ],
+    "evidence": [
+      "Physical access procedure and badge or key register",
+      "Visitor or contractor access log",
+      "Photos or description of server room and cabinet protection"
+    ]
+  },
+  "PR.AT-01.1": {
+    "guidance": [
+      "Run an awareness programme for all personnel, contractors and partners: at onboarding and at least yearly, with reminders in between.",
+      "Cover phishing, passwords, social engineering, safe remote work and the consequences of policy violations.",
+      "Align content with the organisation's policies and keep it current with new threats and incident lessons."
+    ],
+    "evidence": [
+      "Awareness programme description and yearly plan",
+      "Attendance or completion records",
+      "Training material or phishing simulation results"
+    ]
+  },
+  "PR.DS-01.9": {
+    "guidance": [
+      "Wipe data from computers, phones, drives and media before reuse, repair, disposal or return; shred paper.",
+      "Enable remote wipe on laptops and mobile devices.",
+      "Manage domain names: auto-renew, update references and remove accounts tied to old domains."
+    ],
+    "evidence": [
+      "Disposal procedure and disposal records or certificates",
+      "Mobile device management configuration showing remote wipe",
+      "Domain inventory with renewal settings"
+    ]
+  },
+  "PR.DS-11.1": {
+    "guidance": [
+      "Back up business-critical data and system configurations on a system separate from the source: another device, network segment or location.",
+      "Keep at least one copy offline or otherwise isolated from the production network (ransomware protection).",
+      "Define recovery objectives (RTO, RPO), test restores and document the backup schedule."
+    ],
+    "evidence": [
+      "Backup policy with scope, schedule, retention and storage location",
+      "Backup job reports and the latest restore test record",
+      "Description of the isolated or offline copy"
+    ]
+  },
+  "PR.PS-04.1": {
+    "guidance": [
+      "Enable logging on operating systems, applications, cloud services and security tools; include audit, security, system and application logs.",
+      "Protect logs against unauthorised access, back them up and define retention periods.",
+      "Review logs for anomalies and keep a record of the reviews."
+    ],
+    "evidence": [
+      "Logging and monitoring procedure with retention periods",
+      "Evidence that audit logging is active in the tenant, hosting platform and edge services (connector checks)",
+      "Log review records"
+    ]
+  },
+  "PR.PS-05.1": {
+    "guidance": [
+      "Use web filtering (URL, DNS or content filtering) to block malicious and inappropriate sites.",
+      "Configure e-mail filtering against spam, phishing and malicious attachments or links.",
+      "Keep filter rules and threat feeds updated and align them with the security policy."
+    ],
+    "evidence": [
+      "E-mail protection policy configuration (anti-phishing, anti-malware, safe links)",
+      "DNS or web filtering policy (connector check: gateway rules)",
+      "Filter effectiveness report"
+    ]
+  },
+  "PR.IR-01.1": {
+    "guidance": [
+      "Place a firewall between the internal network and the internet; configure it deny-all-by-default with documented exceptions.",
+      "Run and update a software firewall on all endpoints, also when on VPN or remote.",
+      "Secure home and remote routers (firewall on, default credentials changed, updates applied); consider intrusion detection."
+    ],
+    "evidence": [
+      "Firewall rule base export or review record",
+      "Network diagram with firewall placement",
+      "Endpoint firewall policy from the device management platform",
+      "Web application firewall settings for internet-facing services (connector check)"
+    ]
+  },
+  "PR.IR-01.2": {
+    "guidance": [
+      "Split the network into zones (office, servers, guest, production, management) and control traffic between zones with firewall rules.",
+      "Align zones with trust and asset criticality; allow only necessary communication; avoid flat networks.",
+      "Separate IT and OT networks where OT exists; treat VLANs as one layer of a defence in depth, not as the only control."
+    ],
+    "evidence": [
+      "Network diagram with zones and trust boundaries",
+      "Inter-zone firewall rules",
+      "Segmentation design decision record"
+    ]
+  },
+  "DE.CM-01.1": {
+    "guidance": [
+      "Run host-based firewalls on all endpoints and servers to detect and block suspicious traffic at the device.",
+      "Group systems by function or criticality; put public-facing services in a DMZ.",
+      "Limit the number of internet gateways and define inbound and outbound rules."
+    ],
+    "evidence": [
+      "Endpoint firewall status report",
+      "Network design showing DMZ and gateways",
+      "Firewall rule documentation"
+    ]
+  },
+  "DE.CM-01.2": {
+    "guidance": [
+      "Install anti-malware on all devices: desktops, laptops, servers, smartphones and tablets; update at least daily and run scheduled scans.",
+      "Apply the same protection to home computers and personal devices used for work.",
+      "Manage configurations and alerts centrally and feed alerts into incident response."
+    ],
+    "evidence": [
+      "Anti-malware deployment and status report from the management console",
+      "Device compliance policy requiring anti-malware (connector check)",
+      "Alert handling procedure"
+    ]
+  },
+  "DE.CM-03.1": {
+    "guidance": [
+      "Use endpoint and network protection tools that detect dangerous user behaviour: EDR, intrusion detection or prevention, web application firewall, identity threat detection.",
+      "Combine tools so that device, network and identity activity are visible.",
+      "Make sure alerts reach someone who acts on them."
+    ],
+    "evidence": [
+      "EDR or endpoint protection configuration and coverage report",
+      "WAF or intrusion detection configuration (connector check)",
+      "Alert routing and response records"
+    ]
+  },
+  "DE.AE-03.1": {
+    "guidance": [
+      "Enable logging on protection and detection tools (firewall, anti-malware, EDR, intrusion detection).",
+      "Back up and retain the logs for a defined period based on legal and operational needs.",
+      "Review logs and dashboards on a schedule, configure automated alerts and define follow-up actions for repeated patterns."
+    ],
+    "evidence": [
+      "Log retention settings and backup evidence for security tools",
+      "Scheduled log review procedure and completed review records",
+      "Alert configuration screenshots"
+    ]
+  },
+  "RS.MA-01.1": {
+    "guidance": [
+      "Write an incident response plan with detection, containment, communication and recovery steps for critical systems.",
+      "Define roles, responsibilities and authorities, with contact details, who starts recovery and who talks to regulators, partners and media.",
+      "Review the plan after incidents and changes; test it with tabletop exercises."
+    ],
+    "evidence": [
+      "Approved incident response plan with contact list",
+      "Incident log and completed incident reports",
+      "Tabletop exercise record"
+    ]
+  },
+  "RS.CO-02.1": {
+    "guidance": [
+      "Include a communication protocol in the incident response plan: channels, who informs whom, and prepared message templates.",
+      "Write messages in plain language stating what happened, what is affected and what employees must do.",
+      "Give management a high-level summary of impact, risk and actions."
+    ],
+    "evidence": [
+      "Communication section of the incident response plan",
+      "Message templates for employees and management",
+      "Examples of communications sent during incidents or exercises"
+    ]
+  },
+  "RC.RP-01.1": {
+    "guidance": [
+      "Document a recovery process for disasters and cybersecurity incidents: who may start recovery, immediate protective actions, backup sites and contact lists.",
+      "Align it with the incident response plan and the backup strategy.",
+      "Make sure the people with recovery responsibilities know the plan and their authorisations."
+    ],
+    "evidence": [
+      "Recovery or continuity plan with roles and contact lists",
+      "Restore test results",
+      "Awareness or walkthrough record for the recovery team"
+    ]
+  }
+}

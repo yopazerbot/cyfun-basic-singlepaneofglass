@@ -1,0 +1,1524 @@
+{
+  "model": "CyFun-Selection (NIS2 assurance level risk assessment)",
+  "owner": "Centre for Cybersecurity Belgium (CCB)",
+  "source": {
+    "workbook": "BE-NIS2-RA-v20240108.xlsx",
+    "version": "2024-01-08",
+    "website": "https://www.cyfun.eu"
+  },
+  "criteria": {
+    "probability": {
+      "Low": 0.0,
+      "Med": 0.5,
+      "High": 1.0
+    },
+    "probability_text": {
+      "Low": "This type of treat actor is not known to have executed this kind of attack in this sector. There are no indications that this might be the case in the near future. Risk evaluation: Risk is acceptable as is - The risk can be accepted without further action.",
+      "Medium": "This type of treat actor is known to have executed this kind of attack globally. It is reasonable to accept that this might be the case in this sector in the near future. Risk evaluation: Risk is tolerable under control - A follow-up in terms of risk management shall be conducted and actions shall be set up in the context of medium- and long-term continuous improvement.",
+      "High": "This type of treat actor is known to have executed this kind of attack in this sector. It is reasonable to assume that this will reoccur in this sector in the near future. Risk evaluation: Risk is unacceptable - Measures for reducing the risk shall absolutely be taken in the short-term. Otherwise, all or a portion of the activity should be discontinued."
+    },
+    "impact": {
+      "Low": 0.0,
+      "Med": 5.0,
+      "High": 10.0
+    },
+    "attack_type": {
+      "Global": 1,
+      "Targetted": 2
+    },
+    "organisation_size": {
+      "Large": 3,
+      "Medium": 2,
+      "Small": 1
+    },
+    "levels": [
+      {
+        "min": 0.0,
+        "max": 99.0,
+        "level": "BASIC"
+      },
+      {
+        "min": 100.0,
+        "max": 199.0,
+        "level": "IMPORTANT"
+      },
+      {
+        "min": 200.0,
+        "max": 10000.0,
+        "level": "ESSENTIAL"
+      }
+    ],
+    "formula": "score = sum(probability * impact * attack_type * organisation_size) over all attack/actor cells"
+  },
+  "nis2_sectors": [
+    {
+      "code": "I.1",
+      "name": "Energy",
+      "subsectors": [
+        "Electricity, district Heating &cooling, Oil, Gas, Hydrogen"
+      ]
+    },
+    {
+      "code": "I.2",
+      "name": "Transport",
+      "subsectors": [
+        "Air (commercial carriers; airports; traffic); Rail (infra and undertakings); Water (transport companies; ports; traffic services); Road (ITS & charging stations)",
+        "Special case: Public Transport: only if identified as CER"
+      ]
+    },
+    {
+      "code": "I.3",
+      "name": "Banking Included in I.4 for the purpose of this application",
+      "subsectors": [
+        "Credit institutions (attention: DORA lex specialis)"
+      ]
+    },
+    {
+      "code": "I.4",
+      "name": "Financial Market Infrastructure",
+      "subsectors": [
+        "Trading venues, central counterparties (attention: DORA lex specialis)"
+      ]
+    },
+    {
+      "code": "I.5",
+      "name": "Healthcare",
+      "subsectors": [
+        "Healthcare providers; EU reference laboratories; R&D of medicinal products; manufacturing basic pharma products and preparations; manufacturing of medical devices critical during public health emergency",
+        "Special case: entities holding a distribution authorization for medicinal products: only if identified as CER"
+      ]
+    },
+    {
+      "code": "I.6",
+      "name": "Drinking Water",
+      "subsectors": [
+        "Suppliers and distributors of water intended for human consumption, excluding distributors for which distribution of water for human consumption is a non- essential part of their general activity of distributing other commodities and goods."
+      ]
+    },
+    {
+      "code": "I.7",
+      "name": "Waste Water",
+      "subsectors": [
+        "Undertakings collecting, disposing of or treating urban waste water, domestic waste water or industrial waste water, excluding undertakings for which collecting, disposing of or treating urban waste water, domestic waste water or industrial waste water is a non-essential part of their general activity."
+      ]
+    },
+    {
+      "code": "I.8",
+      "name": "Digital Infrastructure",
+      "subsectors": [
+        "Qualified trust service providers",
+        "DNS service providers (excluding root name servers)",
+        "TLD name registries",
+        "Providers of public electronic communications networks",
+        "Non-qualified trust service providers",
+        "Internet Exchange Point providers",
+        "Cloud computing service providers",
+        "Data centre service providers",
+        "Content delivery network providers"
+      ]
+    },
+    {
+      "code": "I.9",
+      "name": "ICT-service management (B2B) Included in I.8 for the purpose of this application",
+      "subsectors": [
+        "Managed Service Providers, Managed Security Service Providers"
+      ]
+    },
+    {
+      "code": "I.10",
+      "name": "Public Administration entities",
+      "subsectors": [
+        "Of central governments (excluding judiciary, parliaments, central banks; defence, national or public security).",
+        "Of regional governments: risk based.",
+        "(Optional for Member States: of local governments)"
+      ]
+    },
+    {
+      "code": "I.11",
+      "name": "Space",
+      "subsectors": [
+        "Operators of ground-based infrastructure (by MS)"
+      ]
+    },
+    {
+      "code": "II.1",
+      "name": "Postal and courier services",
+      "subsectors": [
+        "Postal service providers, including providers of courier services."
+      ]
+    },
+    {
+      "code": "II.2",
+      "name": "Waste Management",
+      "subsectors": [
+        "Undertakings carrying out waste management, excluding undertakings for whom waste management is not their principal economic activity."
+      ]
+    },
+    {
+      "code": "II.3",
+      "name": "Manufacture, production and distribution of chemicals",
+      "subsectors": [
+        "Manufacture, production, distribution"
+      ]
+    },
+    {
+      "code": "II.4",
+      "name": "Production, processing and distribution of food",
+      "subsectors": [
+        "Production, processing and distribution"
+      ]
+    },
+    {
+      "code": "II.5",
+      "name": "Manufacturing",
+      "subsectors": [
+        "Manufacture of medical devices and in vitro diagnostic medical devices; computer, electronic and optical products; electrical equipment; machinery and equipment; motor vehicles, trailers and semi-trailers; other transport equipment (NACE C 26-30)."
+      ]
+    },
+    {
+      "code": "II.6",
+      "name": "Digital providers",
+      "subsectors": [
+        "Providers of online marketplaces, online search engines and social networking services platforms."
+      ]
+    },
+    {
+      "code": "II.7",
+      "name": "Research",
+      "subsectors": [
+        "Research organisations (excluding education institutions)",
+        "(Optional for Member States: education institutions)"
+      ]
+    }
+  ],
+  "sectors": [
+    {
+      "id": "I.1_Energy",
+      "name": "Energy",
+      "default_size": 3,
+      "actors": [
+        "Competitors",
+        "Ideologues Hactivists",
+        "Terrorist",
+        "Cyber Criminals",
+        "Nation State actor"
+      ],
+      "actor_skills": [
+        "Common skills",
+        "Common skills",
+        "Common skills",
+        "Extended Skills",
+        "Extended Skills"
+      ],
+      "rows": [
+        {
+          "attack": "Sabotage/ Disruption (DDOS,…)",
+          "attack_type": 2,
+          "impact": "High",
+          "probability": [
+            "Low",
+            "Low",
+            "Med",
+            "Med",
+            "High"
+          ]
+        },
+        {
+          "attack": "Information Theft (espionage, …)",
+          "attack_type": 2,
+          "impact": "High",
+          "probability": [
+            "Low",
+            "Low",
+            "Low",
+            "High",
+            "High"
+          ]
+        },
+        {
+          "attack": "Crime (Ransom attacks)",
+          "attack_type": 1,
+          "impact": "High",
+          "probability": [
+            "Low",
+            "Low",
+            "Low",
+            "High",
+            "Low"
+          ]
+        },
+        {
+          "attack": "Hactivism (Subversion, defacement…)",
+          "attack_type": 1,
+          "impact": "Med",
+          "probability": [
+            "Low",
+            "Med",
+            "Low",
+            "Low",
+            "Med"
+          ]
+        },
+        {
+          "attack": "Disinformation (political influencing)",
+          "attack_type": 1,
+          "impact": "Low",
+          "probability": [
+            "Low",
+            "Med",
+            "Low",
+            "Low",
+            "Low"
+          ]
+        }
+      ],
+      "workbook_total": 285.0,
+      "workbook_level": "ESSENTIAL"
+    },
+    {
+      "id": "I.2_Transport",
+      "name": "Transport",
+      "default_size": 3,
+      "actors": [
+        "Competitors",
+        "Ideologues Hactivists",
+        "Terrorist",
+        "Cyber Criminals",
+        "Nation State actor"
+      ],
+      "actor_skills": [
+        "Common skills",
+        "Common skills",
+        "Common skills",
+        "Extended Skills",
+        "Extended Skills"
+      ],
+      "rows": [
+        {
+          "attack": "Sabotage/ Disruption (DDOS,…)",
+          "attack_type": 2,
+          "impact": "High",
+          "probability": [
+            "Low",
+            "Low",
+            "Med",
+            "Low",
+            "High"
+          ]
+        },
+        {
+          "attack": "Information Theft (espionage, …)",
+          "attack_type": 2,
+          "impact": "High",
+          "probability": [
+            "Low",
+            "Low",
+            "Low",
+            "High",
+            "High"
+          ]
+        },
+        {
+          "attack": "Crime (Ransom attacks)",
+          "attack_type": 1,
+          "impact": "High",
+          "probability": [
+            "Low",
+            "Low",
+            "Low",
+            "High",
+            "Low"
+          ]
+        },
+        {
+          "attack": "Hactivism (Subversion, defacement…)",
+          "attack_type": 1,
+          "impact": "Med",
+          "probability": [
+            "Low",
+            "Med",
+            "Low",
+            "Low",
+            "Med"
+          ]
+        },
+        {
+          "attack": "Disinformation (political influencing)",
+          "attack_type": 1,
+          "impact": "Low",
+          "probability": [
+            "Low",
+            "Med",
+            "Low",
+            "Low",
+            "Low"
+          ]
+        }
+      ],
+      "workbook_total": 255.0,
+      "workbook_level": "ESSENTIAL"
+    },
+    {
+      "id": "I.4_Fin",
+      "name": "Financial market infrastructures Banking",
+      "default_size": 3,
+      "actors": [
+        "Competitors",
+        "Ideologues Hactivists",
+        "Terrorist",
+        "Cyber Criminals",
+        "Nation State actor"
+      ],
+      "actor_skills": [
+        "Common skills",
+        "Common skills",
+        "Common skills",
+        "Extended Skills",
+        "Extended Skills"
+      ],
+      "rows": [
+        {
+          "attack": "Sabotage/ Disruption (DDOS,…)",
+          "attack_type": 2,
+          "impact": "High",
+          "probability": [
+            "Low",
+            "Med",
+            "Med",
+            "Low",
+            "Med"
+          ]
+        },
+        {
+          "attack": "Information Theft (espionage, …)",
+          "attack_type": 2,
+          "impact": "High",
+          "probability": [
+            "Low",
+            "Low",
+            "Med",
+            "High",
+            "Med"
+          ]
+        },
+        {
+          "attack": "Crime (Ransom attacks)",
+          "attack_type": 1,
+          "impact": "High",
+          "probability": [
+            "Low",
+            "Low",
+            "Low",
+            "High",
+            "Low"
+          ]
+        },
+        {
+          "attack": "Hactivism (Subversion, defacement…)",
+          "attack_type": 1,
+          "impact": "Med",
+          "probability": [
+            "Low",
+            "Med",
+            "Low",
+            "Low",
+            "Med"
+          ]
+        },
+        {
+          "attack": "Disinformation (political influencing)",
+          "attack_type": 1,
+          "impact": "Low",
+          "probability": [
+            "Low",
+            "Med",
+            "Low",
+            "Low",
+            "Low"
+          ]
+        }
+      ],
+      "workbook_total": 255.0,
+      "workbook_level": "ESSENTIAL"
+    },
+    {
+      "id": "I.5_Health",
+      "name": "Healthcare",
+      "default_size": 3,
+      "actors": [
+        "Competitors",
+        "Ideologues Hactivists",
+        "Terrorist",
+        "Cyber Criminals",
+        "Nation State actor"
+      ],
+      "actor_skills": [
+        "Common skills",
+        "Common skills",
+        "Common skills",
+        "Extended Skills",
+        "Extended Skills"
+      ],
+      "rows": [
+        {
+          "attack": "Sabotage/ Disruption (DDOS,…)",
+          "attack_type": 2,
+          "impact": "High",
+          "probability": [
+            "Low",
+            "Med",
+            "Med",
+            "Low",
+            "Med"
+          ]
+        },
+        {
+          "attack": "Information Theft (espionage, …)",
+          "attack_type": 2,
+          "impact": "High",
+          "probability": [
+            "Low",
+            "Low",
+            "Med",
+            "Med",
+            "Med"
+          ]
+        },
+        {
+          "attack": "Crime (Ransom attacks)",
+          "attack_type": 1,
+          "impact": "High",
+          "probability": [
+            "Low",
+            "Low",
+            "Low",
+            "High",
+            "Low"
+          ]
+        },
+        {
+          "attack": "Hactivism (Subversion, defacement…)",
+          "attack_type": 1,
+          "impact": "Low",
+          "probability": [
+            "Low",
+            "Low",
+            "Low",
+            "Low",
+            "Low"
+          ]
+        },
+        {
+          "attack": "Disinformation (political influencing)",
+          "attack_type": 1,
+          "impact": "Med",
+          "probability": [
+            "Low",
+            "Med",
+            "Low",
+            "Low",
+            "Low"
+          ]
+        }
+      ],
+      "workbook_total": 217.5,
+      "workbook_level": "ESSENTIAL"
+    },
+    {
+      "id": "I.6_Drinking water",
+      "name": "Drinking water",
+      "default_size": 3,
+      "actors": [
+        "Competitors",
+        "Ideologues Hactivists",
+        "Terrorist",
+        "Cyber Criminals",
+        "Nation State actor"
+      ],
+      "actor_skills": [
+        "Common skills",
+        "Common skills",
+        "Common skills",
+        "Extended Skills",
+        "Extended Skills"
+      ],
+      "rows": [
+        {
+          "attack": "Sabotage/ Disruption (DDOS,…)",
+          "attack_type": 2,
+          "impact": "High",
+          "probability": [
+            "Low",
+            "Med",
+            "High",
+            "Low",
+            "High"
+          ]
+        },
+        {
+          "attack": "Information Theft (espionage, …)",
+          "attack_type": 2,
+          "impact": "Med",
+          "probability": [
+            "Low",
+            "Low",
+            "Med",
+            "Med",
+            "Med"
+          ]
+        },
+        {
+          "attack": "Crime (Ransom attacks)",
+          "attack_type": 1,
+          "impact": "Med",
+          "probability": [
+            "Low",
+            "Low",
+            "Low",
+            "Med",
+            "Low"
+          ]
+        },
+        {
+          "attack": "Hactivism (Subversion, defacement…)",
+          "attack_type": 1,
+          "impact": "Low",
+          "probability": [
+            "Low",
+            "Low",
+            "Low",
+            "Low",
+            "Low"
+          ]
+        },
+        {
+          "attack": "Disinformation (political influencing)",
+          "attack_type": 1,
+          "impact": "Low",
+          "probability": [
+            "Low",
+            "Low",
+            "Low",
+            "Low",
+            "Low"
+          ]
+        }
+      ],
+      "workbook_total": 202.5,
+      "workbook_level": "ESSENTIAL"
+    },
+    {
+      "id": "I.7_Waste water",
+      "name": "Waste water",
+      "default_size": 3,
+      "actors": [
+        "Competitors",
+        "Ideologues Hactivists",
+        "Terrorist",
+        "Cyber Criminals",
+        "Nation State actor"
+      ],
+      "actor_skills": [
+        "Common skills",
+        "Common skills",
+        "Common skills",
+        "Extended Skills",
+        "Extended Skills"
+      ],
+      "rows": [
+        {
+          "attack": "Sabotage/ Disruption (DDOS,…)",
+          "attack_type": 2,
+          "impact": "High",
+          "probability": [
+            "Low",
+            "Med",
+            "High",
+            "Low",
+            "High"
+          ]
+        },
+        {
+          "attack": "Information Theft (espionage, …)",
+          "attack_type": 2,
+          "impact": "Med",
+          "probability": [
+            "Low",
+            "Low",
+            "Med",
+            "Med",
+            "Med"
+          ]
+        },
+        {
+          "attack": "Crime (Ransom attacks)",
+          "attack_type": 1,
+          "impact": "Med",
+          "probability": [
+            "Low",
+            "Low",
+            "Low",
+            "Med",
+            "Low"
+          ]
+        },
+        {
+          "attack": "Hactivism (Subversion, defacement…)",
+          "attack_type": 1,
+          "impact": "Low",
+          "probability": [
+            "Low",
+            "Low",
+            "Low",
+            "Low",
+            "Low"
+          ]
+        },
+        {
+          "attack": "Disinformation (political influencing)",
+          "attack_type": 1,
+          "impact": "Low",
+          "probability": [
+            "Low",
+            "Low",
+            "Low",
+            "Low",
+            "Low"
+          ]
+        }
+      ],
+      "workbook_total": 202.5,
+      "workbook_level": "ESSENTIAL"
+    },
+    {
+      "id": "I.8_Digital Infra",
+      "name": "Digital infrastructure B2B ICT service management",
+      "default_size": 3,
+      "actors": [
+        "Competitors",
+        "Ideologues Hactivists",
+        "Terrorist",
+        "Cyber Criminals",
+        "Nation State actor"
+      ],
+      "actor_skills": [
+        "Common skills",
+        "Common skills",
+        "Common skills",
+        "Extended Skills",
+        "Extended Skills"
+      ],
+      "rows": [
+        {
+          "attack": "Sabotage/ Disruption (DDOS,…)",
+          "attack_type": 2,
+          "impact": "High",
+          "probability": [
+            "Low",
+            "Med",
+            "Med",
+            "Low",
+            "High"
+          ]
+        },
+        {
+          "attack": "Information Theft (espionage, …)",
+          "attack_type": 2,
+          "impact": "High",
+          "probability": [
+            "Low",
+            "Low",
+            "Low",
+            "High",
+            "High"
+          ]
+        },
+        {
+          "attack": "Crime (Ransom attacks)",
+          "attack_type": 1,
+          "impact": "High",
+          "probability": [
+            "Low",
+            "Low",
+            "Low",
+            "High",
+            "Low"
+          ]
+        },
+        {
+          "attack": "Hactivism (Subversion, defacement…)",
+          "attack_type": 1,
+          "impact": "Med",
+          "probability": [
+            "Low",
+            "Med",
+            "Low",
+            "Low",
+            "Med"
+          ]
+        },
+        {
+          "attack": "Disinformation (political influencing)",
+          "attack_type": 1,
+          "impact": "Low",
+          "probability": [
+            "Low",
+            "Med",
+            "Low",
+            "Low",
+            "Low"
+          ]
+        }
+      ],
+      "workbook_total": 285.0,
+      "workbook_level": "ESSENTIAL"
+    },
+    {
+      "id": "I.10_Pub Admin",
+      "name": "Public Administration",
+      "default_size": 3,
+      "actors": [
+        "Competitors",
+        "Ideologues Hactivists",
+        "Terrorist",
+        "Cyber Criminals",
+        "Nation State actor"
+      ],
+      "actor_skills": [
+        "Common skills",
+        "Common skills",
+        "Common skills",
+        "Extended Skills",
+        "Extended Skills"
+      ],
+      "rows": [
+        {
+          "attack": "Sabotage/ Disruption (DDOS,…)",
+          "attack_type": 2,
+          "impact": "High",
+          "probability": [
+            "Low",
+            "Med",
+            "Med",
+            "Med",
+            "High"
+          ]
+        },
+        {
+          "attack": "Information Theft (espionage, …)",
+          "attack_type": 2,
+          "impact": "High",
+          "probability": [
+            "Low",
+            "Low",
+            "Med",
+            "High",
+            "High"
+          ]
+        },
+        {
+          "attack": "Crime (Ransom attacks)",
+          "attack_type": 1,
+          "impact": "High",
+          "probability": [
+            "Low",
+            "Low",
+            "Low",
+            "High",
+            "Low"
+          ]
+        },
+        {
+          "attack": "Hactivism (Subversion, defacement…)",
+          "attack_type": 1,
+          "impact": "High",
+          "probability": [
+            "Low",
+            "Med",
+            "Low",
+            "Low",
+            "Med"
+          ]
+        },
+        {
+          "attack": "Disinformation (political influencing)",
+          "attack_type": 1,
+          "impact": "High",
+          "probability": [
+            "Low",
+            "Med",
+            "Low",
+            "Low",
+            "Low"
+          ]
+        }
+      ],
+      "workbook_total": 375.0,
+      "workbook_level": "ESSENTIAL"
+    },
+    {
+      "id": "I.11_Space",
+      "name": "Space",
+      "default_size": 3,
+      "actors": [
+        "Competitors",
+        "Ideologues Hactivists",
+        "Terrorist",
+        "Cyber Criminals",
+        "Nation State actor"
+      ],
+      "actor_skills": [
+        "Common skills",
+        "Common skills",
+        "Common skills",
+        "Extended Skills",
+        "Extended Skills"
+      ],
+      "rows": [
+        {
+          "attack": "Sabotage/ Disruption (DDOS,…)",
+          "attack_type": 2,
+          "impact": "High",
+          "probability": [
+            "Low",
+            "Low",
+            "Med",
+            "Low",
+            "High"
+          ]
+        },
+        {
+          "attack": "Information Theft (espionage, …)",
+          "attack_type": 2,
+          "impact": "High",
+          "probability": [
+            "Low",
+            "Low",
+            "Low",
+            "High",
+            "High"
+          ]
+        },
+        {
+          "attack": "Crime (Ransom attacks)",
+          "attack_type": 1,
+          "impact": "High",
+          "probability": [
+            "Low",
+            "Low",
+            "Low",
+            "High",
+            "Low"
+          ]
+        },
+        {
+          "attack": "Hactivism (Subversion, defacement…)",
+          "attack_type": 1,
+          "impact": "Med",
+          "probability": [
+            "Low",
+            "Med",
+            "Low",
+            "Low",
+            "Med"
+          ]
+        },
+        {
+          "attack": "Disinformation (political influencing)",
+          "attack_type": 1,
+          "impact": "Med",
+          "probability": [
+            "Low",
+            "Med",
+            "Low",
+            "Low",
+            "Low"
+          ]
+        }
+      ],
+      "workbook_total": 262.5,
+      "workbook_level": "ESSENTIAL"
+    },
+    {
+      "id": "II.1_Post",
+      "name": "Postal and courier services",
+      "default_size": 3,
+      "actors": [
+        "Competitors",
+        "Ideologues Hactivists",
+        "Terrorist",
+        "Cyber Criminals",
+        "Nation State actor"
+      ],
+      "actor_skills": [
+        "Common skills",
+        "Common skills",
+        "Common skills",
+        "Extended Skills",
+        "Extended Skills"
+      ],
+      "rows": [
+        {
+          "attack": "Sabotage/ Disruption (DDOS,…)",
+          "attack_type": 2,
+          "impact": "High",
+          "probability": [
+            "Low",
+            "Med",
+            "Med",
+            "Med",
+            "Med"
+          ]
+        },
+        {
+          "attack": "Information Theft (espionage, …)",
+          "attack_type": 2,
+          "impact": "Med",
+          "probability": [
+            "Low",
+            "Low",
+            "Low",
+            "Low",
+            "Med"
+          ]
+        },
+        {
+          "attack": "Crime (Ransom attacks)",
+          "attack_type": 1,
+          "impact": "High",
+          "probability": [
+            "Low",
+            "Low",
+            "Low",
+            "High",
+            "Low"
+          ]
+        },
+        {
+          "attack": "Hactivism (Subversion, defacement…)",
+          "attack_type": 1,
+          "impact": "Low",
+          "probability": [
+            "Low",
+            "Low",
+            "Low",
+            "Low",
+            "Low"
+          ]
+        },
+        {
+          "attack": "Disinformation (political influencing)",
+          "attack_type": 1,
+          "impact": "Low",
+          "probability": [
+            "Low",
+            "Med",
+            "Low",
+            "Low",
+            "Low"
+          ]
+        }
+      ],
+      "workbook_total": 165.0,
+      "workbook_level": "IMPORTANT"
+    },
+    {
+      "id": "II.2_Waste Mgmt",
+      "name": "Waste management",
+      "default_size": 3,
+      "actors": [
+        "Competitors",
+        "Ideologues Hactivists",
+        "Terrorist",
+        "Cyber Criminals",
+        "Nation State actor"
+      ],
+      "actor_skills": [
+        "Common skills",
+        "Common skills",
+        "Common skills",
+        "Extended Skills",
+        "Extended Skills"
+      ],
+      "rows": [
+        {
+          "attack": "Sabotage/ Disruption (DDOS,…)",
+          "attack_type": 2,
+          "impact": "Med",
+          "probability": [
+            "Low",
+            "Low",
+            "Med",
+            "Low",
+            "Med"
+          ]
+        },
+        {
+          "attack": "Information Theft (espionage, …)",
+          "attack_type": 2,
+          "impact": "Low",
+          "probability": [
+            "Low",
+            "Med",
+            "Med",
+            "Med",
+            "Med"
+          ]
+        },
+        {
+          "attack": "Crime (Ransom attacks)",
+          "attack_type": 1,
+          "impact": "Med",
+          "probability": [
+            "Low",
+            "Low",
+            "Low",
+            "High",
+            "Low"
+          ]
+        },
+        {
+          "attack": "Hactivism (Subversion, defacement…)",
+          "attack_type": 1,
+          "impact": "Med",
+          "probability": [
+            "Low",
+            "Low",
+            "Low",
+            "Low",
+            "Low"
+          ]
+        },
+        {
+          "attack": "Disinformation (political influencing)",
+          "attack_type": 1,
+          "impact": "Low",
+          "probability": [
+            "Low",
+            "Med",
+            "Low",
+            "Low",
+            "Low"
+          ]
+        }
+      ],
+      "workbook_total": 45.0,
+      "workbook_level": "BASIC"
+    },
+    {
+      "id": "II.3_Chemicals",
+      "name": "Manufacture, production and distribution of chemicals",
+      "default_size": 3,
+      "actors": [
+        "Competitors",
+        "Ideologues Hactivists",
+        "Terrorist",
+        "Cyber Criminals",
+        "Nation State actor"
+      ],
+      "actor_skills": [
+        "Common skills",
+        "Common skills",
+        "Common skills",
+        "Extended Skills",
+        "Extended Skills"
+      ],
+      "rows": [
+        {
+          "attack": "Sabotage/ Disruption (DDOS,…)",
+          "attack_type": 2,
+          "impact": "High",
+          "probability": [
+            "Low",
+            "Low",
+            "Med",
+            "Low",
+            "High"
+          ]
+        },
+        {
+          "attack": "Information Theft (espionage, …)",
+          "attack_type": 2,
+          "impact": "Med",
+          "probability": [
+            "Low",
+            "Med",
+            "Med",
+            "Med",
+            "Med"
+          ]
+        },
+        {
+          "attack": "Crime (Ransom attacks)",
+          "attack_type": 1,
+          "impact": "High",
+          "probability": [
+            "Low",
+            "Low",
+            "Low",
+            "High",
+            "Low"
+          ]
+        },
+        {
+          "attack": "Hactivism (Subversion, defacement…)",
+          "attack_type": 1,
+          "impact": "Med",
+          "probability": [
+            "Low",
+            "Low",
+            "Low",
+            "Low",
+            "Low"
+          ]
+        },
+        {
+          "attack": "Disinformation (political influencing)",
+          "attack_type": 1,
+          "impact": "Low",
+          "probability": [
+            "Low",
+            "Med",
+            "Low",
+            "Low",
+            "Low"
+          ]
+        }
+      ],
+      "workbook_total": 180.0,
+      "workbook_level": "IMPORTANT"
+    },
+    {
+      "id": "II.4_Food",
+      "name": "Production, processing and distribution of food",
+      "default_size": 3,
+      "actors": [
+        "Competitors",
+        "Ideologues Hactivists",
+        "Terrorist",
+        "Cyber Criminals",
+        "Nation State actor"
+      ],
+      "actor_skills": [
+        "Common skills",
+        "Common skills",
+        "Common skills",
+        "Extended Skills",
+        "Extended Skills"
+      ],
+      "rows": [
+        {
+          "attack": "Sabotage/ Disruption (DDOS,…)",
+          "attack_type": 2,
+          "impact": "High",
+          "probability": [
+            "Low",
+            "Low",
+            "Med",
+            "Low",
+            "High"
+          ]
+        },
+        {
+          "attack": "Information Theft (espionage, …)",
+          "attack_type": 2,
+          "impact": "Low",
+          "probability": [
+            "Low",
+            "Low",
+            "Low",
+            "Low",
+            "Med"
+          ]
+        },
+        {
+          "attack": "Crime (Ransom attacks)",
+          "attack_type": 1,
+          "impact": "High",
+          "probability": [
+            "Low",
+            "Low",
+            "Low",
+            "Med",
+            "Low"
+          ]
+        },
+        {
+          "attack": "Hactivism (Subversion, defacement…)",
+          "attack_type": 1,
+          "impact": "Med",
+          "probability": [
+            "Low",
+            "Med",
+            "Low",
+            "Low",
+            "Med"
+          ]
+        },
+        {
+          "attack": "Disinformation (political influencing)",
+          "attack_type": 1,
+          "impact": "Med",
+          "probability": [
+            "Low",
+            "Med",
+            "Low",
+            "Low",
+            "Low"
+          ]
+        }
+      ],
+      "workbook_total": 127.5,
+      "workbook_level": "IMPORTANT"
+    },
+    {
+      "id": "II.5_Manufacturing",
+      "name": "Manufacturing",
+      "default_size": 3,
+      "actors": [
+        "Competitors",
+        "Ideologues Hactivists",
+        "Terrorist",
+        "Cyber Criminals",
+        "Nation State actor"
+      ],
+      "actor_skills": [
+        "Common skills",
+        "Common skills",
+        "Common skills",
+        "Extended Skills",
+        "Extended Skills"
+      ],
+      "rows": [
+        {
+          "attack": "Sabotage/ Disruption (DDOS,…)",
+          "attack_type": 2,
+          "impact": "Med",
+          "probability": [
+            "Med",
+            "Low",
+            "Low",
+            "Low",
+            "Med"
+          ]
+        },
+        {
+          "attack": "Information Theft (espionage, …)",
+          "attack_type": 2,
+          "impact": "High",
+          "probability": [
+            "High",
+            "Low",
+            "Low",
+            "Med",
+            "Med"
+          ]
+        },
+        {
+          "attack": "Crime (Ransom attacks)",
+          "attack_type": 1,
+          "impact": "Med",
+          "probability": [
+            "Low",
+            "Low",
+            "Low",
+            "High",
+            "Med"
+          ]
+        },
+        {
+          "attack": "Hactivism (Subversion, defacement…)",
+          "attack_type": 1,
+          "impact": "Low",
+          "probability": [
+            "Low",
+            "Med",
+            "Low",
+            "Low",
+            "Low"
+          ]
+        },
+        {
+          "attack": "Disinformation (political influencing)",
+          "attack_type": 1,
+          "impact": "Low",
+          "probability": [
+            "Low",
+            "Low",
+            "Low",
+            "Low",
+            "Low"
+          ]
+        }
+      ],
+      "workbook_total": 172.5,
+      "workbook_level": "IMPORTANT"
+    },
+    {
+      "id": "II.6_Digital providers",
+      "name": "Digital providers",
+      "default_size": 3,
+      "actors": [
+        "Competitors",
+        "Ideologues Hactivists",
+        "Terrorist",
+        "Cyber Criminals",
+        "Nation State actor"
+      ],
+      "actor_skills": [
+        "Common skills",
+        "Common skills",
+        "Common skills",
+        "Extended Skills",
+        "Extended Skills"
+      ],
+      "rows": [
+        {
+          "attack": "Sabotage/ Disruption (DDOS,…)",
+          "attack_type": 2,
+          "impact": "High",
+          "probability": [
+            "Low",
+            "Med",
+            "Med",
+            "Low",
+            "Med"
+          ]
+        },
+        {
+          "attack": "Information Theft (espionage, …)",
+          "attack_type": 2,
+          "impact": "Med",
+          "probability": [
+            "Low",
+            "Med",
+            "Low",
+            "Med",
+            "Med"
+          ]
+        },
+        {
+          "attack": "Crime (Ransom attacks)",
+          "attack_type": 1,
+          "impact": "Med",
+          "probability": [
+            "Low",
+            "Low",
+            "Low",
+            "High",
+            "Low"
+          ]
+        },
+        {
+          "attack": "Hactivism (Subversion, defacement…)",
+          "attack_type": 1,
+          "impact": "Low",
+          "probability": [
+            "Low",
+            "Low",
+            "Low",
+            "Low",
+            "Low"
+          ]
+        },
+        {
+          "attack": "Disinformation (political influencing)",
+          "attack_type": 1,
+          "impact": "Med",
+          "probability": [
+            "Low",
+            "Med",
+            "Low",
+            "Low",
+            "Med"
+          ]
+        }
+      ],
+      "workbook_total": 165.0,
+      "workbook_level": "IMPORTANT"
+    },
+    {
+      "id": "II.7_Research",
+      "name": "Research",
+      "default_size": 3,
+      "actors": [
+        "Competitors",
+        "Ideologues Hactivists",
+        "Terrorist",
+        "Cyber Criminals",
+        "Nation State actor"
+      ],
+      "actor_skills": [
+        "Common skills",
+        "Common skills",
+        "Common skills",
+        "Extended Skills",
+        "Extended Skills"
+      ],
+      "rows": [
+        {
+          "attack": "Sabotage/ Disruption (DDOS,…)",
+          "attack_type": 2,
+          "impact": "Med",
+          "probability": [
+            "Low",
+            "Low",
+            "Low",
+            "Low",
+            "Low"
+          ]
+        },
+        {
+          "attack": "Information Theft (espionage, …)",
+          "attack_type": 2,
+          "impact": "High",
+          "probability": [
+            "Med",
+            "Low",
+            "Med",
+            "Med",
+            "High"
+          ]
+        },
+        {
+          "attack": "Crime (Ransom attacks)",
+          "attack_type": 1,
+          "impact": "High",
+          "probability": [
+            "Low",
+            "Low",
+            "Low",
+            "High",
+            "Low"
+          ]
+        },
+        {
+          "attack": "Hactivism (Subversion, defacement…)",
+          "attack_type": 1,
+          "impact": "Med",
+          "probability": [
+            "Low",
+            "Med",
+            "Low",
+            "Low",
+            "Low"
+          ]
+        },
+        {
+          "attack": "Disinformation (political influencing)",
+          "attack_type": 1,
+          "impact": "Low",
+          "probability": [
+            "Low",
+            "Low",
+            "Low",
+            "Low",
+            "Med"
+          ]
+        }
+      ],
+      "workbook_total": 187.5,
+      "workbook_level": "IMPORTANT"
+    }
+  ]
+}

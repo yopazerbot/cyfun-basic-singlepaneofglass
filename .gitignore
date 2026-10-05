@@ -1,0 +1,30 @@
+# secrets and local state
+.env
+.env.*
+!.env.example
+data/
+.pytest-data/
+*.sqlite3
+*.sqlite3-*
+
+# python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+build/
+dist/
+
+# editors and OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# CCB material is not redistributed
+*.xlsx
+*.pdf
+!docs/**/*.pdf

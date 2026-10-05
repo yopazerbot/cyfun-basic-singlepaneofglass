@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Scope and journey · {{ settings.app_name }}{% endblock %}
+{% block content %}
+<header class="page-head">
+  <div class="eyebrow">Scope · Organisation · Label journey</div>
+  <h1>Scope and journey</h1>
+  <p class="lead">The organisation details and scope statement appear in the audit pack. The journey stages are internal planning and stay out of exports.</p>
+</header>
+
+<section class="grid two">
+  <form class="card form" method="post" action="/journey/organisation">
+    <div class="card-head"><h2>Organisation and scope</h2></div>
+    <label>Organisation name<input name="name" value="{{ org.name }}" maxlength="200" required></label>
+    <div class="row">
+      <label>Legal entity<input name="legal_entity" value="{{ org.legal_entity }}" maxlength="200"></label>
+      <label>Enterprise number<input name="enterprise_number" value="{{ org.enterprise_number }}" maxlength="50" placeholder="BE 0xxx.xxx.xxx"></label>
+    </div>
+    <label>Contact for the assessment<input name="contact" value="{{ org.contact }}" maxlength="200" placeholder="Name, role"></label>
+    <label>Scope of the self-assessment<textarea name="scope_description" rows="4" placeholder="Which entity, sites, systems and services are covered.">{{ org.scope_description }}</textarea></label>
+    <label>Exclusions<textarea name="scope_exclusions" rows="2" placeholder="What is explicitly out of scope and why.">{{ org.scope_exclusions }}</textarea></label>
+    <div class="row">
+      <label>Conformity Assessment Body (CAB)<input name="cab_name" value="{{ org.cab_name }}" maxlength="200"></label>
+      <label>Self-assessment completion date<input name="self_assessment_date" type="date" value="{{ org.self_assessment_date|date }}"></label>
+    </div>
+    {% if user.role == 'admin' %}<div class="actions"><button class="btn" type="submit">Save</button></div>{% endif %}
+  </form>
+
+  <div class="card">
+    <div class="card-head"><h2>Journey to the BASIC label</h2></div>
+    <table class="list stages">
+      {% for s in stages %}
+      <tr>
+        <td class="nowrap"><span class="dot {{ s.status }}"></span> {{ loop.index }}. {{ s.label }}</td>
+        <td>
+          <form class="inline" method="post" action="/journey/stage/{{ s.key }}">
+            <select name="status" {{ 'disabled' if user.role != 'admin' }}>
+              {% for st in statuses %}<option value="{{ st }}" {{ 'selected' if st == s.status }}>{{ st.replace('_', ' ') }}</option>{% endfor %}
+            </select>
+            <input type="date" name="date" value="{{ s.date }}" {{ 'disabled' if user.role != 'admin' }}>
+            <input name="note" value="{{ s.note }}" placeholder="note" maxlength="1000" {{ 'disabled' if user.role != 'admin' }}>
+            {% if user.role == 'admin' %}<button class="btn small secondary" type="submit">Save</button>{% endif %}
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </table>
+    <p class="muted small">Typical order: define scope, run the risk assessment to confirm BASIC, score the 34 requirements, remediate gaps below 2,50, collect evidence, fill the CCB workbook, verification by a CAB, label.</p>
+  </div>
+</section>
+{% endblock %}

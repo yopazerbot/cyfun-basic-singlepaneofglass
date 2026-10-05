@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Risk assessment · {{ settings.app_name }}{% endblock %}
+{% block content %}
+<header class="page-head">
+  <div class="eyebrow">CCB CyFun-Selection · {{ model.source.version }}</div>
+  <h1>Risk assessment: assurance level</h1>
+  <p class="lead">The CCB method: per attack category and threat actor, probability × impact × attack type × organisation size. Total 0 to 99 means BASIC, 100 to 199 IMPORTANT, 200 and above ESSENTIAL. Sector defaults come from the CCB workbook; adjust them to your situation and record the rationale.</p>
+  <nav class="tabs"><a class="on" href="/risk">Assurance level</a><a href="/risk/register">Risk register</a></nav>
+</header>
+
+<form method="post" action="/risk" class="risk-form" id="risk-form" hx-post="/risk/preview" hx-trigger="change" hx-target="#risk-result" hx-swap="innerHTML">
+  <section class="grid two">
+    <div class="card form">
+      <div class="card-head"><h2>Context</h2></div>
+      <label>NIS2 sector (loads that sector's default matrix)
+        <select name="sector_id" id="sector-select" data-reload="/risk?sector=">
+          {% for s in model.sectors %}<option value="{{ s.id }}" {{ 'selected' if s.id == sector_id }}>{{ s.id.split('_')[0] }} · {{ s.name }}</option>{% endfor %}
+        </select>
+      </label>
+      <label>Organisation size
+        <select name="organisation_size">
+          {% for v, name in sizes.items() %}<option value="{{ v }}" {{ 'selected' if v == size }}>{{ name }} ({{ v }})</option>{% endfor %}
+        </select>
+      </label>
+      <label>Rationale (why these probabilities and impacts apply)<textarea name="rationale" rows="5">{{ rationale }}</textarea></label>
+      {% if saved %}<p class="muted small">Last saved {{ saved.updated_at|date }} by {{ saved.updated_by }}: score {{ saved.total_score|score(1) }}, level {{ saved.level }}.</p>{% endif %}
+    </div>
+    <div id="risk-result">{% include "partials/risk_result.html" %}</div>
+  </section>
+
+  <section class="card">
+    <div class="card-head"><h2>Threat matrix</h2><span class="muted">Low = 0 · Med = 0,5 · High = 1 for probability; Low = 0 · Med = 5 · High = 10 for impact</span></div>
+    <div class="table-wrap">
+    <table class="matrix">
+      <thead>
+        <tr><th>Attack category</th><th>Type</th><th>Impact</th>{% for a in sector.actors %}<th>{{ a }}<small>{{ sector.actor_skills[loop.index0] }}</small></th>{% endfor %}</tr>
+      </thead>
+      <tbody>
+        {% for row in matrix.rows %}{% set i = loop.index0 %}
+        <tr>
+          <td>{{ row.attack }}</td>
+          <td class="muted">{{ "Targeted ×2" if row.attack_type == 2 else "Global ×1" }}</td>
+          <td><select name="impact_{{ i }}" class="{{ 'changed' if row.impact != defaults.rows[i].impact }}">{% for l in levels %}<option value="{{ l }}" {{ 'selected' if l == row.impact }}>{{ l }}</option>{% endfor %}</select></td>
+          {% for p in row.probability %}{% set j = loop.index0 %}
+          <td><select name="prob_{{ i }}_{{ j }}" class="{{ 'changed' if p != defaults.rows[i].probability[j] }}">{% for l in levels %}<option value="{{ l }}" {{ 'selected' if l == p }}>{{ l }}</option>{% endfor %}</select></td>
+          {% endfor %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    </div>
+    <p class="muted small">Probability: Low means this actor is not known to run this attack in the sector; Med means known globally and plausible here; High means known in this sector and likely to recur. Impact levels follow the CCB impact level definitions. Cells that differ from the sector default are marked.</p>
+    {% if user.role == 'admin' %}<div class="actions"><button class="btn" type="submit">Save risk assessment</button></div>{% endif %}
+  </section>
+</form>
+{% endblock %}

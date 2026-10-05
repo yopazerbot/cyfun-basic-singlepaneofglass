@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Assets · {{ settings.app_name }}{% endblock %}
+{% block content %}
+<header class="page-head">
+  <div class="eyebrow">ID.AM-01.1 · ID.AM-02.1 · ID.AM-05.1 · ID.AM-07.1</div>
+  <h1>Asset inventory</h1>
+  <p class="lead">
+    {% for k in kinds %}<span class="count-pill"><span class="mono">{{ counts[k] }}</span> {{ k }}</span>{% endfor %}
+    Connector-synced assets update on every run and are retired when they disappear from the source. Owner, classification, criticality and primary/secondary are always yours to set.
+  </p>
+</header>
+
+<section class="card">
+  <form class="filters" method="get" action="/assets">
+    <select name="kind"><option value="">All kinds</option>{% for k in kinds %}<option value="{{ k }}" {{ 'selected' if k == f_kind }}>{{ k }}</option>{% endfor %}</select>
+    <select name="source"><option value="">All sources</option>{% for s in sources %}<option value="{{ s }}" {{ 'selected' if s == f_source }}>{{ s }}</option>{% endfor %}</select>
+    <select name="lifecycle"><option value="">Any lifecycle</option>{% for l in lifecycles %}<option value="{{ l }}" {{ 'selected' if l == f_lifecycle }}>{{ l }}</option>{% endfor %}</select>
+    <input type="search" name="q" value="{{ q }}" placeholder="Search name, description, owner">
+    <button class="btn secondary small" type="submit">Filter</button>
+    <a class="btn ghost small" href="/assets/export.csv">Export CSV</a>
+  </form>
+  {% if items %}
+  <div class="table-wrap">
+  <table class="list">
+    <thead><tr><th>Kind</th><th>Name</th><th>Location</th><th>Owner</th><th>Class.</th><th>Criticality</th><th>Primary</th><th>Source</th><th>Last seen</th></tr></thead>
+    <tbody>
+    {% for a in items %}
+    <tr class="{{ 'retired' if a.lifecycle == 'retired' }}">
+      <td><span class="chip">{{ a.kind }}</span></td>
+      <td><a href="/assets/{{ a.id }}">{{ a.name }}</a>{% if a.description %}<div class="muted small">{{ a.description[:140] }}</div>{% endif %}</td>
+      <td class="muted">{{ a.location }}</td>
+      <td class="muted">{{ a.owner }}</td>
+      <td>{{ a.classification }}</td>
+      <td><span class="chip {{ 'bad' if a.criticality == 'High' else ('warn' if a.criticality == 'Medium' else '') }}">{{ a.criticality }}</span></td>
+      <td>{{ "yes" if a.primary_asset else "" }}</td>
+      <td class="muted mono small">{{ a.source }}</td>
+      <td class="muted small">{{ a.last_seen_at|date if a.last_seen_at else "" }}{% if a.lifecycle == 'retired' %} · retired{% endif %}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}<p class="muted">No assets match.</p>{% endif %}
+</section>
+
+{% if user.role == 'admin' %}
+<form class="card form" method="post" action="/assets">
+  <div class="card-head"><h2>Add asset manually</h2></div>
+  <div class="row">
+    <label>Kind<select name="kind">{% for k in kinds %}<option value="{{ k }}">{{ k }}</option>{% endfor %}</select></label>
+    <label>Name<input name="name" required maxlength="300"></label>
+    <label>Location / environment<input name="location" maxlength="200" placeholder="Office, datacenter, provider, region"></label>
+  </div>
+  <label>Description<input name="description" maxlength="2000"></label>
+  <div class="row">
+    <label>Owner<input name="owner" maxlength="200"></label>
+    <label>Classification<select name="classification">{% for c in classifications %}<option {{ 'selected' if c == 'Internal' }}>{{ c }}</option>{% endfor %}</select></label>
+    <label>Criticality<select name="criticality">{% for c in criticality %}<option {{ 'selected' if c == 'Medium' }}>{{ c }}</option>{% endfor %}</select></label>
+    <label>Lifecycle<select name="lifecycle">{% for l in lifecycles %}<option {{ 'selected' if l == 'active' }}>{{ l }}</option>{% endfor %}</select></label>
+  </div>
+  <label class="check"><input type="checkbox" name="primary_asset" value="1"> Primary asset (directly supports a core business function)</label>
+  <div class="actions"><button class="btn" type="submit">Add asset</button></div>
+</form>
+{% endif %}
+{% endblock %}

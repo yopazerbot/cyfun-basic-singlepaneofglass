@@ -1,0 +1,11 @@
+<div class="card result level-{{ result.level|lower }}">
+  <div class="card-head"><h2>Result</h2><span class="muted">{{ sector.name }} · size {{ size }}</span></div>
+  <div class="stat-value">{{ result.total|score(1) }}</div>
+  <div class="level-badge">{{ result.level }}</div>
+  <p class="muted small">{% if result.level == 'BASIC' %}The CCB method points to the BASIC assurance level. This tool covers BASIC.{% else %}The CCB method points to {{ result.level }}. BASIC remains a valid first step, but the label matching your risk profile is {{ result.level }}; this tool covers only BASIC.{% endif %}</p>
+  <table class="list small">
+    <tr><th>Threat actor</th><th class="num">Score</th></tr>
+    {% for a in sector.actors %}<tr><td>{{ a }}</td><td class="num">{{ result.per_actor[loop.index0]|score(1) }}</td></tr>{% endfor %}
+    <tr><th>Total</th><th class="num">{{ result.total|score(1) }}</th></tr>
+  </table>
+</div>

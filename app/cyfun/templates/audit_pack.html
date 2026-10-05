@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>CyFun 2025 BASIC self-assessment · {{ org.name }}</title>
+<style>
+  body{font:14px/1.5 -apple-system,"Segoe UI",Inter,Roboto,sans-serif;color:#0F1115;margin:0;padding:32px;max-width:1100px}
+  h1,h2,h3{color:#0B1F3D;margin:1.2em 0 .4em}h1{font-size:26px}h2{font-size:20px;border-bottom:2px solid #E8ECF1;padding-bottom:4px}h3{font-size:16px}
+  .mono{font-family:ui-monospace,"JetBrains Mono",Menlo,Consolas,monospace;font-size:12.5px}
+  .muted{color:#5A6B7E}.small{font-size:12.5px}
+  table{border-collapse:collapse;width:100%;margin:8px 0}th,td{text-align:left;vertical-align:top;padding:5px 8px;border-bottom:1px solid #E8ECF1}th{background:#E8ECF1}
+  .chip{display:inline-block;padding:1px 8px;border-radius:999px;font-size:12px;border:1px solid #E8ECF1;background:#FAFBFC}
+  .ok,.pass{color:#1F8A4C;border-color:#1F8A4C}.low,.fail{color:#C0392B;border-color:#C0392B}.warn{color:#C7891F;border-color:#C7891F}
+  .km{color:#3B8DF5;border-color:#3B8DF5}
+  article{border:1px solid #E8ECF1;border-radius:10px;padding:12px 16px;margin:10px 0;page-break-inside:avoid}
+  .cols{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:12px 0}.stat{border:1px solid #E8ECF1;border-radius:10px;padding:12px}.stat b{font-size:22px;display:block}
+  @media print{body{padding:0}}
+</style>
+</head>
+<body>
+<p class="mono muted">CONFIDENTIAL · {{ org.name }} · CyberFundamentals 2025 BASIC · generated {{ generated|date }}</p>
+<h1>CyFun 2025 BASIC self-assessment: verification summary</h1>
+
+<div class="stats">
+  <div class="stat">BASIC thresholds<b class="{{ 'ok' if summary.passes else 'low' }}">{{ "met" if summary.passes else "not met" }}</b><span class="small muted">total ≥ 2,50 and each key measure ≥ 2,50</span></div>
+  <div class="stat">Total maturity<b>{{ summary.total_maturity|score }}</b><span class="small muted">{{ summary.scored_count }} of {{ summary.total_count }} scored · {{ summary.na_count }} not applicable</span></div>
+  <div class="stat">Key measures at target<b>{{ summary.key_measures_passing }} / {{ summary.key_measures|length }}</b></div>
+  <div class="stat">Assurance level (CCB risk method)<b>{{ risk.level if risk else "n/a" }}</b><span class="small muted">{% if risk %}score {{ risk.total_score|score(1) }} · sector {{ risk.sector_id }} · size {{ risk.organisation_size }}{% endif %}</span></div>
+</div>
+
+<h2>Organisation and scope</h2>
+<table>
+  <tr><th style="width:200px">Organisation</th><td>{{ org.name }}</td></tr>
+  <tr><th>Legal entity</th><td>{{ org.legal_entity }} {{ org.enterprise_number }}</td></tr>
+  <tr><th>Contact</th><td>{{ org.contact }}</td></tr>
+  <tr><th>Scope</th><td>{{ org.scope_description|nl2br }}</td></tr>
+  <tr><th>Exclusions</th><td>{{ org.scope_exclusions|nl2br }}</td></tr>
+  <tr><th>Conformity Assessment Body</th><td>{{ org.cab_name }}</td></tr>
+  <tr><th>Self-assessment completion date</th><td>{{ org.self_assessment_date|date }}</td></tr>
+  <tr><th>Framework</th><td>{{ fw.meta.framework }}, requirements version {{ fw.meta.source.framework_version }}, self-assessment tool version {{ fw.meta.source.tool_version }}</td></tr>
+</table>
+
+{% if risk %}
+<h2>Assurance level risk assessment</h2>
+<p>CCB CyFun-Selection method. Sector {{ risk.sector_id }}, organisation size {{ risk.organisation_size }}. Total score {{ risk.total_score|score(1) }} → {{ risk.level }}.</p>
+{% if risk.rationale %}<p>{{ risk.rationale|nl2br }}</p>{% endif %}
+{% endif %}
+
+<h2>Maturity per category</h2>
+<table>
+  <tr><th>Category</th><th>Documentation</th><th>Implementation</th><th>Maturity</th></tr>
+  {% for c in fw.categories %}{% set g = summary.categories[c.id] %}
+  <tr><td><span class="mono">{{ c.id }}</span> {{ c.name }}</td><td>{{ g.doc|score }}</td><td>{{ g.impl|score }}</td><td class="{{ g.maturity|status_word }}">{{ g.maturity|score }}</td></tr>
+  {% endfor %}
+  <tr><th>Total maturity (average of categories)</th><th></th><th></th><th>{{ summary.total_maturity|score }}</th></tr>
+</table>
+
+<h2>Key measures</h2>
+<table>
+  <tr><th>Requirement</th><th>Documentation</th><th>Implementation</th><th>Maturity</th></tr>
+  {% for k in summary.key_measures %}<tr><td><span class="mono">{{ k.requirement.id }}</span> {{ k.requirement.text }}</td><td>{{ k.doc|score(0) if k.doc is not none else "·" }}</td><td>{{ k.impl|score(0) if k.impl is not none else "·" }}</td><td class="{{ k.maturity|status_word }}">{{ k.maturity|score }}</td></tr>{% endfor %}
+</table>
+
+<h2>Requirements</h2>
+{% for f in fw.functions %}
+<h3>{{ f.name }}</h3>
+{% for c in f.categories %}{% for s in c.subcategories %}{% for r in s.requirements %}
+{% set res = summary.requirements[r.id] %}{% set sc = scores.get(r.id) %}
+<article>
+  <div><span class="mono"><b>{{ r.id }}</b></span>{% if r.key_measure %} <span class="chip km">Key measure</span>{% endif %}
+    <span class="muted small"> · {{ c.id }} {{ c.name }} · {{ s.id }}</span>
+    <span style="float:right">doc {% if res.not_applicable %}N/A{% else %}{{ res.doc|score(0) if res.doc is not none else "·" }}{% endif %} · impl {% if res.not_applicable %}N/A{% else %}{{ res.impl|score(0) if res.impl is not none else "·" }}{% endif %} · <span class="chip {{ res.maturity|status_word }}">{{ res.maturity|score }}</span></span>
+  </div>
+  <p>{{ r.text }}</p>
+  {% if sc and sc.justification %}<p><b>Justification.</b> {{ sc.justification|nl2br }}</p>{% endif %}
+  <div class="cols small">
+    <div><b>Evidence</b>{% set evs = evidence.get(r.id, []) %}{% if evs %}<ul>{% for e in evs %}<li>{{ e.title }} ({{ e.kind }}{% if e.file_name %}, evidence/{{ e.id }}_{{ e.file_name }}{% endif %}{% if e.url %}, {{ e.url }}{% endif %}){% if e.sha256 %}<br><span class="mono">{{ e.sha256 }}</span>{% endif %}</li>{% endfor %}</ul>{% else %}<p class="muted">none</p>{% endif %}</div>
+    <div><b>Documents</b>{% set ds = documents.get(r.id, []) %}{% if ds %}<ul>{% for d in ds %}<li>{{ d.title }}{% if d.version %} v{{ d.version }}{% endif %} · {{ d.status }}{% if d.approved_on %} · approved {{ d.approved_on|date }}{% if d.approved_by %} by {{ d.approved_by }}{% endif %}{% endif %}{% if d.last_review %} · reviewed {{ d.last_review|date }}{% endif %}</li>{% endfor %}</ul>{% else %}<p class="muted">none</p>{% endif %}</div>
+    <div><b>Automated checks</b>{% set cs = checks.get(r.id, []) %}{% if cs %}<ul>{% for ch in cs %}<li><span class="chip {{ ch.status }}">{{ ch.status }}</span> {{ ch.title }}: {{ ch.summary }} <span class="muted">({{ ch.connector }}, {{ ch.checked_at|date }})</span></li>{% endfor %}</ul>{% else %}<p class="muted">none</p>{% endif %}</div>
+  </div>
+</article>
+{% endfor %}{% endfor %}{% endfor %}
+{% endfor %}
+<p class="muted small">Generated by CyFun Basic Single Pane of Glass. Requirement texts: Centre for Cybersecurity Belgium, CyberFundamentals 2025, reproduced for non-commercial use with source acknowledgement.</p>
+</body>
+</html>

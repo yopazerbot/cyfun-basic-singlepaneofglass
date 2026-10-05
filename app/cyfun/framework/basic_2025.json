@@ -1,0 +1,670 @@
+{
+  "framework": "CyberFundamentals (CyFun) 2025",
+  "level": "BASIC",
+  "owner": "Centre for Cybersecurity Belgium (CCB)",
+  "source": {
+    "workbook": "CyFun2025_ Self-Assessment_tool_BASIC_v2026_02_20.xlsx",
+    "tool_version": "2026-02-20",
+    "framework_version": "2025-10-01",
+    "website": "https://www.cyfun.eu"
+  },
+  "thresholds": {
+    "key_measure_min": 2.5,
+    "total_min": 2.5,
+    "na_allowed": 1,
+    "na_value": 2.5,
+    "scale_min": 1,
+    "scale_max": 5
+  },
+  "maturity_levels": [
+    {
+      "value": 1,
+      "name": "Level 1 - Initial",
+      "documentation": "No Process documentation or not formally approved by management.",
+      "implementation": "Standard process does not exist."
+    },
+    {
+      "value": 2,
+      "name": "Level 2 - Repeatable",
+      "documentation": "Formally approved Process documentation exists but not reviewed in the previous 2 years.",
+      "implementation": "Ad-hoc process exists and is done informally."
+    },
+    {
+      "value": 3,
+      "name": "Level 3 - Defined",
+      "documentation": "Formally approved Process documentation exists, and exceptions are documented and approved. Documented & approved exceptions < 5% of the time.",
+      "implementation": "Formal process exists and is implemented. Evidence available for most activities. Less than 10% process exceptions."
+    },
+    {
+      "value": 4,
+      "name": "Level 4 - Managed",
+      "documentation": "Formally approved Process documentation exists, and exceptions are documented and approved. Documented & approved exceptions < 3% of the time.",
+      "implementation": "Formal process exists and is implemented. Evidence available for all activities. Detailed metrics of the process are captured and reported. Minimal target for metrics has been established. Less than 5% of process exceptions."
+    },
+    {
+      "value": 5,
+      "name": "Level 5 - Optimizing",
+      "documentation": "Formally approved Process documentation exists, and exceptions are documented and approved. Documented & approved exceptions < 0,5% of the time.",
+      "implementation": "Formal process exists and is implemented. Evidence available for all activities. Detailed metrics of the process are captured and reported. Minimal target for metrics has been established and continually improving. Less than 1% of process exceptions."
+    }
+  ],
+  "counts": {
+    "functions": 6,
+    "categories": 17,
+    "subcategories": 28,
+    "requirements": 34,
+    "key_measures": 13
+  },
+  "key_measures": [
+    "ID.AM-08.2",
+    "PR.AA-01.1",
+    "PR.AA-03.2",
+    "PR.AA-05.1",
+    "PR.AA-05.2",
+    "PR.AA-05.3",
+    "PR.AA-05.4",
+    "PR.DS-11.1",
+    "PR.PS-04.1",
+    "PR.IR-01.1",
+    "PR.IR-01.2",
+    "DE.CM-01.2",
+    "DE.AE-03.1"
+  ],
+  "functions": [
+    {
+      "id": "GV",
+      "name": "GOVERN",
+      "categories": [
+        {
+          "id": "GV.OC",
+          "name": "Organisational Context",
+          "description": "The circumstances - mission, stakeholder expectations, dependencies, and legal, regulatory, and contractual requirements - surrounding the organisation's cybersecurity risk management decisions are understood.",
+          "subcategories": [
+            {
+              "id": "GV.OC-03",
+              "title": "Legal, regulatory, and contractual requirements regarding cybersecurity are understood and managed.",
+              "requirements": [
+                {
+                  "id": "GV.OC-03.1",
+                  "workbook_id": "GV.OC-03.1",
+                  "text": "Legal and regulatory requirements regarding information and cybersecurity shall be identified and implemented.",
+                  "key_measure": false,
+                  "sheet": "GOVERN",
+                  "row": 3
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "GV.RM",
+          "name": "Risk Management Strategy",
+          "description": "The organisation's priorities, constraints, risk tolerance and appetite statements, and assumptions are established, communicated, and used to support operational risk decisions.",
+          "subcategories": [
+            {
+              "id": "GV.RM-03",
+              "title": "Cybersecurity risk management activities and outcomes are included in enterprise risk management processes.",
+              "requirements": [
+                {
+                  "id": "GV.RM-03.1",
+                  "workbook_id": "GV.RM-03.1",
+                  "text": "As part of the organisation-wide risk management strategy, a comprehensive strategy to manage information and cybersecurity risks shall be developed and updated when changes occur.",
+                  "key_measure": false,
+                  "sheet": "GOVERN",
+                  "row": 4
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "GV.RR",
+          "name": "Roles, Responsibilities and Authorities",
+          "description": "Cybersecurity roles, responsibilities, and authorities to foster accountability, performance assessment, and continuous improvement are established and communicated.",
+          "subcategories": [
+            {
+              "id": "GV.RR-04",
+              "title": "Cybersecurity is included in human resources practices.",
+              "requirements": [
+                {
+                  "id": "GV.RR-04.1",
+                  "workbook_id": "GV.RR-04.1",
+                  "text": "Personnel with access to the organisation’s most critical information or technology shall be authenticated.",
+                  "key_measure": false,
+                  "sheet": "GOVERN",
+                  "row": 5
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "GV.PO",
+          "name": "Policy",
+          "description": "Organisational cybersecurity policy is established, communicated, and enforced.",
+          "subcategories": [
+            {
+              "id": "GV.PO-01",
+              "title": "Policy for managing cybersecurity risks is established based on organisational context, cybersecurity strategy, and priorities and is communicated and enforced.",
+              "requirements": [
+                {
+                  "id": "GV.PO-01.1",
+                  "workbook_id": "GV.PO-01.1",
+                  "text": "Policies and procedures for managing information and cybersecurity shall be established, documented, reviewed, approved, updated when changes occur, communicated and enforced.",
+                  "key_measure": false,
+                  "sheet": "GOVERN",
+                  "row": 6
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ID",
+      "name": "IDENTIFY",
+      "categories": [
+        {
+          "id": "ID.AM",
+          "name": "Asset Management",
+          "description": "Assets (e.g., data, hardware, software, systems, facilities, services, people) that enable the organization to achieve business purposes are identified and managed consistent with their relative importance to organisational objectives and the organisation's risk strategy.",
+          "subcategories": [
+            {
+              "id": "ID.AM-01",
+              "title": "Inventories of hardware managed by the organisation are maintained.",
+              "requirements": [
+                {
+                  "id": "ID.AM-01.1",
+                  "workbook_id": "ID.AM-01.1",
+                  "text": "An inventory of physical and virtual infrastructure assets—such as hardware, network devices, and cloud-hosted environments—that support information processing shall be documented, reviewed, and updated as changes occur.",
+                  "key_measure": false,
+                  "sheet": "IDENTIFY",
+                  "row": 3
+                }
+              ]
+            },
+            {
+              "id": "ID.AM-02",
+              "title": "Inventories of software, services, and systems managed by the organisation are maintained.",
+              "requirements": [
+                {
+                  "id": "ID.AM-02.1",
+                  "workbook_id": "ID.AM-02.1",
+                  "text": "An inventory of software, digital services, and business systems used within the organisation shall be documented, reviewed, and updated as changes occur.",
+                  "key_measure": false,
+                  "sheet": "IDENTIFY",
+                  "row": 4
+                }
+              ]
+            },
+            {
+              "id": "ID.AM-05",
+              "title": "Assets are prioritised based on classification, criticality, resources, and impact on the mission.",
+              "requirements": [
+                {
+                  "id": "ID.AM-05.1",
+                  "workbook_id": "ID.AM-5.1",
+                  "text": "The organisation’s assets shall be prioritised based on classification, criticality, and business value.",
+                  "key_measure": false,
+                  "sheet": "IDENTIFY",
+                  "row": 5
+                }
+              ]
+            },
+            {
+              "id": "ID.AM-07",
+              "title": "Inventories of data and corresponding metadata for designated data types are maintained.",
+              "requirements": [
+                {
+                  "id": "ID.AM-07.1",
+                  "workbook_id": "ID.AM-07.1",
+                  "text": "Data that the organisation stores and uses shall be identified.",
+                  "key_measure": false,
+                  "sheet": "IDENTIFY",
+                  "row": 6
+                }
+              ]
+            },
+            {
+              "id": "ID.AM-08",
+              "title": "Systems, hardware, software, services, and data are managed throughout their lifecycles.",
+              "requirements": [
+                {
+                  "id": "ID.AM-08.2",
+                  "workbook_id": "ID.AM-08.2",
+                  "text": "Patches and security updates for operating systems and critical system components shall be installed.",
+                  "key_measure": true,
+                  "sheet": "IDENTIFY",
+                  "row": 7
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "ID.RA",
+          "name": "Risk Assessment",
+          "description": "The cybersecurity risk to the organisation, assets, and individuals is understood by the organisation.",
+          "subcategories": [
+            {
+              "id": "ID.RA-01",
+              "title": "Vulnerabilities in assets are identified, validated, and recorded.",
+              "requirements": [
+                {
+                  "id": "ID.RA-01.1",
+                  "workbook_id": "ID.RA-01.1",
+                  "text": "Threats and vulnerabilities shall be identified in all relevant assets, including software, network and system architectures, and facilities that house critical computing assets.",
+                  "key_measure": false,
+                  "sheet": "IDENTIFY",
+                  "row": 8
+                }
+              ]
+            },
+            {
+              "id": "ID.RA-05",
+              "title": "Threats, vulnerabilities, likelihoods, and impacts are used to understand inherent risk and inform risk response prioritisation.",
+              "requirements": [
+                {
+                  "id": "ID.RA-05.1",
+                  "workbook_id": "ID.RA-05.1",
+                  "text": "The organisation shall conduct risk assessments in which risk is determined by threats, vulnerabilities and the impact on business processes and assets.",
+                  "key_measure": false,
+                  "sheet": "IDENTIFY",
+                  "row": 9
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "ID.IM",
+          "name": "Improvement",
+          "description": "Improvements to organisational cybersecurity risk management processes, procedures and activities are identified across all CyFun© functions.",
+          "subcategories": [
+            {
+              "id": "ID.IM-03",
+              "title": "Improvements are identified from execution of operational processes, procedures, and activities.",
+              "requirements": [
+                {
+                  "id": "ID.IM-03.1",
+                  "workbook_id": "ID.IM-03.1",
+                  "text": "The organisation shall conduct post-incident evaluations to analyse lessons learned from incident response and recovery, and consequently improve processes / procedures / technologies to enhance its cyber-resilience.",
+                  "key_measure": false,
+                  "sheet": "IDENTIFY",
+                  "row": 10
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "PR",
+      "name": "PROTECT",
+      "categories": [
+        {
+          "id": "PR.AA",
+          "name": "Identity Management, Authentication, and Access Control",
+          "description": "Access to physical and logical assets is limited to authorised users, services, and hardware and managed commensurate with the assessed risk of unauthorised access.",
+          "subcategories": [
+            {
+              "id": "PR.AA-01",
+              "title": "Identities and credentials for authorised users, services, and hardware are managed by the organisation.",
+              "requirements": [
+                {
+                  "id": "PR.AA-01.1",
+                  "workbook_id": "PR.AA-01.1",
+                  "text": "Identities and credentials for authorised users, services, and hardware shall be managed.",
+                  "key_measure": true,
+                  "sheet": "PROTECT",
+                  "row": 3
+                }
+              ]
+            },
+            {
+              "id": "PR.AA-03",
+              "title": "Users, services, and hardware are authenticated.",
+              "requirements": [
+                {
+                  "id": "PR.AA-03.1",
+                  "workbook_id": "PR.AA-03.1",
+                  "text": "All wireless access points used by the organisation, including those providing guest access, shall be securely configured, managed, and monitored to prevent unauthorised access and ensure network integrity.",
+                  "key_measure": false,
+                  "sheet": "PROTECT",
+                  "row": 4
+                },
+                {
+                  "id": "PR.AA-03.2",
+                  "workbook_id": "PR.AA-03.2",
+                  "text": "Multi-Factor Authentication (MFA) shall be required to access the organisation's networks remotely.",
+                  "key_measure": true,
+                  "sheet": "PROTECT",
+                  "row": 5
+                }
+              ]
+            },
+            {
+              "id": "PR.AA-05",
+              "title": "Access permissions, entitlements, and authorisations are defined in a policy, managed, enforced, and reviewed, and incorporate the principles of least privilege and separation of duties.",
+              "requirements": [
+                {
+                  "id": "PR.AA-05.1",
+                  "workbook_id": "PR.AA-05.1",
+                  "text": "Access permissions, rights, and authorisations shall be defined, managed, enforced and reviewed.",
+                  "key_measure": true,
+                  "sheet": "PROTECT",
+                  "row": 6
+                },
+                {
+                  "id": "PR.AA-05.2",
+                  "workbook_id": "PR.AA-05.2",
+                  "text": "It shall be determined who needs access to the organisation's business-critical information and technology and the means to gain access.",
+                  "key_measure": true,
+                  "sheet": "PROTECT",
+                  "row": 7
+                },
+                {
+                  "id": "PR.AA-05.3",
+                  "workbook_id": "PR.AA-05.3",
+                  "text": "Access rights, privileges and authorisations shall be restricted to the systems and specific information needed to perform the tasks (the principle of Least Privilege).",
+                  "key_measure": true,
+                  "sheet": "PROTECT",
+                  "row": 8
+                },
+                {
+                  "id": "PR.AA-05.4",
+                  "workbook_id": "PR.AA-05.4",
+                  "text": "No-one shall have administrative privileges for routine day-to-day tasks.",
+                  "key_measure": true,
+                  "sheet": "PROTECT",
+                  "row": 9
+                }
+              ]
+            },
+            {
+              "id": "PR.AA-06",
+              "title": "Physical access to assets is managed, monitored, and enforced commensurate with risk",
+              "requirements": [
+                {
+                  "id": "PR.AA-06.1",
+                  "workbook_id": "PR.AA-06.1",
+                  "text": "Physical access to all organisational assets, including critical zones, shall be managed, monitored, and enforced based on risk.",
+                  "key_measure": false,
+                  "sheet": "PROTECT",
+                  "row": 10
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "PR.AT",
+          "name": "Awareness and Training",
+          "description": "The organisation's personnel are provided with cybersecurity awareness and training so that they can perform their cybersecurity-related tasks",
+          "subcategories": [
+            {
+              "id": "PR.AT-01",
+              "title": "Personnel are provided with awareness and training so that they possess the knowledge and skills to perform general tasks with cybersecurity risks in mind.",
+              "requirements": [
+                {
+                  "id": "PR.AT-01.1",
+                  "workbook_id": "PR.AT-01.1",
+                  "text": "The organisation shall establish and maintain a cybersecurity awareness and training programme to ensure that all personnel understand how to perform their tasks securely and responsibly.",
+                  "key_measure": false,
+                  "sheet": "PROTECT",
+                  "row": 11
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "PR.DS",
+          "name": "Data Security",
+          "description": "Data are managed consistent with the organisation's risk strategy to protect the confidentiality, integrity, and availability of information.",
+          "subcategories": [
+            {
+              "id": "PR.DS-01",
+              "title": "The confidentiality, integrity, and availability of data-at-rest are protected.",
+              "requirements": [
+                {
+                  "id": "PR.DS-01.9",
+                  "workbook_id": "PR.DS-01.9",
+                  "text": "Enterprise assets shall be disposed of safely.",
+                  "key_measure": false,
+                  "sheet": "PROTECT",
+                  "row": 12
+                }
+              ]
+            },
+            {
+              "id": "PR.DS-11",
+              "title": "Backups of data are created, protected, maintained, and tested.",
+              "requirements": [
+                {
+                  "id": "PR.DS-11.1",
+                  "workbook_id": "PR.DS-11.1",
+                  "text": "Backups for the organisation's business-critical data shall be performed and stored on a different system from the device on which the original data resides.",
+                  "key_measure": true,
+                  "sheet": "PROTECT",
+                  "row": 13
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "PR.PS",
+          "name": "Platform Security",
+          "description": "The hardware, software (e.g., firmware, operating systems, applications), and services of physical and virtual platforms are managed consistent with the organisation's risk strategy, to protect their confidentiality, integrity, and availability",
+          "subcategories": [
+            {
+              "id": "PR.PS-04",
+              "title": "Log records are generated and made available for continuous monitoring.",
+              "requirements": [
+                {
+                  "id": "PR.PS-04.1",
+                  "workbook_id": "PR.PS-04.1",
+                  "text": "Logs shall be maintained, documented, and monitored.",
+                  "key_measure": true,
+                  "sheet": "PROTECT",
+                  "row": 14
+                }
+              ]
+            },
+            {
+              "id": "PR.PS-05",
+              "title": "Installation and execution of unauthorised software are prevented.",
+              "requirements": [
+                {
+                  "id": "PR.PS-05.1",
+                  "workbook_id": "PR.PS-05.1",
+                  "text": "Web and e-mail filters shall be installed and used.",
+                  "key_measure": false,
+                  "sheet": "PROTECT",
+                  "row": 15
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "PR.IR",
+          "name": "Technology Infrastructure Resilience",
+          "description": "Security architectures are managed with the organisation's risk strategy, to protect asset confidentiality, integrity, and availability, and organisational resilience.",
+          "subcategories": [
+            {
+              "id": "PR.IR-01",
+              "title": "Networks and environments are protected from unauthorised logical access and usage .",
+              "requirements": [
+                {
+                  "id": "PR.IR-01.1",
+                  "workbook_id": "PR.IR-01.1",
+                  "text": "Firewalls shall be installed, configured, and actively maintained on all networks used by the organisation to protect against unauthorised access and cyber threats.",
+                  "key_measure": true,
+                  "sheet": "PROTECT",
+                  "row": 16
+                },
+                {
+                  "id": "PR.IR-01.2",
+                  "workbook_id": "PR.IR-01.2",
+                  "text": "To safeguard critical systems, organisations shall implement network segmentation and segregation aligned with trust boundaries and asset criticality, thereby limiting threat propagation and enforcing strict access control.",
+                  "key_measure": true,
+                  "sheet": "PROTECT",
+                  "row": 17
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "DE",
+      "name": "DETECT",
+      "categories": [
+        {
+          "id": "DE.CM",
+          "name": "Continuous Monitoring",
+          "description": "Assets are monitored to find anomalies, indicators of compromise, and other potentially adverse events.",
+          "subcategories": [
+            {
+              "id": "DE.CM-01",
+              "title": "Networks and network services are monitored to find potentially adverse events.",
+              "requirements": [
+                {
+                  "id": "DE.CM-01.1",
+                  "workbook_id": "DE.CM-01.1",
+                  "text": "Firewalls shall be installed and operated at the network boundaries, including endpoint firewalls.",
+                  "key_measure": false,
+                  "sheet": "DETECT",
+                  "row": 3
+                },
+                {
+                  "id": "DE.CM-01.2",
+                  "workbook_id": "DE.CM-01.2",
+                  "text": "Anti-virus, -spyware, and other -malware programs shall be installed and updated.",
+                  "key_measure": true,
+                  "sheet": "DETECT",
+                  "row": 4
+                }
+              ]
+            },
+            {
+              "id": "DE.CM-03",
+              "title": "Personnel activity and technology usage are monitored to find potentially adverse events.",
+              "requirements": [
+                {
+                  "id": "DE.CM-03.1",
+                  "workbook_id": "DE.CM-03-1",
+                  "text": "End point and network protection tools to monitor end-user behaviour for dangerous activity shall be implemented.",
+                  "key_measure": false,
+                  "sheet": "DETECT",
+                  "row": 5
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "DE.AE",
+          "name": "Adverse Event Analysis",
+          "description": "Anomalies, indicators of compromise, and other potentially adverse events are analysed to characterise the events and detect cybersecurity incidents.",
+          "subcategories": [
+            {
+              "id": "DE.AE-03",
+              "title": "Information is correlated from multiple sources.",
+              "requirements": [
+                {
+                  "id": "DE.AE-03.1",
+                  "workbook_id": "DE.AE-03.1",
+                  "text": "The logging functionality of protection and detection tools shall be enabled. Logs shall be backed up and kept for a predefined period, and regularly reviewed to identify unusual or potentially harmful activity.",
+                  "key_measure": true,
+                  "sheet": "DETECT",
+                  "row": 6
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "RS",
+      "name": "RESPOND",
+      "categories": [
+        {
+          "id": "RS.MA",
+          "name": "Incident Management",
+          "description": "Responses to detected cybersecurity incidents are managed.",
+          "subcategories": [
+            {
+              "id": "RS.MA-01",
+              "title": "The incident response plan is executed in coordination with relevant third parties once an incident is declared.",
+              "requirements": [
+                {
+                  "id": "RS.MA-01.1",
+                  "workbook_id": "RS.MA-01.1",
+                  "text": "An incident response plan, including defined roles, responsibilities, and authorities, shall be executed during or after a cybersecurity event affecting the organisation's critical systems.",
+                  "key_measure": false,
+                  "sheet": "RESPOND",
+                  "row": 3
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "RS.CO",
+          "name": "Incident Response Reporting and Communication",
+          "description": "Response activities are coordinated with internal and external stakeholders as required by laws, regulations, or policies.",
+          "subcategories": [
+            {
+              "id": "RS.CO-02",
+              "title": "Internal and external stakeholders are notified of incidents",
+              "requirements": [
+                {
+                  "id": "RS.CO-02.1",
+                  "workbook_id": "RS.CO-02.1",
+                  "text": "Information about cybersecurity incidents shall be communicated to employees in a way that is clear and easy to understand.",
+                  "key_measure": false,
+                  "sheet": "RESPOND",
+                  "row": 4
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "RC",
+      "name": "RECOVER",
+      "categories": [
+        {
+          "id": "RC.RP",
+          "name": "Incident Recovery Plan Execution",
+          "description": "Restoration activities are performed to ensure operational availability of systems and services affected by cybersecurity incidents.",
+          "subcategories": [
+            {
+              "id": "RC.RP-01",
+              "title": "The recovery portion of the incident response plan is executed once initiated from the incident response process.",
+              "requirements": [
+                {
+                  "id": "RC.RP-01.1",
+                  "workbook_id": "RC.RP-01.1",
+                  "text": "A recovery process for disasters and information/cybersecurity incidents shall be developed and executed.",
+                  "key_measure": false,
+                  "sheet": "RECOVER",
+                  "row": 3
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+[project]
+name = "cyfun-basic-spog"
+version = "0.1.0"
+description = "Self-hosted single pane of glass for the CyberFundamentals (CyFun) 2025 BASIC risk assessment, self-assessment, evidence and verification."
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+
+[tool.ruff]
+line-length = 160
+target-version = "py312"
+src = ["app", "tests", "scripts"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "S", "N"]
+ignore = ["S101", "S324", "B008", "E501", "S608"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S", "B"]
+
+[tool.pytest.ini_options]
+pythonpath = ["app"]
+testpaths = ["tests"]
+filterwarnings = ["ignore::UserWarning:openpyxl"]
