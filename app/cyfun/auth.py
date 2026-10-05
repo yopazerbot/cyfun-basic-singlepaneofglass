@@ -222,12 +222,15 @@ def require_admin(user: User = Depends(require_user)) -> User:
 
 # --------------------------------------------------------------------------- local accounts
 def ensure_default_admin(s: Settings) -> None:
-    """Create admin/admin (password change forced) when local login is on and no local account exists."""
+    """Create the first administrator (password change forced) when local login is on and no user exists at all.
+
+    A deployment that already has users (for example Entra accounts) never gets a default account
+    added later; an Entra administrator creates local accounts on the Users page instead."""
     if not s.auth_local_enabled:
         return
     db = database.session()
     try:
-        exists = db.execute(select(User).where(User.auth_provider == "local")).first()
+        exists = db.execute(select(User.id).limit(1)).first()
         if exists is None:
             username, password = DEFAULT_ADMIN
             if s.auth_bootstrap_password.strip():
