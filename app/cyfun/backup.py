@@ -2,6 +2,7 @@
 
     docker compose exec app python -m cyfun.backup                       # write a backup to DATA_DIR/backups
     docker compose run --rm app python -m cyfun.backup restore FILE      # with the app container stopped
+    docker compose exec app python -m cyfun.backup key                   # fingerprint of the key backups need
 
 A backup is one encrypted file, cyfun-backup-YYYYmmdd-HHMMSS.cyfunbak. Inside is a zip with
 manifest.json, a consistent SQLite copy (online backup API) and the evidence files and connector
@@ -308,6 +309,13 @@ def main(argv: list[str] | None = None) -> int:
     from . import db as database
     from .appsettings import load_config
 
+    if argv == ["key"]:
+        try:
+            print(_key_id(get_settings()))
+        except BackupError as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return 1
+        return 0
     if argv and not (argv[0] == "restore" and len(argv) == 2):
         print(__doc__)
         return 2

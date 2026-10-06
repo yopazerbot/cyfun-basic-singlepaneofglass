@@ -175,6 +175,8 @@ class Document(Base):
     link: Mapped[str] = mapped_column(String(1000), default="")
     requirement_ids: Mapped[list] = mapped_column(JSON, default=list)
     notes: Mapped[str] = mapped_column(Text, default="")
+    source: Mapped[str] = mapped_column(String(30), default="manual")  # manual | notion (then edited in Notion only)
+    external_id: Mapped[str] = mapped_column(String(64), default="")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
 

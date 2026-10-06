@@ -9,6 +9,8 @@
 
 {% if key_problem %}
 <div class="flash bad" role="alert">Backups cannot be made: {{ key_problem }}</div>
+{% else %}
+<p class="notice">Backups from this server need the key with fingerprint <span class="mono">{{ key_id }}</span>. Check that the CYFUN_SECRET_KEY in your password manager gives the same fingerprint (docs/backup.md). Without that key no backup can be restored.</p>
 {% endif %}
 
 <section class="grid two">

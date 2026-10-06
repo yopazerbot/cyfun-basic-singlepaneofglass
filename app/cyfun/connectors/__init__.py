@@ -6,9 +6,10 @@ from .base import Check, Connector, InventoryItem, SyncResult
 from .cloudflare import CloudflareConnector
 from .github import GitHubConnector
 from .microsoft import MicrosoftConnector
+from .notion import NotionConnector
 from .railway import RailwayConnector
 
-ALL: tuple[type[Connector], ...] = (MicrosoftConnector, GitHubConnector, RailwayConnector, CloudflareConnector)
+ALL: tuple[type[Connector], ...] = (MicrosoftConnector, GitHubConnector, RailwayConnector, CloudflareConnector, NotionConnector)
 
 
 def registry(config) -> dict[str, Connector]:

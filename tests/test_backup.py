@@ -223,3 +223,11 @@ def test_scheduled_backup_uploads_to_onedrive_and_prunes(admin, monkeypatch):
 
         db.query(AppSetting).filter(AppSetting.key.like("backup_%")).delete(synchronize_session=False)
         db.commit()
+
+
+def test_key_fingerprint_on_page_and_command_line(admin, capsys):
+    from cyfun.secretbox import key_id
+
+    assert key_id(get_settings()) in admin.get("/backup").text
+    assert backup.main(["key"]) == 0
+    assert capsys.readouterr().out.strip() == key_id(get_settings())

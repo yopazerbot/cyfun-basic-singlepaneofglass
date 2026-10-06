@@ -66,6 +66,9 @@ class Settings(BaseSettings):
     cloudflare_api_token: str = Field("", alias="CLOUDFLARE_API_TOKEN")
     cloudflare_account_id: str = Field("", alias="CLOUDFLARE_ACCOUNT_ID")
 
+    notion_token: str = Field("", alias="NOTION_TOKEN")
+    notion_database: str = Field("", alias="NOTION_DATABASE")
+
     connector_sync_hours: int | None = Field(None, alias="CONNECTOR_SYNC_HOURS")
 
     backup_interval_hours: int | None = Field(None, alias="BACKUP_INTERVAL_HOURS")

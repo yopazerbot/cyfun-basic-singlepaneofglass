@@ -13,10 +13,11 @@ from ..auth import require_admin
 from ..config import get_settings
 from ..connectors import registry
 from ..connectors.base import Connector
+from ..connectors.notion import NotionConnector, notion_id
 from ..db import get_db
 from ..models import User
 from ..onedrive import OneDrive
-from ..services import log_activity
+from ..services import current_framework, log_activity
 from ..views import redirect, render
 
 router = APIRouter(prefix="/settings", tags=["settings"])
@@ -79,6 +80,33 @@ def _with_form(config: Config, group: str, form) -> tuple[Config, bool]:
             values[f.name] = int(value) if f.kind == "int" else value
             typed = typed or values[f.name] != getattr(config, f.name)
     return Config(values, config.sources, config.rows, config.problems), typed
+
+
+@router.post("/notion/create-database")
+async def create_notion_database(request: Request, user: User = Depends(require_admin), db: Session = Depends(get_db)):
+    """Create the document database in Notion under the given page and store its ID."""
+    settings = get_settings()
+    form = await request.form()
+    config, _ = _with_form(load_config(db, settings), "notion", form)
+    parent = notion_id(form.get("notion_parent") or "")
+    if config.sources["notion_database"] == "env":
+        return redirect("/settings#notion", err="The database is set by the NOTION_DATABASE environment variable.")
+    if not config.notion_token or not parent:
+        return redirect("/settings#notion", err="Enter the integration secret and the link of the Notion page that will hold the database.")
+    try:
+        database_id = NotionConnector(config).create_database(parent, list(current_framework(db).by_id))
+    except Exception as exc:  # noqa: BLE001 - shown to the administrator
+        return redirect(
+            "/settings#notion",
+            err=f"Creating the database failed: {Connector.describe_error(exc)}. Share the page with the integration and allow it to insert content.",
+        )
+    changes, errors = save_group(db, settings, "notion", {"notion_token": form.get("notion_token") or "", "notion_database": database_id}, user.label)
+    if errors:
+        return redirect("/settings#notion", err=" ".join(errors))
+    log_activity(db, user.label, "settings_update", "settings", "notion", {"changes": changes, "created_database": database_id})
+    return redirect(
+        "/settings#notion", msg='Database "CyFun documented information" created in Notion and saved. Add your documents there, then run the connector.'
+    )
 
 
 @router.post("/{group}/test")

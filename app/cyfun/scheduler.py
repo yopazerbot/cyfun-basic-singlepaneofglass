@@ -17,7 +17,7 @@ from .appsettings import load_config
 from .config import Settings
 from .connectors import registry
 from .connectors.base import ERROR, Check, Connector, InventoryItem, SyncResult
-from .models import Asset, CheckResult, ConnectorRun, Evidence, utcnow
+from .models import Asset, CheckResult, ConnectorRun, Document, Evidence, utcnow
 from .services import log_activity
 
 log = logging.getLogger("cyfun.scheduler")
@@ -38,6 +38,8 @@ def run_connector(settings: Settings, key: str, actor: str = "scheduler") -> int
         result = connector.sync()
         now = utcnow()
         _upsert_inventory(db, key, result.inventory, now)
+        if result.documents:
+            _upsert_documents(db, key, result.documents, now)
         for ch in result.checks:
             db.add(
                 CheckResult(
@@ -96,6 +98,27 @@ def _upsert_inventory(db, key: str, items: list[InventoryItem], now: datetime) -
         if ext not in seen and a.lifecycle != "retired":
             a.lifecycle = "retired"
             a.attributes = {**(a.attributes or {}), "missing_since": now.date().isoformat()}
+
+
+def _upsert_documents(db, key: str, docs: list[dict], now: datetime) -> None:
+    """Mirror the connector's documents into the register; documents gone from the source are retired."""
+    existing = {d.external_id: d for d in db.execute(select(Document).where(Document.source == key)).scalars().all()}
+    seen = set()
+    for item in docs:
+        seen.add(item["external_id"])
+        d = existing.get(item["external_id"])
+        if d is None:
+            d = Document(source=key, external_id=item["external_id"][:64], title="")
+            db.add(d)
+        for field_name in ("title", "doc_type", "status", "owner", "version", "approved_by", "link"):
+            setattr(d, field_name, (item[field_name] or "")[: Document.__table__.c[field_name].type.length])
+        d.approved_on, d.last_review, d.next_review = item["approved_on"], item["last_review"], item["next_review"]
+        d.requirement_ids = item["requirement_ids"]
+        d.notes = ""
+    for ext, d in existing.items():
+        if ext not in seen and d.status != "retired":
+            d.status = "retired"
+            d.notes = f"Removed from {key.capitalize()} on {now.date().isoformat()}."
 
 
 def _write_snapshot(settings: Settings, key: str, result: SyncResult) -> tuple[str, bytes]:

@@ -97,6 +97,42 @@ CLOUDFLARE_ACCOUNT_ID=
 | cloudflare-gateway | enabled Gateway DNS block policies → pass; none → warn | PR.PS-05.1 |
 | cloudflare-audit-log | account audit log readable → pass; Logpush job count | PR.PS-04.1, DE.AE-03.1 |
 
+## Notion
+
+The document register follows one Notion database: each page is a policy, procedure, plan, register or record. A run copies the page metadata into the register. Those entries are marked Notion, are read-only in the application and are edited in Notion; a page that disappears from the database is set to retired. Page content stays in Notion; the register links to it.
+
+Set-up:
+
+1. In Notion, Settings, Connections, Develop or manage integrations (notion.so/profile/integrations): new internal integration for your workspace. Capabilities: Read content. Add Insert content only if the application should create the database. Copy the integration secret.
+2. Share the page that holds (or will hold) the database with the integration: page menu, Connections, add the integration.
+3. Settings page, group Notion: paste the secret. Either paste the database link, or paste the link of the parent page under "New database under this Notion page" and choose **Create database in Notion**. That creates "CyFun documented information" with the properties below and saves its ID.
+4. **Test connection**, then run the connector on Connected systems.
+
+Properties the register reads (names are not case-sensitive; other properties are ignored):
+
+| Property | Notion type | Register field |
+|---|---|---|
+| any title property | title | Title |
+| Type | select | policy, procedure, plan, register, record, otherwise other |
+| Status | select or status | Approved → approved; Retired or Archived → retired; anything else → draft |
+| Owner, Approved by | people, text or select | names |
+| Version | text, number or select | version |
+| Approved on, Last review, Next review | date | dates |
+| Requirements | multi-select or text | CyFun requirement IDs such as GV.PO-01.1; unknown IDs are ignored |
+
+Settings page fields, or these environment variables:
+
+```
+NOTION_TOKEN=
+NOTION_DATABASE=        # database link or ID
+```
+
+| Check | Logic | Requirements |
+|---|---|---|
+| notion-documents | documents and approved documents per type; no approved document → warn | GV.PO-01.1 |
+| notion-reviews | approved documents past Next review, or without a review or approval in the last two years → fail; due within 30 days → warn | GV.PO-01.1 |
+| notion-mapping | current documents without a requirement → warn | GV.PO-01.1 |
+
 ## Interpreting results
 
 A `fail` is a fact about the connected system, not a verdict on the maturity score. Decide, document the decision in the requirement's justification or open an action, and keep the snapshot. An `error` means the connector could not evaluate; fix the permission or accept that this check will not be used as evidence.

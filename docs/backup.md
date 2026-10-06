@@ -11,7 +11,11 @@ The **Backup and restore** page (administrators, menu Verify) exports and import
 
 A backup is one file, `cyfun-backup-YYYYmmdd-HHMMSS.cyfunbak`. Inside is a zip with `manifest.json` (format, application version, creator, SHA-256 of every file), a consistent SQLite copy made with the online backup API, and the data files.
 
-The file is encrypted with AES-256-GCM in 1 MiB chunks under a key derived (HKDF-SHA256) from `CYFUN_SECRET_KEY`. Each chunk is bound to its position and to the end of the file, so a reordered, cut or altered file is refused. A copy on OneDrive or a USB stick is unreadable without the server key. Restoring needs a server with the same key; the same key also decrypts the secrets stored on the Settings page. Keep `.env` in the password manager.
+The file is encrypted with AES-256-GCM in 1 MiB chunks under a key derived (HKDF-SHA256) from `CYFUN_SECRET_KEY`. Each chunk is bound to its position and to the end of the file, so a reordered, cut or altered file is refused. A copy on OneDrive or a USB stick is unreadable without the server key. Restoring needs a server with the same key; the same key also decrypts the secrets stored on the Settings page. Keep `.env` in the password manager. The Backup page shows the key's fingerprint; `docker compose exec app python -m cyfun.backup key` prints the fingerprint of the key the container has. To check the copy in the password manager, compute its fingerprint without touching the running instance:
+
+```bash
+sudo docker run --rm -e CYFUN_SECRET_KEY='<stored key>' cyfun-basic-spog:latest python -m cyfun.backup key
+```
 
 ## Back up
 

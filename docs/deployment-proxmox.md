@@ -7,7 +7,7 @@ users (LAN / VPN) ──HTTPS 443──> Proxmox VM "cyfun" (Debian 13, Docker)
                                    ├── caddy  :80 :443   TLS, HSTS, reverse proxy
                                    └── app    :8000      internal Docker network only
                                          └── volume cyfun_data: database, evidence, snapshots, backups
-                                   outbound HTTPS only: Microsoft, GitHub, Railway, Cloudflare, Anthropic
+                                   outbound HTTPS only: Microsoft, GitHub, Railway, Cloudflare, Notion, Anthropic
 ```
 
 Every command block can be pasted as is after you change the values marked `# change`. Commands run either on the **Proxmox host** (root shell, from the web UI: node, Shell) or **in the VM** (SSH as the user `cyfun`); each step says which.
@@ -483,6 +483,7 @@ Leave outbound traffic open, or allow at least these destinations on TCP 443:
 | `api.github.com` | GitHub connector |
 | `backboard.railway.com` | Railway connector |
 | `api.cloudflare.com` | Cloudflare connector |
+| `api.notion.com` | Notion connector (document register) |
 | `api.anthropic.com` | Claude review, only when an API key is set |
 | `acme-v02.api.letsencrypt.org` | option C certificates only |
 

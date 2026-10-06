@@ -69,6 +69,12 @@ GROUPS: tuple[Group, ...] = (
     ),
     Group("railway", "Railway", "Account or team token.", "railway"),
     Group("cloudflare", "Cloudflare", "API token with read permissions. Account-level checks also need the account ID.", "cloudflare"),
+    Group(
+        "notion",
+        "Notion",
+        "Internal integration with read access, shared with the document database. The document register then follows that database.",
+        "notion",
+    ),
     Group("schedule", "Connector schedule", "Every configured connector runs automatically at this interval."),
     Group(
         "backup",
@@ -106,6 +112,17 @@ FIELDS: tuple[SettingField, ...] = (
         "CLOUDFLARE_ACCOUNT_ID",
         pattern=r"[0-9a-fA-F]{32}",
         pattern_hint="32 hexadecimal characters",
+    ),
+    SettingField("notion_token", "notion", "Integration secret", "NOTION_TOKEN", secret=True),
+    SettingField(
+        "notion_database",
+        "notion",
+        "Document database (link or ID)",
+        "NOTION_DATABASE",
+        pattern=r"\S*[0-9a-fA-F]{8}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{12}\S*",
+        pattern_hint="a Notion database link or its 32-character ID",
+        placeholder="https://www.notion.so/…",
+        help="Empty: create the database below, then this field is filled in.",
     ),
     SettingField("connector_sync_hours", "schedule", "Hours between automatic runs", "CONNECTOR_SYNC_HOURS", kind="int", default=24, minimum=1, maximum=168),
     SettingField(

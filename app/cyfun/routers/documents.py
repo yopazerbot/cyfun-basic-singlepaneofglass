@@ -15,6 +15,7 @@ from ..views import redirect, render
 router = APIRouter(prefix="/documents", tags=["documents"])
 TYPES = ("policy", "procedure", "plan", "register", "record", "other")
 STATUSES = ("draft", "approved", "retired")
+MANAGED_ELSEWHERE = "This document is maintained in Notion. Change it there; the next Notion run updates the register."
 
 
 def _ctx(db: Session, edit: Document | None):
@@ -69,6 +70,8 @@ async def update_doc(request: Request, doc_id: int, user: User = Depends(require
     d = db.get(Document, doc_id)
     if d is None:
         return redirect("/documents", err="Document not found.")
+    if d.source != "manual":
+        return redirect(f"/documents/{d.id}", err=MANAGED_ELSEWHERE)
     form = await request.form()
     _apply(d, form)
     db.commit()
@@ -79,6 +82,8 @@ async def update_doc(request: Request, doc_id: int, user: User = Depends(require
 @router.post("/{doc_id}/delete")
 def delete_doc(request: Request, doc_id: int, user: User = Depends(require_admin), db: Session = Depends(get_db)):
     d = db.get(Document, doc_id)
+    if d is not None and d.source != "manual":
+        return redirect(f"/documents/{d.id}", err=MANAGED_ELSEWHERE)
     if d is not None:
         db.delete(d)
         db.commit()

@@ -51,6 +51,8 @@ os.environ.update(
         "RAILWAY_TOKEN": "",
         "CLOUDFLARE_API_TOKEN": "",
         "CLOUDFLARE_ACCOUNT_ID": "",
+        "NOTION_TOKEN": "",
+        "NOTION_DATABASE": "",
     }
 )
 

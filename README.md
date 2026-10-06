@@ -15,12 +15,13 @@ Two containers (application and TLS proxy), one SQLite file, Microsoft Entra ID 
 | Risk register | Threats, vulnerabilities, likelihood × impact, treatment, owner, review date | ID.RA-01.1, ID.RA-05.1 |
 | Self-assessment | Requirements of the chosen level (34 / 133 / 218), key measures (13 / 22 / 29), controls linked to management aspects; documentation and implementation maturity 1 to 5; N/A rules per level; justification per requirement; CCB goal statement and guidance per requirement | the CCB self-assessment tools, scoring reproduced formula by formula |
 | Assets | Hardware, software, services, data, network, cloud, identities; classification, criticality, primary/secondary, owner; connector-synced items retire automatically | ID.AM-01.1, ID.AM-02.1, ID.AM-05.1, ID.AM-07.1 |
-| Documents | Policies, procedures, plans, records with version, approval, review dates and requirement mapping | GV.PO-01.1, documentation maturity |
+| Documents | Policies, procedures, plans, records with version, approval, review dates and requirement mapping; maintained in the application or synced from a Notion database | GV.PO-01.1, documentation maturity |
 | Evidence | Files (SHA-256 hashed, random storage names), links, and automated evidence from every connector check (snapshot hash), mapped to requirements | verification |
 | Actions | Remediation with owner, priority, due date, status | internal planning, excluded from exports |
-| Connected systems | Microsoft 365 / Entra ID, GitHub, Railway, Cloudflare. Each run refreshes the inventory, produces checks mapped to requirements and stores a raw snapshot | ID.AM, PR.AA, PR.PS, PR.IR, DE.CM, DE.AE |
+| Connected systems | Microsoft 365 / Entra ID, GitHub, Railway, Cloudflare, Notion (document register). Each run refreshes the inventory, produces checks mapped to requirements and stores a raw snapshot | ID.AM, PR.AA, PR.PS, PR.IR, DE.CM, DE.AE |
 | Claude review (optional) | Claude proposes documentation and implementation scores with a justification per requirement, or for a whole level in one batch, from the linked documents, evidence and checks. Guard rules apply the CCB definitions; an administrator accepts, edits or rejects every proposal; personal data is replaced by placeholders before sending | maturity scoring |
-| Settings | Connector credentials, connector schedule, Anthropic API key, model and monthly spend limit; secrets encrypted, never shown again | administration |
+| Settings | Connector credentials, connector schedule, scheduled backup and OneDrive copy, Anthropic API key, model and monthly spend limit; secrets encrypted, never shown again | administration |
+| Backup and restore | One encrypted file with all data and settings; download, restore, scheduled backups, OneDrive copy | operations |
 | Audit view and export | Read-only verification view per requirement; snapshots; fills the official CCB workbook of the chosen level; audit pack ZIP; JSON | self-declaration and CAB verification |
 | Users | Entra ID accounts with app roles, optional local accounts (admin and read-only auditor) | access control |
 | Activity log | Append-only record of every change | traceability |
@@ -117,7 +118,7 @@ For a Proxmox host, follow [docs/deployment-proxmox.md](docs/deployment-proxmox.
 ```
 app/cyfun/                 application package (FastAPI, Jinja2, SQLAlchemy, SQLite)
   framework/               basic/important/essential_2025.json, risk_model.json, goals_2025.json (generated), guidance_basic_2025.json
-  connectors/              microsoft, github, railway, cloudflare
+  connectors/              microsoft, github, railway, cloudflare, notion (document register)
   ai/                      Claude review: requirement packet, placeholders, prompt, guard rules, API calls, workflow
   routers/                 one module per screen
   templates/ static/       server-rendered HTML, one stylesheet, vendored htmx

@@ -1,9 +1,10 @@
 """Connector contract.
 
 A connector talks to one external system with read-only credentials from the
-Settings page (or their environment overrides) and returns two things:
+Settings page (or their environment overrides) and returns:
 
 * inventory items: facts for the asset inventory (ID.AM-01.1, ID.AM-02.1, ...)
+* document register entries, for a connector that holds the documented information (Notion)
 * check results: automated observations mapped to CyFun requirements, each with a
   status (pass, fail, warn, info, error), a one-line summary and structured details
 
@@ -63,6 +64,7 @@ class SyncResult:
     inventory: list[InventoryItem] = field(default_factory=list)
     checks: list[Check] = field(default_factory=list)
     raw: dict = field(default_factory=dict)  # snapshot saved to disk as evidence
+    documents: list[dict] = field(default_factory=list)  # document register entries (Notion)
 
 
 class Connector:

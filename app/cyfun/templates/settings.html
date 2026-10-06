@@ -69,6 +69,15 @@
   <div class="form-grid">
     {% for it in grp['items'] %}{{ field(it) }}{% endfor %}
   </div>
+  {% if g.key == 'notion' %}
+  <div class="setting-extra">
+    <label>New database under this Notion page (link)
+      <input name="notion_parent" maxlength="300" spellcheck="false" autocapitalize="off" placeholder="https://www.notion.so/…" inputmode="url">
+    </label>
+    <p class="muted small">Creates "CyFun documented information" with the properties the register reads (Type, Status, Owner, Version, Approved by and on, Last and Next review, Requirements). Share the page with the integration first and allow it to insert content.</p>
+    <button class="btn secondary" type="submit" formaction="/settings/notion/create-database">Create database in Notion</button>
+  </div>
+  {% endif %}
   <div class="actions">
     <button class="btn" type="submit">Save</button>
     {% if g.connector or g.key in ('claude', 'backup') %}<button class="btn secondary" type="submit" formaction="/settings/{{ g.key }}/test">Test connection</button>{% endif %}

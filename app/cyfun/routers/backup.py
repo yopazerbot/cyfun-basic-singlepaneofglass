@@ -19,6 +19,7 @@ from ..config import get_settings
 from ..db import get_db
 from ..models import Activity, User
 from ..onedrive import OneDrive
+from ..secretbox import key_id
 from ..services import log_activity
 from ..views import redirect, render
 
@@ -42,6 +43,7 @@ def backup_page(request: Request, user: User = Depends(require_admin), db: Sessi
             "files": files,
             "recent": recent,
             "key_problem": settings.secret_key_problem,
+            "key_id": "" if settings.secret_key_problem else key_id(settings),
             "confirm": CONFIRM,
         },
     )
