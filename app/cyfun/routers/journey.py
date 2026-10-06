@@ -9,7 +9,7 @@ from ..auth import require_admin, require_user
 from ..db import get_db
 from ..framework import LEVELS, load_framework, normalise_level
 from ..models import User
-from ..services import JOURNEY_STAGES, get_org, get_risk, log_activity, parse_date
+from ..services import JOURNEY_STAGES, get_org, get_risk, iso_date, log_activity, parse_date
 from ..views import redirect, render
 
 router = APIRouter(prefix="/journey", tags=["journey"])
@@ -123,8 +123,7 @@ def save_stage(
         return redirect("/journey", err="Unknown stage or status.")
     org = get_org(db)
     j = dict(org.journey or {})
-    d = parse_date(date)
-    j[stage] = {"status": status, "date": d.isoformat() if d else "", "note": note.strip()[:1000]}
+    j[stage] = {"status": status, "date": iso_date(parse_date(date)) or "", "note": note.strip()[:1000]}
     org.journey = j
     db.commit()
     log_activity(db, user.label, "journey_stage", "journey", stage, j[stage])

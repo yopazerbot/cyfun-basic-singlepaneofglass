@@ -21,10 +21,10 @@ from ..appsettings import AI_MODELS, load_config
 from ..config import Settings
 from ..framework import Framework
 from ..models import Action, AiBatch, AiProposal, Evidence, Score, utcnow
-from ..services import current_framework, log_activity, parse_int
+from ..services import current_framework, evidence_file, log_activity, parse_int
 from ..views import fmt_usd
 from . import claude, guard
-from .packet import Packet, build_packet, evidence_file, pseudonymizer_for
+from .packet import Packet, build_packet, pseudonymizer_for
 from .prompt import PROMPT_VERSION, system_prompt, user_instruction
 from .pseudonym import Pseudonymizer
 

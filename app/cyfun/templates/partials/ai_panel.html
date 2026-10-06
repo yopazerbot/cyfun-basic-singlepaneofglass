@@ -4,7 +4,7 @@
 <section class="card ai-panel" id="claude" aria-live="polite" {% if polling %}hx-get="/ai/proposals/{{ prop.id }}/panel" hx-trigger="every {{ '4s' if prop.status == 'running' else '60s' }}" hx-swap="outerHTML"{% endif %}>
   <div class="card-head">
     <h2>Claude review</h2>
-    {% if prop and prop.status in ('ready', 'accepted', 'rejected', 'superseded') and prop.confidence %}<span class="chip {{ {'high': 'ok', 'medium': 'warn', 'low': 'bad'}[prop.confidence] }}">{{ prop.confidence }} confidence</span>{% endif %}
+    {% if prop and prop.status in ('ready', 'accepted', 'rejected', 'superseded') and prop.confidence %}<span class="chip {{ prop.confidence|confidence_chip }}">{{ prop.confidence }} confidence</span>{% endif %}
   </div>
 
   {% if not prop or (prop.status in ('failed', 'declined') and not standalone) %}

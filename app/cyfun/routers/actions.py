@@ -8,11 +8,11 @@ from fastapi import APIRouter, Depends, Request
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from ..auth import require_admin, require_user
+from ..auth import _safe_next, require_admin, require_user
 from ..db import get_db
 from ..framework import all_requirement_ids
 from ..models import Action, User
-from ..services import current_framework, log_activity, parse_date
+from ..services import OPEN_ACTION_STATUSES, current_framework, form_text, log_activity, parse_date
 from ..views import redirect, render
 
 router = APIRouter(prefix="/actions", tags=["actions"])
@@ -25,7 +25,7 @@ def _ctx(db: Session, status: str, edit: Action | None):
     if status in STATUSES:
         stmt = stmt.where(Action.status == status)
     elif status == "active":
-        stmt = stmt.where(Action.status.in_(["open", "in_progress"]))
+        stmt = stmt.where(Action.status.in_(OPEN_ACTION_STATUSES))
     items = db.execute(stmt.order_by(Action.status, Action.due_date.is_(None), Action.due_date, Action.priority)).scalars().all()
     return {"active": "actions", "items": items, "fw": current_framework(db), "statuses": STATUSES, "priorities": PRIORITIES, "f_status": status, "edit": edit}
 
@@ -44,11 +44,11 @@ def edit_action(request: Request, action_id: int, user: User = Depends(require_u
 
 
 def _apply(a: Action, form) -> None:
-    a.title = (form.get("title") or "").strip()[:300] or a.title or "Untitled action"
+    a.title = form_text(form, "title", 300) or a.title or "Untitled action"
     rid = form.get("requirement_id") or ""
     a.requirement_id = rid if rid in all_requirement_ids() else ""
-    a.description = (form.get("description") or "").strip()
-    a.owner = (form.get("owner") or "").strip()[:200]
+    a.description = form_text(form, "description")
+    a.owner = form_text(form, "owner", 200)
     a.priority = form.get("priority") if form.get("priority") in PRIORITIES else "medium"
     new_status = form.get("status") if form.get("status") in STATUSES else "open"
     if new_status != "done":
@@ -62,7 +62,7 @@ def _apply(a: Action, form) -> None:
 @router.post("")
 async def create_action(request: Request, user: User = Depends(require_admin), db: Session = Depends(get_db)):
     form = await request.form()
-    if not (form.get("title") or "").strip():
+    if not form_text(form, "title"):
         return redirect("/actions", err="Title is required.")
     a = Action(title="Untitled action")
     _apply(a, form)
@@ -82,9 +82,7 @@ async def update_action(request: Request, action_id: int, user: User = Depends(r
     db.commit()
     log_activity(db, user.label, "action_update", "action", str(a.id), {"title": a.title, "status": a.status})
     back = form.get("back") or "/actions"
-    if not back.startswith("/") or back.startswith("//"):
-        back = "/actions"
-    return redirect(back, msg="Action updated.")
+    return redirect(back if _safe_next(back) == back else "/actions", msg="Action updated.")
 
 
 @router.post("/{action_id}/delete")

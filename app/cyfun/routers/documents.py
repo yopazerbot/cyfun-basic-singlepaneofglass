@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from ..auth import require_admin, require_user
 from ..db import get_db
 from ..models import Document, User
-from ..services import current_framework, log_activity, parse_date, valid_requirement_ids
+from ..services import current_framework, form_text, is_web_link, log_activity, parse_date, valid_requirement_ids
 from ..views import redirect, render
 
 router = APIRouter(prefix="/documents", tags=["documents"])
@@ -36,25 +36,25 @@ def edit_doc(request: Request, doc_id: int, user: User = Depends(require_user), 
 
 
 def _apply(d: Document, form) -> None:
-    d.title = (form.get("title") or "").strip()[:300] or d.title or "Untitled"
+    d.title = form_text(form, "title", 300) or d.title or "Untitled"
     d.doc_type = form.get("doc_type") if form.get("doc_type") in TYPES else "other"
-    d.owner = (form.get("owner") or "").strip()[:200]
-    d.version = (form.get("version") or "").strip()[:50]
+    d.owner = form_text(form, "owner", 200)
+    d.version = form_text(form, "version", 50)
     d.status = form.get("status") if form.get("status") in STATUSES else "draft"
-    d.approved_by = (form.get("approved_by") or "").strip()[:200]
+    d.approved_by = form_text(form, "approved_by", 200)
     d.approved_on = parse_date(form.get("approved_on"))
     d.last_review = parse_date(form.get("last_review"))
     d.next_review = parse_date(form.get("next_review"))
-    link = (form.get("link") or "").strip()[:1000]
-    d.link = link if (not link or link.lower().startswith(("https://", "http://"))) else ""
+    link = form_text(form, "link", 1000)
+    d.link = link if is_web_link(link) else ""
     d.requirement_ids = valid_requirement_ids(form.getlist("requirement_ids"))
-    d.notes = (form.get("notes") or "").strip()
+    d.notes = form_text(form, "notes")
 
 
 @router.post("")
 async def create_doc(request: Request, user: User = Depends(require_admin), db: Session = Depends(get_db)):
     form = await request.form()
-    if not (form.get("title") or "").strip():
+    if not form_text(form, "title"):
         return redirect("/documents", err="Title is required.")
     d = Document(title="Untitled")
     _apply(d, form)

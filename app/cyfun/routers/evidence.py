@@ -13,14 +13,10 @@ from ..auth import require_admin, require_user
 from ..config import get_settings
 from ..db import get_db
 from ..models import Evidence, User
-from ..services import current_framework, evidence_path, log_activity, parse_date, store_upload, valid_requirement_ids
+from ..services import current_framework, evidence_path, form_text, is_web_link, log_activity, parse_date, store_upload, valid_requirement_ids
 from ..views import redirect, render
 
 router = APIRouter(prefix="/evidence", tags=["evidence"])
-
-
-def is_web_link(url: str) -> bool:
-    return url.lower().startswith(("https://", "http://"))
 
 
 def attach_file_or_link(ev: Evidence, file: UploadFile | None, url: str, share_with_ai: bool) -> str | None:
@@ -86,8 +82,8 @@ def download(request: Request, ev_id: int, user: User = Depends(require_user), d
 async def create_evidence(request: Request, file: UploadFile | None = File(None), user: User = Depends(require_admin), db: Session = Depends(get_db)):
     form = await request.form()
     ev = Evidence(
-        title=(form.get("title") or "").strip()[:300],
-        description=(form.get("description") or "").strip(),
+        title=form_text(form, "title", 300),
+        description=form_text(form, "description"),
         requirement_ids=valid_requirement_ids(form.getlist("requirement_ids")),
         collected_on=parse_date(form.get("collected_on")) or date.today(),
         collected_by=user.label,
@@ -107,12 +103,12 @@ async def update_evidence(request: Request, ev_id: int, user: User = Depends(req
     if ev is None:
         return redirect("/evidence", err="Evidence not found.")
     form = await request.form()
-    ev.title = (form.get("title") or "").strip()[:300] or ev.title
-    ev.description = (form.get("description") or "").strip()
+    ev.title = form_text(form, "title", 300) or ev.title
+    ev.description = form_text(form, "description")
     ev.requirement_ids = valid_requirement_ids(form.getlist("requirement_ids"))
     ev.collected_on = parse_date(form.get("collected_on")) or ev.collected_on
     if ev.kind == "link":
-        url = (form.get("url") or "").strip()
+        url = form_text(form, "url")
         if is_web_link(url):
             ev.url = url[:1000]
     elif ev.kind == "file":

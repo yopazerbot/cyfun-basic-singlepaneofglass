@@ -1,0 +1,17 @@
+{# Page without navigation: sign-in, password change, signed out. -#}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{% endblock %}</title>
+  <link rel="stylesheet" href="/static/app.css">
+  <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+</head>
+<body class="plain">
+  <main class="{% block card %}login-card{% endblock %}">
+    <div class="brand-mark big" aria-hidden="true">CF</div>
+{% block content %}{% endblock %}
+  </main>
+</body>
+</html>

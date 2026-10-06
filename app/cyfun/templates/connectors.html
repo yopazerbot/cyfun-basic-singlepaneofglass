@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Connected systems · {{ settings.app_name }}{% endblock %}
 {% block content %}
+{% from "macros.html" import connector_chip %}
 <header class="page-head">
   <div class="eyebrow">Connectors · scheduled every {{ sync_hours }} h</div>
   <h1>Connected systems</h1>
@@ -11,7 +12,7 @@
   {% for c in rows %}
   <div class="card connector">
     <div class="card-head"><h2><a href="/connectors/{{ c.key }}">{{ c.name }}</a></h2>
-      {% if not c.configured %}<span class="chip">not configured</span>{% elif not c.run %}<span class="chip">never run</span>{% elif c.run.status == 'ok' %}<span class="chip ok">ok</span>{% elif c.run.status == 'running' %}<span class="chip info">running</span>{% else %}<span class="chip bad">error</span>{% endif %}
+      {{ connector_chip(c) }}
     </div>
     <p>{{ c.description }}</p>
     {% if not c.configured and user.role == 'admin' %}<p class="small"><a href="/settings#{{ c.key }}">Add credentials on the Settings page</a></p>{% endif %}

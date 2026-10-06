@@ -59,12 +59,21 @@ def fmt_usd(value) -> str:
     return "USD " + fmt_score(value or 0.0, 2)
 
 
+CONFIDENCE_CHIPS = {"high": "ok", "medium": "warn", "low": "bad"}
+
+
+def confidence_chip(value: str | None) -> str:
+    """Chip class for the confidence of a Claude proposal."""
+    return CONFIDENCE_CHIPS.get(value, "")
+
+
 templates.env.filters["score"] = fmt_score
 templates.env.filters["usd"] = fmt_usd
 templates.env.filters["date"] = fmt_date
 templates.env.filters["status_word"] = status_word
 templates.env.filters["pct"] = pct
 templates.env.filters["nl2br"] = nl2br_safe
+templates.env.filters["confidence_chip"] = confidence_chip
 templates.env.globals["version"] = __version__
 
 

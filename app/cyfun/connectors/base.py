@@ -18,6 +18,7 @@ from dataclasses import dataclass, field
 import httpx
 
 PASS, FAIL, WARN, INFO, ERROR = "pass", "fail", "warn", "info", "error"
+STATUSES = (PASS, FAIL, WARN, INFO, ERROR)
 
 
 @dataclass

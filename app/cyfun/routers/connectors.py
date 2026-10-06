@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections import Counter
+
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import FileResponse
 from sqlalchemy import select
@@ -12,10 +14,10 @@ from ..appsettings import load_config
 from ..auth import require_admin, require_user
 from ..config import get_settings
 from ..connectors import registry
-from ..connectors.base import ERROR, FAIL, INFO, PASS, WARN
+from ..connectors.base import STATUSES
 from ..db import get_db
 from ..models import Asset, CheckResult, ConnectorRun, User
-from ..services import latest_runs, log_activity
+from ..services import latest_checks, latest_runs, log_activity, snapshot_path
 from ..views import redirect, render
 
 router = APIRouter(prefix="/connectors", tags=["connectors"])
@@ -25,11 +27,11 @@ router = APIRouter(prefix="/connectors", tags=["connectors"])
 def list_connectors(request: Request, user: User = Depends(require_user), db: Session = Depends(get_db)):
     config = load_config(db)
     runs = latest_runs(db)
+    tally = Counter((c.connector, c.status) for c in latest_checks(db))
     rows = []
     for key, c in registry(config).items():
         run = runs.get(key)
-        checks = db.execute(select(CheckResult).where(CheckResult.run_id == run.id)).scalars().all() if run and run.status == "ok" else []
-        counts = {s: sum(1 for x in checks if x.status == s) for s in (PASS, FAIL, WARN, INFO, ERROR)}
+        counts = {s: tally[key, s] for s in STATUSES}
         rows.append(
             {
                 "key": key,
@@ -83,7 +85,7 @@ def snapshot(request: Request, key: str, run_id: int, user: User = Depends(requi
     run = db.get(ConnectorRun, run_id)
     if run is None or run.connector != key or not run.snapshot_file:
         return redirect(f"/connectors/{key}", err="Snapshot not found.")
-    path = (settings.snapshots_dir / run.snapshot_file).resolve()
-    if settings.snapshots_dir.resolve() not in path.parents or not path.exists():
+    path = snapshot_path(settings, run.snapshot_file)
+    if path is None:
         return redirect(f"/connectors/{key}", err="Snapshot file missing.")
     return FileResponse(path, filename=f"{key}-{path.name}", media_type="application/json")

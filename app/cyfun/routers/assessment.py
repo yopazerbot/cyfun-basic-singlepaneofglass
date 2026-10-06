@@ -10,11 +10,11 @@ from sqlalchemy.orm import Session
 
 from ..ai import service as ai_service
 from ..auth import require_admin, require_user
-from ..config import get_settings
 from ..db import get_db
 from ..models import Action, Activity, Document, Evidence, Score, User
 from ..scoring import ReqInput, na_blocked_reason, validate_input
 from ..services import (
+    OPEN_ACTION_STATUSES,
     by_requirement,
     checks_by_requirement,
     current_framework,
@@ -27,6 +27,7 @@ from ..services import (
 )
 from ..views import redirect, render
 from .actions import PRIORITIES
+from .ai import panel_context
 from .evidence import attach_file_or_link, log_evidence_added
 
 router = APIRouter(prefix="/assessment", tags=["assessment"])
@@ -41,7 +42,7 @@ def overview(request: Request, level: str = "all", user: User = Depends(require_
     evidence = by_requirement(db.execute(select(Evidence)).scalars().all())
     documents = by_requirement(db.execute(select(Document).where(Document.status != "retired")).scalars().all())
     checks = checks_by_requirement(latest_checks(db))
-    actions = by_requirement(db.execute(select(Action).where(Action.status.in_(["open", "in_progress"]))).scalars().all(), "requirement_id")
+    actions = by_requirement(db.execute(select(Action).where(Action.status.in_(OPEN_ACTION_STATUSES))).scalars().all(), "requirement_id")
     flt = level if level in LEVEL_FILTERS else "all"
 
     def visible(r) -> bool:
@@ -109,7 +110,7 @@ def detail(request: Request, rid: str, user: User = Depends(require_user), db: S
     claude = {}
     if user.role == "admin":
         ai_service.recover_stale(db)
-        claude = {"prop": ai_service.latest_for(db, rid), "ai": ai_service.status(db, get_settings()), "rid": rid}
+        claude = panel_context(db, rid, ai_service.latest_for(db, rid))
     return render(
         request,
         "assessment_detail.html",

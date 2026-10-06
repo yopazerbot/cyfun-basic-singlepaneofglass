@@ -26,8 +26,7 @@ import csv
 import io
 import json
 import zipfile
-from datetime import UTC, date, datetime
-from pathlib import Path
+from datetime import UTC, datetime
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -36,17 +35,7 @@ from .config import Settings
 from .framework import Framework
 from .models import AiProposal, Asset, Document, Evidence, RiskItem, Score
 from .scoring import summary_to_dict
-from .services import current_summary, evidence_path, get_org, get_risk, latest_checks, latest_runs, scores_by_id
-
-
-def _iso(value: date | datetime | None) -> str | None:
-    return value.isoformat() if value else None
-
-
-def _snapshot(settings: Settings, *parts: str) -> Path | None:
-    """A file under the snapshots directory, or None when it is missing or the path escapes the directory."""
-    p = settings.snapshots_dir.joinpath(*parts).resolve()
-    return p if settings.snapshots_dir.resolve() in p.parents and p.exists() else None
+from .services import current_summary, evidence_file, get_org, get_risk, iso_date, latest_checks, latest_runs, scores_by_id, snapshot_path
 
 
 def ai_origins(db: Session) -> dict[str, dict]:
@@ -120,7 +109,7 @@ def assessment_payload(db: Session, fw: Framework) -> dict:
             "scope": org.scope_description,
             "exclusions": org.scope_exclusions,
             "conformity_assessment_body": org.cab_name,
-            "self_assessment_date": _iso(org.self_assessment_date),
+            "self_assessment_date": iso_date(org.self_assessment_date),
         },
         "summary": summary_to_dict(summary),
         "requirements": reqs,
@@ -133,7 +122,7 @@ def assessment_payload(db: Session, fw: Framework) -> dict:
                 "url": e.url,
                 "sha256": e.sha256,
                 "size": e.size,
-                "collected_on": _iso(e.collected_on),
+                "collected_on": iso_date(e.collected_on),
                 "requirements": e.requirement_ids,
             }
             for e in evidence
@@ -147,9 +136,9 @@ def assessment_payload(db: Session, fw: Framework) -> dict:
                 "status": d.status,
                 "owner": d.owner,
                 "approved_by": d.approved_by,
-                "approved_on": _iso(d.approved_on),
-                "last_review": _iso(d.last_review),
-                "next_review": _iso(d.next_review),
+                "approved_on": iso_date(d.approved_on),
+                "last_review": iso_date(d.last_review),
+                "next_review": iso_date(d.next_review),
                 "link": d.link,
                 "requirements": d.requirement_ids,
             }
@@ -187,7 +176,7 @@ def risk_payload(db: Session) -> dict:
                 "measures": i.measures,
                 "owner": i.owner,
                 "status": i.status,
-                "review_date": _iso(i.review_date),
+                "review_date": iso_date(i.review_date),
             }
             for i in items
         ],
@@ -225,7 +214,7 @@ def build_pack(db: Session, fw: Framework, settings: Settings, summary_html: str
                     "yes" if a.primary_asset else "no",
                     a.lifecycle,
                     a.source,
-                    a.last_seen_at.isoformat() if a.last_seen_at else "",
+                    iso_date(a.last_seen_at) or "",
                 ]
             )
         z.writestr("assets.csv", _csv(assets))
@@ -234,21 +223,18 @@ def build_pack(db: Session, fw: Framework, settings: Settings, summary_html: str
         for e in db.execute(select(Evidence).order_by(Evidence.id)).scalars().all():
             fname = ""
             if e.kind == "automated" and e.source and e.file_name:
-                p = _snapshot(settings, e.source, e.file_name)
+                p = snapshot_path(settings, e.source, e.file_name)
                 if p:
                     fname = f"checks/snapshots/{e.source}-{e.file_name}"
                     if fname not in added:
                         z.write(p, fname)
                         added.add(fname)
             if e.kind == "file" and e.stored_name:
-                try:
-                    p = evidence_path(settings, e)
-                except ValueError:
-                    p = None
-                if p and p.exists():
+                p = evidence_file(settings, e)
+                if p:
                     fname = f"{e.id}_{e.file_name or e.stored_name}"
                     z.write(p, f"evidence/{fname}")
-            index.append([e.id, e.title, e.kind, fname, e.url, e.sha256, _iso(e.collected_on) or "", " ".join(e.requirement_ids or [])])
+            index.append([e.id, e.title, e.kind, fname, e.url, e.sha256, iso_date(e.collected_on) or "", " ".join(e.requirement_ids or [])])
         z.writestr("evidence/index.csv", _csv(index))
         z.writestr(
             "checks/latest_checks.json",
@@ -271,5 +257,5 @@ def build_pack(db: Session, fw: Framework, settings: Settings, summary_html: str
             ),
         )
         for key, run in latest_runs(db).items():
-            if run.status == "ok" and run.snapshot_file and (p := _snapshot(settings, run.snapshot_file)):
+            if run.status == "ok" and run.snapshot_file and (p := snapshot_path(settings, run.snapshot_file)):
                 z.write(p, f"checks/{key}.json")

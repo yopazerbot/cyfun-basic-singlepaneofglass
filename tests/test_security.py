@@ -13,6 +13,7 @@ from joserfc import jwt
 from joserfc.errors import JoseError
 from joserfc.jwk import KeySet, OctKey, RSAKey
 
+from cyfun import db as database
 from cyfun.auth import GENERIC_LOGIN_ERROR, SECURE_COOKIE, cookie_name, validate_id_token
 from cyfun.config import Settings
 from cyfun.export_xlsx import MAX_TOTAL_BYTES, ExportError, Package
@@ -178,3 +179,14 @@ def test_flash_message_goes_before_the_fragment():
     parts = urlsplit(loc)
     assert parts.path == "/settings" and parts.fragment == "claude" and "err=Test%20failed" in parts.query and "s=" in parts.query
     assert redirect("/x?a=1#y", msg="ok").headers["location"].startswith("/x?a=1&msg=ok&s=")
+
+
+def test_action_update_refuses_offsite_back_link(admin):
+    admin.post("/actions", data={"title": "Back link check"})
+    from cyfun.models import Action
+
+    with database.session() as db:
+        aid = db.query(Action).filter(Action.title == "Back link check").one().id
+    for back, expected in ((r"/\evil.example", "/actions"), ("//evil.example", "/actions"), ("/assessment/GV.OC-01.1", "/assessment/GV.OC-01.1")):
+        r = admin.post(f"/actions/{aid}", data={"title": "Back link check", "back": back}, follow_redirects=False)
+        assert r.headers["location"].split("?")[0] == expected

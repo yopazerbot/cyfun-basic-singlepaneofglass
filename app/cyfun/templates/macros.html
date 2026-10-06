@@ -29,6 +29,8 @@
 
 {% macro maturity_chip(value, target) %}{% if value is not none %}<span class="chip {{ value|status_word(target) }}">{{ value|score }}</span>{% else %}<span class="chip none">not scored</span>{% endif %}{% endmacro %}
 
+{% macro connector_chip(c) %}{% if not c.configured %}<span class="chip">not configured</span>{% elif not c.run %}<span class="chip">never run</span>{% elif c.run.status == 'ok' %}<span class="chip ok">ok</span>{% elif c.run.status == 'running' %}<span class="chip info">running</span>{% else %}<span class="chip bad">error</span>{% endif %}{% endmacro %}
+
 {% macro evidence_link(e) %}{% if e.kind == 'file' %}<a href="/evidence/{{ e.id }}/download">{{ e.title }}</a>{% elif e.kind == 'link' %}<a href="{{ e.url }}" rel="noopener noreferrer" target="_blank">{{ e.title }}</a>{% elif e.kind == 'automated' and e.run_id %}<a href="{{ e.url }}">{{ e.title }}</a>{% else %}{{ e.title }}{% endif %}{% endmacro %}
 
 {% macro delete_cell(action, confirm) %}<td><form method="post" action="{{ action }}" class="inline"><button class="btn link-danger small" data-confirm="{{ confirm }}">Delete</button></form></td>{% endmacro %}

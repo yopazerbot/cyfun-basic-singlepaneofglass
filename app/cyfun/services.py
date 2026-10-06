@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 import re
 import secrets
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 
 from fastapi import UploadFile
@@ -29,6 +29,8 @@ JOURNEY_STAGES = [
     ("verification", "Verification by the CAB"),
     ("label", "CyFun label"),
 ]
+
+OPEN_ACTION_STATUSES = ("open", "in_progress")
 
 
 # --------------------------------------------------------------------------- activity
@@ -118,11 +120,28 @@ def evidence_path(settings: Settings, ev: Evidence) -> Path:
     return p
 
 
+def evidence_file(settings: Settings, ev: Evidence | None) -> Path | None:
+    """The stored file of an evidence item, or None when it is missing."""
+    if ev is None:
+        return None
+    try:
+        path = evidence_path(settings, ev)
+    except ValueError:
+        return None
+    return path if path.exists() else None
+
+
 # --------------------------------------------------------------------------- connectors
 def latest_runs(db: Session) -> dict[str, ConnectorRun]:
     sub = select(ConnectorRun.connector, func.max(ConnectorRun.id).label("mid")).group_by(ConnectorRun.connector).subquery()
     rows = db.execute(select(ConnectorRun).join(sub, ConnectorRun.id == sub.c.mid)).scalars().all()
     return {r.connector: r for r in rows}
+
+
+def snapshot_path(settings: Settings, *parts: str) -> Path | None:
+    """A file under the snapshots directory, or None when it is missing or the path escapes the directory."""
+    p = settings.snapshots_dir.joinpath(*parts).resolve()
+    return p if settings.snapshots_dir.resolve() in p.parents and p.exists() else None
 
 
 def latest_checks(db: Session) -> list[CheckResult]:
@@ -149,15 +168,27 @@ def by_requirement(items, attr: str = "requirement_ids") -> dict[str, list]:
 
 
 def open_actions(db: Session) -> list[Action]:
-    return list(
-        db.execute(select(Action).where(Action.status.in_(["open", "in_progress"])).order_by(Action.due_date.is_(None), Action.due_date)).scalars().all()
-    )
+    return list(db.execute(select(Action).where(Action.status.in_(OPEN_ACTION_STATUSES)).order_by(Action.due_date.is_(None), Action.due_date)).scalars().all())
 
 
 def documents_due(db: Session, today: date | None = None) -> list[Document]:
     today = today or date.today()
     docs = db.execute(select(Document).where(Document.status != "retired")).scalars().all()
     return [d for d in docs if d.next_review and d.next_review <= today]
+
+
+# --------------------------------------------------------------------------- form values
+def form_text(form, name: str, limit: int | None = None) -> str:
+    """A posted text field, trimmed and cut to `limit` characters; "" when absent."""
+    return (form.get(name) or "").strip()[:limit]
+
+
+def is_web_link(url: str) -> bool:
+    return url.lower().startswith(("https://", "http://"))
+
+
+def iso_date(value: date | datetime | None) -> str | None:
+    return value.isoformat() if value else None
 
 
 def parse_date(value: str | None) -> date | None:

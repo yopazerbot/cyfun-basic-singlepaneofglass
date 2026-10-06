@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Dashboard · {{ settings.app_name }}{% endblock %}
 {% block content %}
+{% from "macros.html" import connector_chip %}
 {% set tgt = summary.cat_min or summary.target %}
 <header class="page-head">
   <div class="eyebrow">{{ org.name or "Organisation not set" }} · CyFun 2025 {{ fw.level }}</div>
@@ -115,7 +116,7 @@
       {% for c in connectors %}
       <tr>
         <td><a href="/connectors/{{ c.key }}">{{ c.name }}</a></td>
-        <td>{% if not c.configured %}<span class="chip">not configured</span>{% elif not c.run %}<span class="chip">never run</span>{% elif c.run.status == 'ok' %}<span class="chip ok">ok</span>{% elif c.run.status == 'running' %}<span class="chip info">running</span>{% else %}<span class="chip bad">error</span>{% endif %}</td>
+        <td>{{ connector_chip(c) }}</td>
         <td class="muted">{{ c.run.finished_at|date if c.run and c.run.finished_at else "" }}</td>
       </tr>
       {% endfor %}

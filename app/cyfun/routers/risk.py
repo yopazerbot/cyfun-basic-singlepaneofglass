@@ -11,7 +11,7 @@ from ..auth import require_admin, require_user
 from ..db import get_db
 from ..framework import load_risk_model
 from ..models import RiskAssessment, RiskItem, User
-from ..services import get_risk, log_activity, parse_date, parse_int
+from ..services import form_text, get_risk, log_activity, parse_date, parse_int
 from ..views import redirect, render
 
 router = APIRouter(prefix="/risk", tags=["risk"])
@@ -52,7 +52,7 @@ def risk_page(request: Request, sector: str = "", user: User = Depends(require_u
     model = load_risk_model()
     ra = get_risk(db)
     if sector and sector != (ra.sector_id if ra else ""):
-        sector_id = sector if _known_sector(model, sector) else _first_sector(model)
+        sector_id = riskmod.sector(model, sector)["id"]
         size = ra.organisation_size if ra else 1
         matrix = riskmod.default_matrix(model, sector_id)
         rationale = ra.rationale if ra else ""
@@ -107,7 +107,7 @@ async def risk_save(request: Request, user: User = Depends(require_admin), db: S
     ra.sector_id = sector_id
     ra.organisation_size = size
     ra.matrix = matrix
-    ra.rationale = (form.get("rationale") or "").strip()
+    ra.rationale = form_text(form, "rationale")
     ra.total_score = result.total
     ra.level = result.level
     ra.updated_by = user.label
@@ -138,15 +138,15 @@ def register_edit(request: Request, item_id: int, user: User = Depends(require_u
 
 
 def _apply(item: RiskItem, form) -> None:
-    item.title = (form.get("title") or "").strip()[:200] or item.title or "Untitled risk"
-    item.threat = (form.get("threat") or "").strip()
-    item.vulnerability = (form.get("vulnerability") or "").strip()
-    item.assets = (form.get("assets") or "").strip()[:300]
+    item.title = form_text(form, "title", 200) or item.title or "Untitled risk"
+    item.threat = form_text(form, "threat")
+    item.vulnerability = form_text(form, "vulnerability")
+    item.assets = form_text(form, "assets", 300)
     item.likelihood = parse_int(form.get("likelihood"), 1, 3) or 2
     item.impact = parse_int(form.get("impact"), 1, 3) or 2
     item.treatment = form.get("treatment") if form.get("treatment") in TREATMENTS else "mitigate"
-    item.measures = (form.get("measures") or "").strip()
-    item.owner = (form.get("owner") or "").strip()[:200]
+    item.measures = form_text(form, "measures")
+    item.owner = form_text(form, "owner", 200)
     item.status = form.get("status") if form.get("status") in STATUSES else "open"
     item.review_date = parse_date(form.get("review_date"))
 

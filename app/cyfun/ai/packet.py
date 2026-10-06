@@ -27,7 +27,7 @@ from ..config import Settings
 from ..connectors import ALL as CONNECTORS
 from ..framework import Framework
 from ..models import Action, Asset, Document, Evidence, Organisation, RiskItem, Score, User
-from ..services import evidence_path, latest_checks
+from ..services import OPEN_ACTION_STATUSES, evidence_file, iso_date, latest_checks
 from ..views import fmt_score
 from .pseudonym import Pseudonymizer
 
@@ -61,10 +61,6 @@ class Packet:
     @property
     def meta(self) -> dict:
         return {"refs": self.refs, "facts": self.facts, "attachments": self.attachments}
-
-
-def _iso(d) -> str | None:
-    return d.isoformat() if d else None
 
 
 def _compact(item: dict) -> dict:
@@ -137,17 +133,6 @@ def pseudonymizer_for(db: Session) -> Pseudonymizer:
             p.add_person(a.name)
             p.add_person(a.description)
     return p
-
-
-def evidence_file(settings: Settings, e: Evidence | None) -> Path | None:
-    """The stored file of an evidence item, or None when it is missing."""
-    if e is None:
-        return None
-    try:
-        path = evidence_path(settings, e)
-    except ValueError:
-        return None
-    return path if path.exists() else None
 
 
 def _attachment(settings: Settings, e: Evidence, used: dict) -> tuple[str, dict | None, str]:
@@ -226,7 +211,7 @@ def build_packet(db: Session, settings: Settings, fw: Framework, rid: str, today
             "implementation": score.impl_score,
             "not_applicable": score.not_applicable,
             "justification": p.text(score.justification) or None,
-            "last_changed": _iso(score.updated_at.date() if score.updated_at else None),
+            "last_changed": iso_date(score.updated_at.date() if score.updated_at else None),
         },
     }
 
@@ -243,9 +228,9 @@ def build_packet(db: Session, settings: Settings, fw: Framework, rid: str, today
             "version": d.version,
             "owner": p.text(d.owner),
             "approved_by": p.text(d.approved_by),
-            "approved_on": _iso(d.approved_on),
-            "last_review": _iso(d.last_review),
-            "next_review": _iso(d.next_review),
+            "approved_on": iso_date(d.approved_on),
+            "last_review": iso_date(d.last_review),
+            "next_review": iso_date(d.next_review),
             "stored_at": _host(d.link),
             "notes": p.text(d.notes),
         }
@@ -260,15 +245,27 @@ def build_packet(db: Session, settings: Settings, fw: Framework, rid: str, today
     others = [d for d in all_docs if rid not in (d.requirement_ids or [])][:OTHER_DOCS_LIMIT]
     other_out = []
     for i, d in enumerate(others, 1):
-        item = _compact({"title": p.text(d.title), "type": d.doc_type, "status": d.status, "last_review": _iso(d.last_review or d.approved_on)})
+        item = _compact({"title": p.text(d.title), "type": d.doc_type, "status": d.status, "last_review": iso_date(d.last_review or d.approved_on)})
         other_out.append({"ref": add_ref("O", i, "document", d.title, item, f"/documents/{d.id}"), **item})
     if other_out:
         packet["other_documents_in_register"] = other_out
     basis["documents"] = [
-        [d.id, d.title, d.doc_type, d.status, d.version, d.owner, d.approved_by, _iso(d.approved_on), _iso(d.last_review), _iso(d.next_review), d.notes]
+        [
+            d.id,
+            d.title,
+            d.doc_type,
+            d.status,
+            d.version,
+            d.owner,
+            d.approved_by,
+            iso_date(d.approved_on),
+            iso_date(d.last_review),
+            iso_date(d.next_review),
+            d.notes,
+        ]
         for d in linked
     ]
-    basis["other_documents"] = [[d.id, d.title, d.status, _iso(d.last_review)] for d in others]
+    basis["other_documents"] = [[d.id, d.title, d.status, iso_date(d.last_review)] for d in others]
 
     # evidence ------------------------------------------------------------------------------
     evidence = [e for e in db.execute(select(Evidence).order_by(Evidence.id)).scalars().all() if rid in (e.requirement_ids or []) and e.kind != "automated"]
@@ -282,7 +279,7 @@ def build_packet(db: Session, settings: Settings, fw: Framework, rid: str, today
             "title": p.text(e.title),
             "kind": e.kind,
             "description": p.text(e.description),
-            "collected_on": _iso(e.collected_on),
+            "collected_on": iso_date(e.collected_on),
             "collected_by": p.text(e.collected_by),
             "file": p.text(e.file_name),
             "size_kb": round(e.size / 1024) if e.size else None,
@@ -299,7 +296,7 @@ def build_packet(db: Session, settings: Settings, fw: Framework, rid: str, today
             refs[ref]["text"] += " | " + safe
             texts.append(f'<evidence_file ref="{ref}" name="{p.text(e.file_name)}">\n{safe}\n</evidence_file>')
     packet["evidence_linked_to_this_requirement"] = ev_out
-    basis["evidence"] = [[e.id, e.title, e.kind, e.description, _iso(e.collected_on), e.sha256, e.url, e.share_with_ai] for e in evidence]
+    basis["evidence"] = [[e.id, e.title, e.kind, e.description, iso_date(e.collected_on), e.sha256, e.url, e.share_with_ai] for e in evidence]
 
     # automated checks ----------------------------------------------------------------------
     checks = [c for c in latest_checks(db) if rid in (c.requirement_ids or [])]
@@ -313,7 +310,7 @@ def build_packet(db: Session, settings: Settings, fw: Framework, rid: str, today
             "check": c.title,
             "status": c.status,
             "summary": p.text(c.summary),
-            "checked_on": _iso(c.checked_at.date() if c.checked_at else None),
+            "checked_on": iso_date(c.checked_at.date() if c.checked_at else None),
             "details": details or None,
         }
         if notes:
@@ -327,10 +324,10 @@ def build_packet(db: Session, settings: Settings, fw: Framework, rid: str, today
     basis["checks"] = [[c.connector, c.check_id, c.status, c.summary] for c in checks]
 
     # actions -------------------------------------------------------------------------------
-    actions = db.execute(select(Action).where(Action.requirement_id == rid, Action.status.in_(["open", "in_progress"])).order_by(Action.id)).scalars().all()
+    actions = db.execute(select(Action).where(Action.requirement_id == rid, Action.status.in_(OPEN_ACTION_STATUSES)).order_by(Action.id)).scalars().all()
     act_out = []
     for i, a in enumerate(actions, 1):
-        item = _compact({"title": p.text(a.title), "status": a.status, "owner": p.text(a.owner), "due": _iso(a.due_date)})
+        item = _compact({"title": p.text(a.title), "status": a.status, "owner": p.text(a.owner), "due": iso_date(a.due_date)})
         act_out.append({"ref": add_ref("A", i, "action", a.title, item, f"/actions/{a.id}"), **item})
     if act_out:
         packet["open_actions"] = act_out
@@ -348,12 +345,12 @@ def build_packet(db: Session, settings: Settings, fw: Framework, rid: str, today
                 "treatment": r.treatment,
                 "status": r.status,
                 "owner": p.text(r.owner),
-                "review_date": _iso(r.review_date),
+                "review_date": iso_date(r.review_date),
             }
             item = _compact(item)
             r_out.append({"ref": add_ref("R", i, "risk", r.title, item, "/risk/register"), **item})
         packet["risk_register"] = {"items": len(risks), "listed": r_out}
-        basis["risks"] = [[r.id, r.title, r.likelihood, r.impact, r.treatment, r.status, _iso(r.review_date)] for r in risks]
+        basis["risks"] = [[r.id, r.title, r.likelihood, r.impact, r.treatment, r.status, iso_date(r.review_date)] for r in risks]
 
     # inventory summary for asset-management requirements -------------------------------------
     if rid.startswith("ID.AM"):

@@ -1,15 +1,6 @@
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Sign in · {{ settings.app_name }}</title>
-  <link rel="stylesheet" href="/static/app.css">
-  <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
-</head>
-<body class="plain">
-  <main class="login-card">
-    <div class="brand-mark big" aria-hidden="true">CF</div>
+{% extends "plain.html" %}
+{% block title %}Sign in · {{ settings.app_name }}{% endblock %}
+{% block content %}
     <h1>{{ settings.app_name }}</h1>
     <p class="muted small">CyberFundamentals 2025 · assessment, evidence and verification</p>
     {% if error %}<div class="flash bad" role="alert">{{ error }}</div>{% endif %}
@@ -26,6 +17,4 @@
     </form>
     {% endif %}
     {% if not entra and not local %}<p class="muted small">No sign-in method is enabled. See docs/entra-id-sso.md and AUTH_LOCAL_ENABLED.</p>{% endif %}
-  </main>
-</body>
-</html>
+{% endblock %}

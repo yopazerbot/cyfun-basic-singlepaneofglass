@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 from ..auth import require_admin, require_user
 from ..db import get_db
 from ..models import Asset, User
-from ..services import log_activity
+from ..services import form_text, iso_date, log_activity
 from ..views import redirect, render
 
 router = APIRouter(prefix="/assets", tags=["assets"])
@@ -93,7 +93,7 @@ def export_csv(request: Request, user: User = Depends(require_user), db: Session
                 a.lifecycle,
                 a.source,
                 a.external_id,
-                a.last_seen_at.isoformat() if a.last_seen_at else "",
+                iso_date(a.last_seen_at) or "",
             ]
         )
     return StreamingResponse(iter([buf.getvalue()]), media_type="text/csv", headers={"Content-Disposition": 'attachment; filename="assets.csv"'})
@@ -110,11 +110,11 @@ def edit_asset(request: Request, asset_id: int, user: User = Depends(require_use
 def _apply(item: Asset, form, manual: bool) -> None:
     if manual:
         item.kind = form.get("kind") if form.get("kind") in KINDS else item.kind
-        item.name = (form.get("name") or "").strip()[:300] or item.name
-        item.description = (form.get("description") or "").strip()[:2000]
-        item.location = (form.get("location") or "").strip()[:200]
+        item.name = form_text(form, "name", 300) or item.name
+        item.description = form_text(form, "description", 2000)
+        item.location = form_text(form, "location", 200)
         item.lifecycle = form.get("lifecycle") if form.get("lifecycle") in LIFECYCLE else item.lifecycle
-    item.owner = (form.get("owner") or "").strip()[:200]
+    item.owner = form_text(form, "owner", 200)
     item.classification = form.get("classification") if form.get("classification") in CLASSIFICATIONS else item.classification
     item.criticality = form.get("criticality") if form.get("criticality") in CRITICALITY else item.criticality
     item.primary_asset = form.get("primary_asset") == "1"
@@ -123,7 +123,7 @@ def _apply(item: Asset, form, manual: bool) -> None:
 @router.post("")
 async def create_asset(request: Request, user: User = Depends(require_admin), db: Session = Depends(get_db)):
     form = await request.form()
-    name = (form.get("name") or "").strip()
+    name = form_text(form, "name")
     if not name:
         return redirect("/assets", err="Name is required.")
     item = Asset(kind=form.get("kind") if form.get("kind") in KINDS else "hardware", name=name[:300], source="manual")

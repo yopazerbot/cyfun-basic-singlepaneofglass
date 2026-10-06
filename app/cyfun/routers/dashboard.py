@@ -8,9 +8,10 @@ from fastapi import APIRouter, Depends, Request
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from ..appsettings import load_config
 from ..auth import require_user
-from ..config import get_settings
 from ..connectors import registry
+from ..connectors.base import STATUSES
 from ..db import get_db
 from ..models import Activity, Document, Evidence, User
 from ..services import JOURNEY_STAGES, current_framework, current_summary, documents_due, get_org, get_risk, latest_checks, latest_runs, open_actions
@@ -36,10 +37,9 @@ def dashboard(request: Request, user: User = Depends(require_user), db: Session 
     covered &= set(fw.by_id)
 
     checks = latest_checks(db)
-    check_counts = {s: sum(1 for c in checks if c.status == s) for s in ("pass", "fail", "warn", "info", "error")}
+    check_counts = {s: sum(1 for c in checks if c.status == s) for s in STATUSES}
     runs = latest_runs(db)
-    settings = get_settings()
-    conns = [{"key": key, "name": c.name, "configured": c.configured(), "run": runs.get(key)} for key, c in registry(settings).items()]
+    conns = [{"key": key, "name": c.name, "configured": c.configured(), "run": runs.get(key)} for key, c in registry(load_config(db)).items()]
 
     actions = open_actions(db)
     today = date.today()
