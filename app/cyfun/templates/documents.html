@@ -32,7 +32,7 @@
   <div class="card-head"><h2>Documents</h2><span class="muted">{{ docs|length }} registered</span>{% if not edit %}{{ add_button("document-form", "document", admin) }}{% endif %}</div>
   {% if docs %}
   <div class="table-wrap">
-  <table class="list stack">
+  <table class="list stacked">
     <thead><tr><th>Title</th><th class="hide-sm">Type</th><th class="hide-sm">Version</th><th>Status</th><th class="hide-sm">Approved</th><th>Next review</th><th class="hide-sm">Requirements</th>{% if admin %}<th><span class="visually-hidden">Delete</span></th>{% endif %}</tr></thead>
     <tbody>
     {% for d in docs %}

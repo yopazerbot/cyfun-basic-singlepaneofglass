@@ -2,7 +2,7 @@
 
 Self-hosted web application for one purpose: obtain and keep a **CyberFundamentals (CyFun) 2025** label from the Centre for Cybersecurity Belgium (CCB), at the **BASIC**, **IMPORTANT** or **ESSENTIAL** assurance level. It runs the CCB risk assessment that selects the level, the self-assessment with the exact CCB scoring of that level, the evidence and document registers, remediation tracking, read-only connectors to live systems, optional scoring proposals by Claude, and the exports needed for the self-declaration and the verification by a Conformity Assessment Body (CAB).
 
-Two containers (application and TLS proxy), one SQLite file, Microsoft Entra ID single sign-on or local accounts. Server settings live in environment variables; connector credentials and the Anthropic API key are entered on a Settings page and stored encrypted.
+Two containers (application and TLS proxy), one SQLite file, Microsoft Entra ID single sign-on or local accounts. Server settings live in environment variables; connector credentials, the backup schedule and the Anthropic API key are entered on a Settings page and stored encrypted. The document register can follow a Notion database, and the whole application (data, files and settings) is backed up as one encrypted file, optionally copied to OneDrive.
 
 ![Dashboard](docs/screenshots/dashboard.png)
 
@@ -18,13 +18,21 @@ Two containers (application and TLS proxy), one SQLite file, Microsoft Entra ID 
 | Documents | Policies, procedures, plans, records with version, approval, review dates and requirement mapping; maintained in the application or synced from a Notion database | GV.PO-01.1, documentation maturity |
 | Evidence | Files (SHA-256 hashed, random storage names), links, and automated evidence from every connector check (snapshot hash), mapped to requirements | verification |
 | Actions | Remediation with owner, priority, due date, status | internal planning, excluded from exports |
-| Connected systems | Microsoft 365 / Entra ID, GitHub, Railway, Cloudflare, Notion (document register). Each run refreshes the inventory, produces checks mapped to requirements and stores a raw snapshot | ID.AM, PR.AA, PR.PS, PR.IR, DE.CM, DE.AE |
+| Connected systems | Microsoft 365 / Entra ID, GitHub, Railway, Cloudflare, Notion (document register). Each run refreshes the inventory or the document register, produces checks mapped to requirements and stores a raw snapshot | ID.AM, PR.AA, PR.PS, PR.IR, DE.CM, DE.AE, GV.PO |
 | Claude review (optional) | Claude proposes documentation and implementation scores with a justification per requirement, or for a whole level in one batch, from the linked documents, evidence and checks. Guard rules apply the CCB definitions; an administrator accepts, edits or rejects every proposal; personal data is replaced by placeholders before sending | maturity scoring |
 | Settings | Connector credentials, connector schedule, scheduled backup and OneDrive copy, Anthropic API key, model and monthly spend limit; secrets encrypted, never shown again | administration |
-| Backup and restore | One encrypted file with all data and settings; download, restore, scheduled backups, OneDrive copy | operations |
+| Backup and restore | One encrypted file with all data, files and settings; download, restore with a pre-restore copy, scheduled backups with retention, OneDrive copy | operations |
 | Audit view and export | Read-only verification view per requirement; snapshots; fills the official CCB workbook of the chosen level; audit pack ZIP; JSON | self-declaration and CAB verification |
 | Users | Entra ID accounts with app roles, optional local accounts (admin and read-only auditor) | access control |
 | Activity log | Append-only record of every change | traceability |
+
+### Documents in Notion
+
+Keep the policies, procedures, plans, registers and records in a Notion database and let the register follow it. Each page becomes a register entry with type, status, owner, version, approval and review dates, the requirements it supports and a link back to Notion; those entries are edited in Notion and are read-only in the application. The Settings page can create the database with the right properties. Checks report missing approvals, overdue reviews and documents without a requirement (GV.PO-01.1). Set-up: [docs/connectors.md](docs/connectors.md#notion).
+
+### Backup and restore
+
+The Backup and restore page downloads the whole application as one `.cyfunbak` file: the database (assessment, registers, users, activity log, Settings page values) and the evidence files and connector snapshots. The file is encrypted with AES-256-GCM under a key derived from `CYFUN_SECRET_KEY`; the page shows that key's fingerprint so you can check the copy in your password manager. A restore checks the whole file first and saves the current state as a pre-restore backup. On the Settings page, set an interval for scheduled backups on the server and, optionally, a OneDrive for Business folder for an off-host copy. Details and permissions: [docs/backup.md](docs/backup.md).
 
 Scores stay a human judgement. Connector checks are evidence placed next to the requirement, not an automatic score, and a proposal by Claude changes nothing until an administrator accepts it. Accepted proposals are marked as such in the audit view and the audit pack.
 
@@ -62,17 +70,21 @@ The tests reproduce the CCB workbooks' category and key-measure results for all 
 |---|---|
 | ![Claude review panel](docs/screenshots/claude-review.png) | ![Claude review page](docs/screenshots/claude-queue.png) |
 
-| Settings |
-|---|
-| ![Settings](docs/screenshots/settings.png) |
+| Connected systems | Settings |
+|---|---|
+| ![Connected systems](docs/screenshots/connectors.png) | ![Settings](docs/screenshots/settings.png) |
+
+| Backup and restore | Users |
+|---|---|
+| ![Backup and restore](docs/screenshots/backup.png) | ![Users](docs/screenshots/users.png) |
 
 All screenshots show sample data.
 
-On a phone the navigation folds into a menu and every page fits the screen without sideways scrolling; wide tables scroll inside their card and drop secondary columns.
+On a phone the navigation folds into a menu and every page fits the screen without sideways scrolling. Register tables become stacked rows, the scoring page shows the guidance first and keeps the Save buttons in view, and the meaning of the chosen maturity level is spelled out under the buttons. Checked with axe-core at 320, 390, 768 and 1440 px.
 
-| Phone: dashboard | Phone: scoring a requirement | Phone: menu |
-|---|---|---|
-| <img src="docs/screenshots/mobile-dashboard.png" alt="Dashboard on a phone" width="260"> | <img src="docs/screenshots/mobile-detail.png" alt="Scoring a requirement on a phone" width="260"> | <img src="docs/screenshots/mobile-menu.png" alt="Menu on a phone" width="260"> |
+| Phone: dashboard | Phone: scoring a requirement | Phone: document register | Phone: menu |
+|---|---|---|---|
+| <img src="docs/screenshots/mobile-dashboard.png" alt="Dashboard on a phone" width="200"> | <img src="docs/screenshots/mobile-detail.png" alt="Scoring a requirement on a phone" width="200"> | <img src="docs/screenshots/mobile-documents.png" alt="Document register on a phone" width="200"> | <img src="docs/screenshots/mobile-menu.png" alt="Menu on a phone" width="200"> |
 
 ## Quick start
 
@@ -88,7 +100,7 @@ python -c "import secrets; print(secrets.token_urlsafe(32))"   # paste as CYFUN_
 PYTHONPATH=app uvicorn cyfun.main:app --reload       # Windows: scripts\run-dev.ps1
 ```
 
-Open http://localhost:8000 and sign in with `admin` / `admin`. The application forces a new password before anything else. Set `APP_BASE_URL=http://localhost:8000` in `.env` for local use (cookies are marked Secure only on https). Connector credentials and the Anthropic API key go on the Settings page.
+Open http://localhost:8000 and sign in with `admin` / `admin`. The application forces a new password before anything else. Set `APP_BASE_URL=http://localhost:8000` in `.env` for local use (cookies are marked Secure only on https). Connector credentials, the Notion integration, the backup schedule and the Anthropic API key go on the Settings page.
 
 Production, two containers behind Caddy with TLS:
 
@@ -97,7 +109,7 @@ cp .env.example .env            # APP_BASE_URL, APP_HOSTNAME, CYFUN_SECRET_KEY, 
 docker compose up -d --build
 ```
 
-For a Proxmox host, follow [docs/deployment-proxmox.md](docs/deployment-proxmox.md) from an empty host to backups and updates. Caddy serves `https://$APP_HOSTNAME` with an internal CA by default (set `CADDY_TLS` to an e-mail address for Let's Encrypt). Configure Entra ID sign-in when ready (docs/entra-id-sso.md) and set `AUTH_LOCAL_ENABLED=false` once it works, or keep local accounts for an external auditor.
+For a Proxmox host, follow [docs/deployment-proxmox.md](docs/deployment-proxmox.md) from an empty host to backups and updates. After the first sign-in, set a backup interval on the Settings page and keep `.env` (with `CYFUN_SECRET_KEY`) in your password manager: without that key no backup can be restored. Caddy serves `https://$APP_HOSTNAME` with an internal CA by default (set `CADDY_TLS` to an e-mail address for Let's Encrypt). Configure Entra ID sign-in when ready (docs/entra-id-sso.md) and set `AUTH_LOCAL_ENABLED=false` once it works, or keep local accounts for an external auditor.
 
 ## Documentation
 
@@ -128,7 +140,7 @@ app/cyfun/                 application package (FastAPI, Jinja2, SQLAlchemy, SQL
   audit_pack.py            builds the audit ZIP
   backup.py onedrive.py    encrypted backup and restore, OneDrive copy
 scripts/                   regenerate the framework JSON from the CCB workbooks and booklets; dev runner
-tests/                     pytest suite (scoring, levels, risk model, export, connectors, sign-in, HTTP)
+tests/                     pytest suite (scoring, levels, risk model, export, connectors, Notion, backup, Claude review, sign-in, HTTP)
 deploy/Caddyfile           TLS reverse proxy
 Dockerfile, compose.yaml   containers
 ```

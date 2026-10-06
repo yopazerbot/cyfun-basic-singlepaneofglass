@@ -31,7 +31,7 @@
   <div class="card-head"><h2>Risks</h2><span class="muted">{{ items|length }} entries</span>{% if not edit %}{{ add_button("risk-form", "risk", admin) }}{% endif %}</div>
   {% if items %}
   <div class="table-wrap">
-  <table class="list stack">
+  <table class="list stacked">
     <thead><tr><th>Risk</th><th class="hide-sm">Assets</th><th class="num hide-sm">L</th><th class="num hide-sm">I</th><th class="num">Score</th><th>Treatment</th><th class="hide-sm">Owner</th><th>Status</th><th class="hide-sm">Review</th>{% if admin %}<th><span class="visually-hidden">Delete</span></th>{% endif %}</tr></thead>
     <tbody>
     {% for r in items %}
