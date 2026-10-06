@@ -1,9 +1,9 @@
 # Deployment on Proxmox
 
-Step by step, from an empty Proxmox host to a running instance with TLS, backups and updates. The result is one Debian 13 VM that runs two containers: the application and Caddy as TLS reverse proxy. Users reach it on `https://<hostname>` from your internal network; nothing has to be published to the internet.
+Step by step, from an empty Proxmox host to a running instance with TLS, backups and updates. The result is one Ubuntu Server 26.04 LTS VM that runs two containers: the application and Caddy as TLS reverse proxy. Users reach it on `https://<hostname>` from your internal network; nothing has to be published to the internet.
 
 ```
-users (LAN / VPN) ──HTTPS 443──> Proxmox VM "cyfun" (Debian 13, Docker)
+users (LAN / VPN) ──HTTPS 443──> Proxmox VM "cyfun" (Ubuntu 26.04, Docker)
                                    ├── caddy  :80 :443   TLS, HSTS, reverse proxy
                                    └── app    :8000      internal Docker network only
                                          └── volume cyfun_data: database, evidence, snapshots, backups
@@ -42,16 +42,16 @@ On Windows the public key is in `%USERPROFILE%\.ssh\id_ed25519.pub`; create one 
 
 ## 2. Create the VM (Proxmox host)
 
-Download the Debian 13 cloud image and check its checksum:
+Download the Ubuntu Server 26.04 LTS cloud image and check its checksum:
 
 ```bash
 cd /var/lib/vz/template/iso
-wget -N https://cloud.debian.org/images/cloud/trixie/latest/debian-13-genericcloud-amd64.qcow2
-wget -N https://cloud.debian.org/images/cloud/trixie/latest/SHA512SUMS
-sha512sum --check --ignore-missing SHA512SUMS
+wget -N https://cloud-images.ubuntu.com/releases/26.04/release/ubuntu-26.04-server-cloudimg-amd64.img
+wget -N https://cloud-images.ubuntu.com/releases/26.04/release/SHA256SUMS
+sha256sum --check --ignore-missing SHA256SUMS
 ```
 
-The last command must print `debian-13-genericcloud-amd64.qcow2: OK`.
+The last command must print `ubuntu-26.04-server-cloudimg-amd64.img: OK`. The `.img` file is a QCOW2 disk image; Proxmox imports it as is. Use the plain `amd64` image, not `amd64v3`, unless you know the host CPU supports x86-64-v3.
 
 Create, configure and start the VM:
 
@@ -62,7 +62,7 @@ BRIDGE=vmbr0                  # change (append ,tag=20 for a VLAN)
 IP=192.168.10.50/24           # change
 GW=192.168.10.1               # change
 DNS=192.168.10.1              # change
-IMG=/var/lib/vz/template/iso/debian-13-genericcloud-amd64.qcow2
+IMG=/var/lib/vz/template/iso/ubuntu-26.04-server-cloudimg-amd64.img
 
 qm create $VMID --name cyfun --ostype l26 --cpu host --cores 2 --memory 2048 \
   --scsihw virtio-scsi-single --net0 virtio,bridge=$BRIDGE,firewall=1 \
@@ -81,11 +81,11 @@ After about a minute the VM answers on SSH. From your workstation:
 ssh cyfun@192.168.10.50       # change
 ```
 
-The user `cyfun` has sudo rights without a password; there is no password login.
+Cloud-init creates the user `cyfun` (instead of the image's default `ubuntu`) with sudo rights without a password; there is no password login.
 
-## 3. Prepare Debian (in the VM)
+## 3. Prepare Ubuntu (in the VM)
 
-Updates, the QEMU guest agent (clean shutdown and consistent Proxmox backups), automatic security updates, time zone:
+Updates, the QEMU guest agent (clean shutdown and consistent Proxmox backups; the cloud image does not include it), automatic security updates, time zone:
 
 ```bash
 sudo apt-get update && sudo apt-get -y full-upgrade
@@ -109,17 +109,23 @@ EOF
 sudo sshd -t && sudo systemctl reload ssh
 ```
 
-Reboot once if the upgrade installed a new kernel: `sudo reboot`.
+Reboot once if the upgrade installed a new kernel; Ubuntu marks this with a file:
+
+```bash
+[ -f /var/run/reboot-required ] && sudo reboot
+```
+
+If `apt-get` shows a "Pending kernel upgrade" or "Daemons using outdated libraries" screen, press Enter to accept the defaults.
 
 ## 4. Install Docker Engine (in the VM)
 
-From Docker's own repository, as documented on docs.docker.com:
+From Docker's own repository, as documented on docs.docker.com. Do not use Ubuntu's `docker.io` package or the Docker snap: they lag behind, and the snap keeps volumes in another location than the commands below expect.
 
 ```bash
 sudo install -m 0755 -d /etc/apt/keyrings
-sudo curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc
+sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
 sudo chmod a+r /etc/apt/keyrings/docker.asc
-echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian $(. /etc/os-release && echo "$VERSION_CODENAME") stable" \
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}") stable" \
   | sudo tee /etc/apt/sources.list.d/docker.list >/dev/null
 sudo apt-get update
 sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
@@ -130,7 +136,7 @@ This guide runs Docker with `sudo`. Adding `cyfun` to the `docker` group would a
 
 ## 5. Firewall (Proxmox host)
 
-Docker opens ports 80 and 443 itself and bypasses a firewall inside the VM (ufw), so filter at the Proxmox level. The VM's network card already has `firewall=1` from step 2.
+Docker opens ports 80 and 443 itself and bypasses a firewall inside the VM (ufw is installed on Ubuntu but inactive; leave it that way), so filter at the Proxmox level. The VM's network card already has `firewall=1` from step 2.
 
 ```bash
 VMID=210                      # change
@@ -423,7 +429,7 @@ sudo docker image prune -f
 
 Database changes are applied at start (new tables and columns are added; nothing is removed). Monthly is a good rhythm, plus whenever GitHub shows a security update.
 
-**Operating system.** Security updates install automatically (step 3). Once a month: `sudo apt-get update && sudo apt-get -y full-upgrade`, and `sudo reboot` when a new kernel was installed. Docker restarts both containers by itself.
+**Operating system.** Security updates install automatically (step 3). Once a month: `sudo apt-get update && sudo apt-get -y full-upgrade`, then `[ -f /var/run/reboot-required ] && sudo reboot`. Ubuntu 26.04 LTS gets standard security updates until 2031. Move to the next LTS with `sudo do-release-upgrade` after a backup; Ubuntu offers it once that release's first point release is out. Docker restarts both containers by itself.
 
 ## 14. Monitoring
 
@@ -455,9 +461,9 @@ Proxmox recommends a VM for Docker, and this guide uses one. An unprivileged LXC
 
 ```bash
 pveam update
-pveam available --section system | grep debian-13-standard
-pveam download local debian-13-standard_13.X-1_amd64.tar.zst          # change to the exact name listed
-pct create 210 local:vztmpl/debian-13-standard_13.X-1_amd64.tar.zst \
+pveam available --section system | grep ubuntu-26.04-standard
+pveam download local ubuntu-26.04-standard_26.04-1_amd64.tar.zst      # change to the exact name listed
+pct create 210 local:vztmpl/ubuntu-26.04-standard_26.04-1_amd64.tar.zst \
   --hostname cyfun --unprivileged 1 --features nesting=1,keyctl=1 \
   --cores 2 --memory 2048 --swap 512 --rootfs local-lvm:32 \
   --net0 name=eth0,bridge=vmbr0,ip=192.168.10.50/24,gw=192.168.10.1,firewall=1 \
@@ -473,7 +479,7 @@ Leave outbound traffic open, or allow at least these destinations on TCP 443:
 
 | Destination | Needed for |
 |---|---|
-| `deb.debian.org`, `security.debian.org`, `download.docker.com` | operating system and Docker updates |
+| `archive.ubuntu.com`, `security.ubuntu.com` (TCP 80 and 443), `download.docker.com` | operating system and Docker updates |
 | `registry-1.docker.io`, `auth.docker.io`, `production.cloudflare.docker.com` | base images (Python, Caddy, Alpine) |
 | `pypi.org`, `files.pythonhosted.org` | building the application image |
 | `github.com` | `git pull` |
@@ -487,7 +493,7 @@ Leave outbound traffic open, or allow at least these destinations on TCP 443:
 | `api.anthropic.com` | Claude review, only when an API key is set |
 | `acme-v02.api.letsencrypt.org` | option C certificates only |
 
-Plus DNS (UDP/TCP 53) to your resolver and NTP (UDP 123) for time synchronisation.
+Plus DNS (UDP/TCP 53) to your resolver and time synchronisation: Ubuntu 26.04 runs chrony with NTS against Ubuntu's time servers (UDP 123 and TCP 4460). To use your own NTP server instead, put `server ntp.internal.example iburst` (change the name) in `/etc/chrony/sources.d/local.sources`, run `sudo chronyc reload sources` and check with `chronyc sources`.
 
 ## After deployment
 
