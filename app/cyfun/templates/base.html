@@ -40,7 +40,8 @@
         {{ link_on('/audit', 'Audit view and export', active == 'audit') }}
         {{ link_on('/activity', 'Activity log', active == 'activity') }}
         {% if user and user.role == 'admin' %}{{ link_on('/auth/users', 'Users', active == 'users') }}
-        {{ link_on('/settings', 'Settings', active == 'settings') }}{% endif %}
+        {{ link_on('/settings', 'Settings', active == 'settings') }}
+        {{ link_on('/backup', 'Backup and restore', active == 'backup') }}{% endif %}
       </nav>
       <div class="side-foot">
         {% if user %}

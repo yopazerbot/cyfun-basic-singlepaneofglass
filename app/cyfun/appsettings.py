@@ -1,4 +1,4 @@
-"""Settings managed in the application: connector credentials, the connector schedule and Claude.
+"""Settings managed in the application: connector credentials, the connector schedule, backups and Claude.
 
 Every setting also has an environment variable. A non-empty environment value wins and the
 field is shown read-only, so a deployment configured through .env keeps working. Otherwise the
@@ -71,6 +71,11 @@ GROUPS: tuple[Group, ...] = (
     Group("cloudflare", "Cloudflare", "API token with read permissions. Account-level checks also need the account ID.", "cloudflare"),
     Group("schedule", "Connector schedule", "Every configured connector runs automatically at this interval."),
     Group(
+        "backup",
+        "Scheduled backup",
+        "Writes an encrypted backup of the database and data files to the server at this interval and, when a OneDrive user is set, copies it to that OneDrive folder.",
+    ),
+    Group(
         "claude",
         "Claude (Anthropic API)",
         "Claude proposes documentation and implementation scores per requirement. A proposal changes nothing until an administrator accepts it.",
@@ -103,6 +108,72 @@ FIELDS: tuple[SettingField, ...] = (
         pattern_hint="32 hexadecimal characters",
     ),
     SettingField("connector_sync_hours", "schedule", "Hours between automatic runs", "CONNECTOR_SYNC_HOURS", kind="int", default=24, minimum=1, maximum=168),
+    SettingField(
+        "backup_interval_hours",
+        "backup",
+        "Hours between backups",
+        "BACKUP_INTERVAL_HOURS",
+        kind="int",
+        default=0,
+        minimum=0,
+        maximum=720,
+        help="0 turns scheduled backups off. 24 is daily, 168 weekly.",
+    ),
+    SettingField(
+        "backup_keep",
+        "backup",
+        "Backups to keep",
+        "BACKUP_KEEP",
+        kind="int",
+        default=14,
+        minimum=1,
+        maximum=365,
+        help="Applies on the server and in the OneDrive folder.",
+    ),
+    SettingField(
+        "backup_onedrive_user",
+        "backup",
+        "OneDrive user (optional)",
+        "BACKUP_ONEDRIVE_USER",
+        pattern=r"[^@\s/]+@[^@\s/]+\.[^@\s/]+",
+        pattern_hint="a user principal name such as backup@example.com",
+        placeholder="empty: keep backups on the server only",
+    ),
+    SettingField(
+        "backup_onedrive_folder",
+        "backup",
+        "OneDrive folder",
+        "BACKUP_ONEDRIVE_FOLDER",
+        default="CyFun backups",
+        pattern=r'[^\\:*?"<>|#%]{1,200}',
+        pattern_hint='a folder path without \\ : * ? " < > | # %',
+    ),
+    SettingField(
+        "backup_graph_tenant_id",
+        "backup",
+        "Directory (tenant) ID",
+        "BACKUP_GRAPH_TENANT_ID",
+        pattern=GUID,
+        pattern_hint="a GUID",
+        placeholder="empty: the Microsoft 365 connector's",
+    ),
+    SettingField(
+        "backup_graph_client_id",
+        "backup",
+        "Application (client) ID",
+        "BACKUP_GRAPH_CLIENT_ID",
+        pattern=GUID,
+        pattern_hint="a GUID",
+        placeholder="empty: the Microsoft 365 connector's",
+    ),
+    SettingField(
+        "backup_graph_client_secret",
+        "backup",
+        "Client secret",
+        "BACKUP_GRAPH_CLIENT_SECRET",
+        secret=True,
+        help="A separate app registration with Files.ReadWrite.All, or Sites.Selected on the user's OneDrive, keeps write access away from the read-only connector app. Empty: the connector's secret.",
+    ),
     SettingField(
         "anthropic_api_key",
         "claude",

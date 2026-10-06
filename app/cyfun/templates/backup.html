@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}Backup · {{ settings.app_name }}{% endblock %}
+{% block content %}
+<header class="page-head">
+  <div class="eyebrow">Administration · backup and restore</div>
+  <h1>Backup and restore</h1>
+  <p class="lead">A backup holds the database (assessment, registers, users, activity log and the Settings page values, secrets still encrypted) and the evidence files and connector snapshots. It is one file encrypted with the server key CYFUN_SECRET_KEY: restoring it needs a server with the same key. Environment settings (.env) are not included; keep .env with the key in your password manager.</p>
+</header>
+
+{% if key_problem %}
+<div class="flash bad" role="alert">Backups cannot be made: {{ key_problem }}</div>
+{% endif %}
+
+<section class="grid two">
+  <div class="card">
+    <div class="card-head"><h2>Back up now</h2></div>
+    <p>Download a backup of the current state, or run the scheduled backup now: saved on the server{% if onedrive %} and copied to OneDrive{% endif %}.</p>
+    <div class="actions">
+      <a class="btn" href="/backup/download">Download backup</a>
+      <form method="post" action="/backup/run" class="inline"><button class="btn secondary" type="submit">Run scheduled backup now</button></form>
+    </div>
+    <p class="muted small">Schedule:
+      {% if config.backup_interval_hours %}every {{ config.backup_interval_hours }} hours, newest {{ config.backup_keep }} kept{% else %}off{% endif %}.
+      OneDrive: {% if onedrive %}{{ config.backup_onedrive_user }}, folder {{ config.backup_onedrive_folder }}{% else %}not configured{% endif %}.
+      <a href="/settings#backup">Change in Settings</a></p>
+  </div>
+
+  <form class="card form" id="restore" method="post" action="/backup/restore" enctype="multipart/form-data">
+    <div class="card-head"><h2>Restore from a file</h2></div>
+    <p>Replaces all data in this application with the backup's content, users and sessions included. The backup is checked completely first, and the current state is saved as a pre-restore backup on the server before anything changes.</p>
+    <label>Backup file (.cyfunbak)<input type="file" name="file" accept=".cyfunbak" required></label>
+    <label>Type {{ confirm }} to confirm<input name="confirm" autocomplete="off" spellcheck="false" autocapitalize="characters" required></label>
+    <div class="actions"><button class="btn danger" type="submit">Restore</button></div>
+  </form>
+</section>
+
+<section class="card">
+  <div class="card-head"><h2>Backups on the server</h2></div>
+  {% if files %}
+  <div class="table-wrap"><table class="list small">
+    <thead><tr><th>File</th><th class="num">Size</th><th></th></tr></thead>
+    <tbody>
+    {% for f in files %}
+    <tr>
+      <td class="mono"><a href="/backup/files/{{ f.name }}">{{ f.name }}</a></td>
+      <td class="num nowrap">{% if f.size < 1048576 %}{{ (f.size / 1024)|round(0)|int }} KB{% else %}{{ '%.1f'|format(f.size / 1048576) }} MB{% endif %}</td>
+      <td>
+        <form method="post" action="/backup/files/{{ f.name }}/restore" class="inline restore-inline">
+          <input name="confirm" aria-label="Type {{ confirm }} to restore {{ f.name }}" placeholder="{{ confirm }}" size="9" autocomplete="off" required>
+          <button class="btn link-danger small" type="submit">Restore</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% else %}
+  <p class="muted">No backups on the server yet.</p>
+  {% endif %}
+</section>
+
+<section class="card">
+  <div class="card-head"><h2>Recent backup activity</h2></div>
+  {% if recent %}
+  <div class="table-wrap"><table class="list small">
+    <thead><tr><th>When (UTC)</th><th>Actor</th><th>Action</th><th class="hide-sm">Details</th></tr></thead>
+    <tbody>
+    {% for a in recent %}
+    <tr><td class="nowrap">{{ a.at|date }}</td><td>{{ a.actor }}</td><td><span class="chip {{ 'bad' if a.action == 'backup_failed' else 'ok' }}">{{ a.action|replace('backup_', '') }}</span></td><td class="hide-sm mono small details-cell">{{ a.details|tojson }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% else %}
+  <p class="muted">No backups made yet.</p>
+  {% endif %}
+</section>
+{% endblock %}

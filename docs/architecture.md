@@ -26,7 +26,7 @@ Two containers, one named volume for data, one for Caddy state. No database serv
 | Decision | Reason |
 |---|---|
 | Python, FastAPI, Jinja2 | One language for scoring, exports, connectors and web; server-rendered pages keep the browser side trivial and the CSP strict (no inline scripts, no third-party assets). |
-| SQLite | Single organisation, a few users, small data. No credentials, no network listener, trivial backup (online backup API). |
+| SQLite | Single organisation, a few users, small data. No credentials, no network listener, trivial backup (online backup API, packed with the data files into one encrypted file, docs/backup.md). |
 | htmx, vendored | Live recalculation of the risk matrix without a JavaScript build. Pinned file, served from the application origin. |
 | APScheduler in-process | Connector runs are small; a separate worker would add a container for nothing. |
 | Entra ID OIDC, manual flow | About 150 lines with joserfc for token validation (RS256 only); no session middleware with signed cookies; server-side sessions can be revoked. |

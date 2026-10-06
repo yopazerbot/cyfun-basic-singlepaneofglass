@@ -1,15 +1,17 @@
-"""Background work: connector runs (scheduled and on demand), automated evidence, Claude reviews."""
+"""Background work: connector runs (scheduled and on demand), automated evidence, Claude reviews, backups."""
 
 from __future__ import annotations
 
 import hashlib
 import json
 import logging
+from contextlib import contextmanager
 from datetime import UTC, datetime
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from sqlalchemy import select
 
+from . import backup
 from . import db as database
 from .appsettings import load_config
 from .config import Settings
@@ -184,6 +186,33 @@ def poll_ai_batches(settings: Settings) -> None:
         log.exception("polling Claude batches failed")
 
 
+def run_backup(settings: Settings, actor: str = "scheduler") -> None:
+    """Write a backup on the server and copy it to OneDrive when configured. Results go to the activity log."""
+    from .onedrive import OneDrive
+
+    config = load_config(settings=settings)
+    with database.session() as db:
+        try:
+            path, manifest = backup.save_local(settings, actor, config.backup_keep)
+        except Exception as exc:  # noqa: BLE001 - recorded for the administrator
+            log.exception("backup failed")
+            log_activity(db, actor, "backup_failed", "backup", "", {"step": "write", "error": str(exc)[:500]})
+            return
+        details = {"file": path.name, "bytes": path.stat().st_size, "files": len(manifest["files"])}
+        log_activity(db, actor, "backup_created", "backup", path.name[:60], details)
+        drive = OneDrive(config)
+        if not drive.configured():
+            return
+        try:
+            drive.upload(path)
+            deleted = drive.prune(config.backup_keep)
+        except Exception as exc:  # noqa: BLE001
+            log.exception("OneDrive upload failed")
+            log_activity(db, actor, "backup_failed", "backup", path.name[:60], {"step": "onedrive", "error": Connector.describe_error(exc)})
+            return
+        log_activity(db, actor, "backup_uploaded", "backup", path.name[:60], {"user": drive.user, "folder": drive.folder, "pruned": deleted})
+
+
 def start(settings: Settings) -> BackgroundScheduler:
     global _scheduler
     if _scheduler is not None:
@@ -191,6 +220,7 @@ def start(settings: Settings) -> BackgroundScheduler:
     sched = BackgroundScheduler(timezone="UTC", job_defaults={"coalesce": True, "max_instances": 1})
     hours = max(1, int(load_config(settings=settings).connector_sync_hours))
     sched.add_job(run_all, "interval", hours=hours, args=[settings], id="sync-all", replace_existing=True)
+    _set_backup_job(sched, settings, load_config(settings=settings).backup_interval_hours)
     sched.add_job(poll_ai_batches, "interval", minutes=AI_POLL_MINUTES, args=[settings], id="ai-batches", replace_existing=True)
     sched.start()
     _scheduler = sched
@@ -201,6 +231,32 @@ def reschedule(hours: int) -> None:
     """Apply a new connector interval without a restart."""
     if _scheduler is not None and _scheduler.get_job("sync-all") is not None:
         _scheduler.reschedule_job("sync-all", trigger="interval", hours=max(1, int(hours)))
+
+
+def _set_backup_job(sched: BackgroundScheduler, settings: Settings, hours: int) -> None:
+    if hours > 0:
+        sched.add_job(run_backup, "interval", hours=int(hours), args=[settings], id="backup", replace_existing=True)
+    elif sched.get_job("backup") is not None:
+        sched.remove_job("backup")
+
+
+def reschedule_backup(settings: Settings, hours: int) -> None:
+    """Apply a new backup interval without a restart; 0 removes the job."""
+    if _scheduler is not None:
+        _set_backup_job(_scheduler, settings, hours)
+
+
+@contextmanager
+def paused():
+    """Hold scheduled jobs while a restore replaces the database."""
+    if _scheduler is None:
+        yield
+        return
+    _scheduler.pause()
+    try:
+        yield
+    finally:
+        _scheduler.resume()
 
 
 def submit(func, *args, job_id: str) -> None:

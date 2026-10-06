@@ -146,10 +146,8 @@ def export_pack(request: Request, user: User = Depends(require_user), db: Sessio
     fw = ctx["fw"]
     ctx["generated"] = date.today()
     html = templates.get_template("audit_pack.html").render(**ctx)
-    tmp_dir = settings.data_dir / "tmp"
-    tmp_dir.mkdir(parents=True, exist_ok=True)
     # Built on disk, not in memory: the pack carries every evidence file.
-    with tempfile.NamedTemporaryFile(dir=tmp_dir, suffix=".zip", delete=False) as fh:
+    with tempfile.NamedTemporaryFile(dir=settings.tmp_dir, suffix=".zip", delete=False) as fh:
         build_pack(db, fw, settings, html, fh)
         path = Path(fh.name)
     log_activity(db, user.label, "export_pack", "assessment", "", {"bytes": path.stat().st_size, "level": fw.level})

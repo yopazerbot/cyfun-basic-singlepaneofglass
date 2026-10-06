@@ -63,7 +63,8 @@ class SecurityMiddleware(BaseHTTPMiddleware):
 
         if request.method in UNSAFE:
             length = request.headers.get("content-length")
-            limit = (self.settings.max_upload_mb + 2) * 1024 * 1024
+            mb = self.settings.max_restore_mb if path == "/backup/restore" else self.settings.max_upload_mb
+            limit = (mb + 2) * 1024 * 1024
             if length and length.isdigit() and int(length) > limit:
                 return PlainTextResponse("Request too large", status_code=413)
             origin = request.headers.get("origin")

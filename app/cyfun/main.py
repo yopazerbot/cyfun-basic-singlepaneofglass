@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import tempfile
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -26,8 +27,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
-        for directory in (settings.data_dir, settings.evidence_dir, settings.snapshots_dir):
+        for directory in (settings.data_dir, settings.evidence_dir, settings.snapshots_dir, settings.tmp_dir):
             directory.mkdir(parents=True, exist_ok=True)
+        # Uploads over 1 MB spool to disk; a restore can be gigabytes, more than the container's /tmp holds.
+        tempfile.tempdir = str(settings.tmp_dir)
         db.init_engine(f"sqlite:///{settings.db_path.as_posix()}")
         db.create_schema()
         for level in LEVELS:
@@ -44,11 +47,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.add_middleware(SecurityMiddleware, settings=settings)
     app.mount("/static", StaticFiles(directory=str(HERE / "static")), name="static")
 
-    from .routers import actions, activity, ai, assessment, assets, audit, connectors, dashboard, documents, evidence, journey, risk
+    from .routers import actions, activity, ai, assessment, assets, audit, backup, connectors, dashboard, documents, evidence, journey, risk
     from .routers import settings as settings_router
 
     app.include_router(auth.router)
-    for r in (dashboard, journey, risk, assessment, ai, assets, documents, evidence, actions, connectors, audit, activity, settings_router):
+    for r in (dashboard, journey, risk, assessment, ai, assets, documents, evidence, actions, connectors, audit, activity, settings_router, backup):
         app.include_router(r.router)
 
     @app.get("/favicon.ico", include_in_schema=False)

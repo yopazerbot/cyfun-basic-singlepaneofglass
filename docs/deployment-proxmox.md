@@ -340,13 +340,15 @@ The Microsoft 365 connector uses a second, separate app registration with applic
 
 Three layers: a consistent nightly copy of the data inside the VM, a Proxmox backup of the whole VM, and `.env` in the password manager.
 
-**Nightly data backup (in the VM).** The script makes a consistent SQLite copy through the application, then archives the whole data volume (database, evidence files, connector snapshots):
+**In the application.** Set *Hours between backups* on the Settings page (24 for daily) and, for an off-host copy, a OneDrive user and folder. The application then writes an encrypted backup of the database, settings and data files to the data volume and uploads it to OneDrive. Download and restore are on the Backup and restore page. Details, permissions and restore steps: [docs/backup.md](backup.md).
+
+**Nightly data backup (in the VM).** Independent of the application schedule: the script writes an encrypted application backup, then archives the whole data volume (database, evidence files, connector snapshots, backups):
 
 ```bash
 sudo install -d -m 700 /srv/backups/cyfun
 sudo tee /usr/local/sbin/cyfun-backup >/dev/null <<'EOF'
 #!/bin/sh
-# Consistent SQLite copy through the application, then a tarball of the whole data volume.
+# Encrypted application backup (docs/backup.md), then a tarball of the whole data volume.
 set -eu
 cd /opt/cyfun
 docker compose exec -T app python -m cyfun.backup
@@ -389,7 +391,7 @@ The last command shows today's archive. Thirty days of archives are kept.
 
 **Proxmox backup of the VM.** Datacenter, Backup, Add: your Proxmox Backup Server or NAS storage, schedule `03:00` (after the data backup), selection VM `210`, mode **Snapshot**. On Proxmox Backup Server, enable client-side encryption for the storage so the backups are encrypted at rest. This copy also contains the archives from `/srv/backups/cyfun` and the Caddy root CA, and is your off-host copy.
 
-**Restore the data** from an archive on the VM:
+**Restore the data** from an application backup: on the Backup and restore page, or with the command line in docs/backup.md. From a volume archive on the VM:
 
 ```bash
 cd /opt/cyfun
@@ -476,7 +478,8 @@ Leave outbound traffic open, or allow at least these destinations on TCP 443:
 | `pypi.org`, `files.pythonhosted.org` | building the application image |
 | `github.com` | `git pull` |
 | `login.microsoftonline.com` | Entra ID sign-in and the Microsoft Graph token |
-| `graph.microsoft.com` | Microsoft 365 connector |
+| `graph.microsoft.com` | Microsoft 365 connector, OneDrive backup copy |
+| `<tenant>-my.sharepoint.com` | OneDrive backup upload (upload session), only when configured |
 | `api.github.com` | GitHub connector |
 | `backboard.railway.com` | Railway connector |
 | `api.cloudflare.com` | Cloudflare connector |

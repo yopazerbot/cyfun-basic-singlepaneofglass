@@ -1,7 +1,7 @@
 """Server settings from environment variables (or a .env file). See .env.example.
 
 Sign-in, sessions, paths and the key that protects stored secrets are environment-only.
-Connector credentials, the connector schedule and the Claude settings are managed on the
+Connector credentials, the connector and backup schedules and the Claude settings are managed on the
 Settings page (app/cyfun/appsettings.py); the matching environment variables below are
 optional overrides that win over the stored values.
 """
@@ -26,6 +26,8 @@ class Settings(BaseSettings):
     data_dir: Path = Field(Path("./data"), alias="DATA_DIR")
     log_level: str = Field("INFO", alias="LOG_LEVEL")
     max_upload_mb: int = Field(25, alias="MAX_UPLOAD_MB")
+    # Largest backup file accepted for a restore upload (Caddy has its own limit for /backup/restore).
+    max_restore_mb: int = Field(2048, alias="MAX_RESTORE_MB")
     # Key that encrypts the secrets stored on the Settings page (AES-256-GCM). At least 32 characters.
     # Without it the Settings page cannot store secrets. Keep a copy outside the data volume backup.
     secret_key: str = Field("", alias="CYFUN_SECRET_KEY")
@@ -66,6 +68,14 @@ class Settings(BaseSettings):
 
     connector_sync_hours: int | None = Field(None, alias="CONNECTOR_SYNC_HOURS")
 
+    backup_interval_hours: int | None = Field(None, alias="BACKUP_INTERVAL_HOURS")
+    backup_keep: int | None = Field(None, alias="BACKUP_KEEP")
+    backup_onedrive_user: str = Field("", alias="BACKUP_ONEDRIVE_USER")
+    backup_onedrive_folder: str = Field("", alias="BACKUP_ONEDRIVE_FOLDER")
+    backup_graph_tenant_id: str = Field("", alias="BACKUP_GRAPH_TENANT_ID")
+    backup_graph_client_id: str = Field("", alias="BACKUP_GRAPH_CLIENT_ID")
+    backup_graph_client_secret: str = Field("", alias="BACKUP_GRAPH_CLIENT_SECRET")
+
     anthropic_api_key: str = Field("", alias="ANTHROPIC_API_KEY")
     ai_model: str = Field("", alias="AI_MODEL")
     ai_effort: str = Field("", alias="AI_EFFORT")
@@ -74,7 +84,7 @@ class Settings(BaseSettings):
 
     scheduler_enabled: bool = Field(True, alias="SCHEDULER_ENABLED")
 
-    @field_validator("connector_sync_hours", "ai_monthly_cap_usd", "ai_review_after_sync", mode="before")
+    @field_validator("connector_sync_hours", "backup_interval_hours", "backup_keep", "ai_monthly_cap_usd", "ai_review_after_sync", mode="before")
     @classmethod
     def _empty_is_unset(cls, v):
         return None if isinstance(v, str) and not v.strip() else v
@@ -123,6 +133,10 @@ class Settings(BaseSettings):
     @property
     def snapshots_dir(self) -> Path:
         return self.data_dir / "connector_snapshots"
+
+    @property
+    def tmp_dir(self) -> Path:
+        return self.data_dir / "tmp"
 
 
 @lru_cache

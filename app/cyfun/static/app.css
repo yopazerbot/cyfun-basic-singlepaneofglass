@@ -228,6 +228,8 @@ textarea { resize: vertical; min-height: 60px; }
 .inline { display: inline; }
 .inline-form { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
 .inline-form input { flex: 1 1 220px; }
+.restore-inline { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; justify-content: flex-end; }
+.restore-inline input { flex: none; width: 8em; min-height: 32px; padding: 4px 8px; }
 .role-form { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .role-form select { width: auto; min-width: 110px; }
 fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
@@ -264,6 +266,8 @@ fieldset:disabled { opacity: 0.85; }
 .btn.small { padding: 5px 12px; min-height: 32px; font-size: 13px; }
 .btn.link-danger { background: transparent; border-color: transparent; color: var(--bad); padding-left: 6px; padding-right: 6px; }
 .btn.link-danger:hover { text-decoration: underline; background: transparent; }
+.btn.danger { background: var(--bad-fill); border-color: var(--bad-fill); }
+.btn.danger:hover { background: #8E261D; }
 .btn.wide { width: 100%; }
 .btn.ms { background: var(--white); color: var(--midnight); border-color: var(--midnight); }
 .btn.ms:hover { background: var(--fog); }

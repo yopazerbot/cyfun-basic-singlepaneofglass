@@ -107,6 +107,7 @@ For a Proxmox host, follow [docs/deployment-proxmox.md](docs/deployment-proxmox.
 | [docs/security.md](docs/security.md) | Threat model, controls, hardening checklist |
 | [docs/entra-id-sso.md](docs/entra-id-sso.md) | Entra ID app registration, app roles, environment variables |
 | [docs/connectors.md](docs/connectors.md) | Per connector: credentials, permissions, checks and their requirement mapping |
+| [docs/backup.md](docs/backup.md) | Backup and restore of all data and settings, scheduled backups, OneDrive copy |
 | [docs/ai-assistance.md](docs/ai-assistance.md) | Claude-assisted scoring: setup, what is sent, placeholders, guard rules, cost, accountability |
 | [docs/deployment-proxmox.md](docs/deployment-proxmox.md) | Step by step on Proxmox: VM, Docker, firewall, DNS and TLS, first sign-in, Entra ID, backup and restore, updates |
 | [docs/audit-verification.md](docs/audit-verification.md) | Using the tool for the self-declaration and during the CAB verification |
@@ -124,6 +125,7 @@ app/cyfun/                 application package (FastAPI, Jinja2, SQLAlchemy, SQL
   appsettings.py secretbox.py  Settings page values, AES-256-GCM encryption of stored secrets
   export_xlsx.py           fills the official CCB workbooks at XML level
   audit_pack.py            builds the audit ZIP
+  backup.py onedrive.py    encrypted backup and restore, OneDrive copy
 scripts/                   regenerate the framework JSON from the CCB workbooks and booklets; dev runner
 tests/                     pytest suite (scoring, levels, risk model, export, connectors, sign-in, HTTP)
 deploy/Caddyfile           TLS reverse proxy

@@ -169,3 +169,25 @@ def test_settings_page_renders_every_group(admin, clean_settings):
     for anchor in ("microsoft", "github", "railway", "cloudflare", "schedule", "claude"):
         assert re.search(rf'id="{anchor}"', page), anchor
     assert 'type="password"' in page and 'autocomplete="new-password"' in page
+
+
+def test_dashboard_counts_connectors_configured_on_the_settings_page(admin, clean_settings):
+    before = admin.get("/").text.count("not configured")
+    db = database.session()
+    save_group(db, get_settings(), "github", {"github_token": TOKEN}, "tester")
+    db.close()
+    assert admin.get("/").text.count("not configured") == before - 1
+
+
+def test_backup_group_saves_and_validates(admin, clean_settings):
+    r = admin.post("/settings/backup", data={"backup_interval_hours": "24", "backup_keep": "7", "backup_onedrive_user": "not-an-upn"}, follow_redirects=False)
+    assert "err=" in r.headers["location"]
+    r = admin.post(
+        "/settings/backup", data={"backup_interval_hours": "24", "backup_keep": "7", "backup_onedrive_user": "backup@example.test"}, follow_redirects=False
+    )
+    assert "msg=" in r.headers["location"]
+    config = load_config()
+    assert (config.backup_interval_hours, config.backup_keep, config.backup_onedrive_folder) == (24, 7, "CyFun backups")
+    r = admin.post("/settings/backup/test", data={}, follow_redirects=False)
+    assert "err=" in r.headers["location"] and "not+configured" in r.headers["location"].replace("%20", "+")
+    assert "Backup" in admin.get("/settings").text

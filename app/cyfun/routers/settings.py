@@ -1,4 +1,4 @@
-"""Settings page: connector credentials, connector schedule and Claude. Administrators only."""
+"""Settings page: connector credentials, connector schedule, backups and Claude. Administrators only."""
 
 from __future__ import annotations
 
@@ -15,6 +15,7 @@ from ..connectors import registry
 from ..connectors.base import Connector
 from ..db import get_db
 from ..models import User
+from ..onedrive import OneDrive
 from ..services import log_activity
 from ..views import redirect, render
 
@@ -35,6 +36,7 @@ def settings_page(request: Request, user: User = Depends(require_admin), db: Ses
             "key_problem": settings.secret_key_problem,
             "configured": {k: c.configured() for k, c in connectors.items()},
             "ai": ai_status(db, settings),
+            "onedrive": OneDrive(config).configured(),
         },
     )
 
@@ -53,6 +55,8 @@ async def save(request: Request, group: str, user: User = Depends(require_admin)
     log_activity(db, user.label, "settings_update", "settings", group, {"changes": changes})
     if group == "schedule":
         scheduler.reschedule(load_config(db, settings).connector_sync_hours)
+    elif group == "backup":
+        scheduler.reschedule_backup(settings, load_config(db, settings).backup_interval_hours)
     return redirect(f"/settings#{group}", msg=f"{GROUP_KEYS[group].title}: saved.")
 
 
@@ -80,7 +84,7 @@ def _with_form(config: Config, group: str, form) -> tuple[Config, bool]:
 @router.post("/{group}/test")
 async def test(request: Request, group: str, user: User = Depends(require_admin), db: Session = Depends(get_db)):
     g = GROUP_KEYS.get(group)
-    if g is None or (not g.connector and group != "claude"):
+    if g is None or (not g.connector and group not in ("claude", "backup")):
         return redirect("/settings", err="This group has no connection test.")
     settings = get_settings()
     form = await request.form()
@@ -95,6 +99,16 @@ async def test(request: Request, group: str, user: User = Depends(require_admin)
             return redirect("/settings#claude", err=f"Test failed: {exc}{suffix}")
         log_activity(db, user.label, "settings_test", "settings", group, {"result": "ok"})
         return redirect("/settings#claude", msg=result + suffix)
+    if group == "backup":
+        drive = OneDrive(config)
+        if not drive.configured():
+            return redirect("/settings#backup", err="OneDrive is not configured: set the OneDrive user, and credentials here or in the Microsoft 365 group.")
+        try:
+            result = drive.test()
+        except Exception as exc:  # noqa: BLE001 - shown to the administrator
+            return redirect("/settings#backup", err=f"Test failed: {Connector.describe_error(exc)}.{suffix}")
+        log_activity(db, user.label, "settings_test", "settings", group, {"result": "ok"})
+        return redirect("/settings#backup", msg=result + suffix)
     connector = registry(config)[g.connector]
     if not connector.configured():
         missing = ", ".join(f.label for f in fields_of(group) if f.secret)

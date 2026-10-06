@@ -2,9 +2,9 @@
 {% block title %}Settings · {{ settings.app_name }}{% endblock %}
 {% block content %}
 <header class="page-head">
-  <div class="eyebrow">Administration · connectors and Claude</div>
+  <div class="eyebrow">Administration · connectors, backup and Claude</div>
   <h1>Settings</h1>
-  <p class="lead">Credentials of the connected systems, the connector schedule and Claude. Secrets are encrypted in the database with the server key and are never shown again after saving; you can replace or clear them. A value set as an environment variable on the server takes precedence and is shown read-only. Sign-in and session settings stay in environment variables.</p>
+  <p class="lead">Credentials of the connected systems, the connector schedule, scheduled backups and Claude. Secrets are encrypted in the database with the server key and are never shown again after saving; you can replace or clear them. A value set as an environment variable on the server takes precedence and is shown read-only. Sign-in and session settings stay in environment variables.</p>
 </header>
 
 {% if key_problem %}
@@ -56,9 +56,13 @@
   <div class="card-head">
     <h2>{{ g.title }}</h2>
     {% if g.connector %}<span class="chip {{ 'ok' if configured[g.connector] }}">{{ 'configured' if configured[g.connector] else 'not configured' }}</span>
-    {% elif g.key == 'claude' %}<span class="chip {{ 'ok' if ai.configured }}">{{ 'configured' if ai.configured else 'no API key' }}</span>{% endif %}
+    {% elif g.key == 'claude' %}<span class="chip {{ 'ok' if ai.configured }}">{{ 'configured' if ai.configured else 'no API key' }}</span>
+    {% elif g.key == 'backup' %}<span class="chip {{ 'ok' if onedrive }}">{{ 'OneDrive configured' if onedrive else 'server only' }}</span>{% endif %}
   </div>
   <p class="muted small">{{ g.help }}{% if g.connector %} Permissions and checks: docs/connectors.md.{% endif %}</p>
+  {% if g.key == 'backup' %}
+  <p class="small">Download, restore and the list of backups: <a href="/backup">Backup and restore</a>. Permissions for OneDrive: docs/backup.md.</p>
+  {% endif %}
   {% if g.key == 'claude' %}
   <p class="small">This month: {{ ai.spend|usd }} of USD {{ ai.cap }}. <a href="/ai">Claude review</a></p>
   {% endif %}
@@ -67,7 +71,7 @@
   </div>
   <div class="actions">
     <button class="btn" type="submit">Save</button>
-    {% if g.connector or g.key == 'claude' %}<button class="btn secondary" type="submit" formaction="/settings/{{ g.key }}/test">Test connection</button>{% endif %}
+    {% if g.connector or g.key in ('claude', 'backup') %}<button class="btn secondary" type="submit" formaction="/settings/{{ g.key }}/test">Test connection</button>{% endif %}
   </div>
 </form>
 {% endmacro %}
@@ -75,6 +79,20 @@
 <h2 class="section-title">Connected systems</h2>
 <section class="grid two">
   {% for grp in groups if grp.g.connector or grp.g.key == 'schedule' %}{{ group_form(grp) }}{% endfor %}
+</section>
+
+<h2 class="section-title">Backup</h2>
+<section class="grid two">
+  {% for grp in groups if grp.g.key == 'backup' %}{{ group_form(grp) }}{% endfor %}
+  <div class="card">
+    <div class="card-head"><h2>What a backup holds</h2></div>
+    <ul class="guidance small">
+      <li>The database: assessment, registers, risk assessment, users, activity log and these settings, with stored secrets still encrypted.</li>
+      <li>Evidence files and connector snapshots.</li>
+      <li>Not .env. Restoring needs a server with the same CYFUN_SECRET_KEY, which also encrypts the backup file.</li>
+    </ul>
+    <p class="muted small">Backups on the server live in the data volume next to the database. The OneDrive copy is the off-host copy; it holds only the encrypted file.</p>
+  </div>
 </section>
 
 <h2 class="section-title">Claude</h2>

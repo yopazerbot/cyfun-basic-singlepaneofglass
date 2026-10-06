@@ -16,7 +16,13 @@
 		-Server
 	}
 
-	request_body {
+	# A restore upload carries the whole backup; everything else stays at 64 MB.
+	@restore path /backup/restore
+	@other not path /backup/restore
+	request_body @restore {
+		max_size 2GB
+	}
+	request_body @other {
 		max_size 64MB
 	}
 
