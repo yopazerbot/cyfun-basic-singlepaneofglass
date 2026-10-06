@@ -28,3 +28,6 @@ Thumbs.db
 *.xlsx
 *.pdf
 !docs/**/*.pdf
+
+# root certificate exported by deploy/install.sh
+cyfun-root-ca.crt

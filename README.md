@@ -109,7 +109,13 @@ cp .env.example .env            # APP_BASE_URL, APP_HOSTNAME, CYFUN_SECRET_KEY, 
 docker compose up -d --build
 ```
 
-For a Proxmox host, follow [docs/deployment-proxmox.md](docs/deployment-proxmox.md) from an empty host to backups and updates. After the first sign-in, set a backup interval on the Settings page and keep `.env` (with `CYFUN_SECRET_KEY`) in your password manager: without that key no backup can be restored. Caddy serves `https://$APP_HOSTNAME` with an internal CA by default (set `CADDY_TLS` to an e-mail address for Let's Encrypt). Configure Entra ID sign-in when ready (docs/entra-id-sso.md) and set `AUTH_LOCAL_ENABLED=false` once it works, or keep local accounts for an external auditor.
+On an Ubuntu server or VM, one command installs Docker, the application, a nightly backup and the `cyfun-update` command:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/yopazerbot/cyfun-basic-singlepaneofglass/main/deploy/install.sh | sudo bash
+```
+
+See [docs/deployment-proxmox.md](docs/deployment-proxmox.md) for the VM, the certificate and the steps after the install, and [docs/deployment-manual.md](docs/deployment-manual.md) for every step by hand. After the first sign-in, set a backup interval on the Settings page and keep `.env` (with `CYFUN_SECRET_KEY`) in your password manager: without that key no backup can be restored. Caddy serves `https://$APP_HOSTNAME` with an internal CA by default (set `CADDY_TLS` to an e-mail address for Let's Encrypt). Configure Entra ID sign-in when ready (docs/entra-id-sso.md) and set `AUTH_LOCAL_ENABLED=false` once it works, or keep local accounts for an external auditor.
 
 ## Documentation
 
@@ -122,7 +128,8 @@ For a Proxmox host, follow [docs/deployment-proxmox.md](docs/deployment-proxmox.
 | [docs/connectors.md](docs/connectors.md) | Per connector: credentials, permissions, checks and their requirement mapping |
 | [docs/backup.md](docs/backup.md) | Backup and restore of all data and settings, scheduled backups, OneDrive copy |
 | [docs/ai-assistance.md](docs/ai-assistance.md) | Claude-assisted scoring: setup, what is sent, placeholders, guard rules, cost, accountability |
-| [docs/deployment-proxmox.md](docs/deployment-proxmox.md) | Step by step on Proxmox: VM, Docker, firewall, DNS and TLS, first sign-in, Entra ID, backup and restore, updates |
+| [docs/deployment-proxmox.md](docs/deployment-proxmox.md) | Quick install in an Ubuntu VM with one command: certificate, host name, backups, Microsoft sign-in, updates |
+| [docs/deployment-manual.md](docs/deployment-manual.md) | Every step by hand on Proxmox: VM, Docker, firewall, DNS and TLS, first sign-in, Entra ID, backup and restore, updates |
 | [docs/audit-verification.md](docs/audit-verification.md) | Using the tool for the self-declaration and during the CAB verification |
 
 ## Repository layout
@@ -142,6 +149,7 @@ app/cyfun/                 application package (FastAPI, Jinja2, SQLAlchemy, SQL
 scripts/                   regenerate the framework JSON from the CCB workbooks and booklets; dev runner
 tests/                     pytest suite (scoring, levels, risk model, export, connectors, Notion, backup, Claude review, sign-in, HTTP)
 deploy/Caddyfile           TLS reverse proxy
+deploy/install.sh          one-command install and update on Ubuntu or Debian
 Dockerfile, compose.yaml   containers
 ```
 
