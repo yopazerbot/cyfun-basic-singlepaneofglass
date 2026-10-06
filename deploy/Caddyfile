@@ -5,6 +5,8 @@
 #                       or use the DNS challenge with a custom Caddy build)
 {
 	admin off
+	# Browsers send no server name (SNI) when the address is an IP address; use the site's certificate then.
+	default_sni {$APP_HOSTNAME}
 }
 
 {$APP_HOSTNAME} {

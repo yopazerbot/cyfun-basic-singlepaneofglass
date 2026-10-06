@@ -114,7 +114,9 @@ start() {
     if curl -skf --connect-to "$host:443:127.0.0.1:443" "https://$host/healthz" >/dev/null; then return; fi
     sleep 2
   done
-  die "the application runs, but https://$host/healthz does not answer through Caddy (docker compose logs caddy)"
+  docker compose logs --tail 20 caddy >&2
+  curl -skv --connect-to "$host:443:127.0.0.1:443" "https://$host/healthz" 2>&1 | tail -n 15 >&2 || true
+  die "the application runs, but https://$host/healthz does not answer through Caddy; the log is above"
 }
 
 install_backup_and_update() {
