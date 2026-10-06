@@ -4,30 +4,30 @@
 <header class="page-head">
   <div class="eyebrow">ID.AM-01.1 · ID.AM-02.1 · ID.AM-05.1 · ID.AM-07.1</div>
   <h1>Asset inventory</h1>
-  <p class="lead">
-    {% for k in kinds %}<span class="count-pill"><span class="mono">{{ counts[k] }}</span> {{ k }}</span>{% endfor %}
-    Connector-synced assets update on every run and are retired when they disappear from the source. Owner, classification, criticality and primary/secondary are always yours to set.
+  <div class="counts">{% for k in kinds %}<a class="count-pill" href="/assets?kind={{ k }}"><span class="mono">{{ counts[k] }}</span> {{ k }}</a>{% endfor %}</div>
+  <p class="lead">Connector-synced assets update on every run and are retired when they disappear from the source. Owner, classification, criticality and primary/secondary are always yours to set.
   </p>
 </header>
 
 <section class="card">
-  <form class="filters" method="get" action="/assets">
+  <div class="card-head"><h2>Assets</h2><span class="muted">{{ items|length }} shown</span>{% if user.role == 'admin' %}<a class="btn secondary small" href="#asset-form">Add asset</a>{% endif %}</div>
+  <form class="filters" method="get" action="/assets" data-autosubmit>
     <select name="kind" aria-label="Kind"><option value="">All kinds</option>{% for k in kinds %}<option value="{{ k }}" {{ 'selected' if k == f_kind }}>{{ k }}</option>{% endfor %}</select>
     <select name="source" aria-label="Source"><option value="">All sources</option>{% for s in sources %}<option value="{{ s }}" {{ 'selected' if s == f_source }}>{{ s }}</option>{% endfor %}</select>
-    <select name="lifecycle" aria-label="Lifecycle"><option value="">Any lifecycle</option>{% for l in lifecycles %}<option value="{{ l }}" {{ 'selected' if l == f_lifecycle }}>{{ l }}</option>{% endfor %}</select>
+    <select name="lifecycle" aria-label="Lifecycle"><option value="">Any lifecycle</option>{% for l in lifecycles %}<option value="{{ l }}" {{ 'selected' if l == f_lifecycle }}>Lifecycle: {{ l }}</option>{% endfor %}</select>
     <input type="search" name="q" value="{{ q }}" placeholder="Search name, description, owner" aria-label="Search assets">
-    <button class="btn secondary small" type="submit">Filter</button>
-    <a class="btn ghost small" href="/assets/export.csv">Export CSV</a>
+    <button class="btn secondary small" type="submit" data-autosubmit-button>Filter</button>
+    <a class="btn secondary small" href="/assets/export.csv">Export CSV</a>
   </form>
   {% if items %}
   <div class="table-wrap">
-  <table class="list">
+  <table class="list stack">
     <thead><tr><th class="hide-sm">Kind</th><th>Name</th><th class="hide-sm">Location</th><th class="hide-sm">Owner</th><th class="hide-sm">Class.</th><th>Criticality</th><th class="hide-sm">Primary</th><th class="hide-sm">Source</th><th class="hide-sm">Last seen</th></tr></thead>
     <tbody>
     {% for a in items %}
     <tr class="{{ 'retired' if a.lifecycle == 'retired' }}">
       <td class="hide-sm"><span class="chip">{{ a.kind }}</span></td>
-      <td><a href="/assets/{{ a.id }}">{{ a.name }}</a><div class="muted small"><span class="show-sm">{{ a.kind }} · </span>{{ a.description[:140] }}</div></td>
+      <td><a href="/assets/{{ a.id }}">{{ a.name }}</a><div class="muted small">{{ ([a.kind] + ([a.source] if a.source != "manual" else []) + ([a.owner] if a.owner else []))|join(" · ") }}{% if a.description %}<br>{{ a.description[:140] }}{% endif %}</div></td>
       <td class="hide-sm muted">{{ a.location }}</td>
       <td class="hide-sm muted">{{ a.owner }}</td>
       <td class="hide-sm">{{ a.classification }}</td>
@@ -44,14 +44,14 @@
 </section>
 
 {% if user.role == 'admin' %}
-<form class="card form" method="post" action="/assets">
+<form class="card form" id="asset-form" method="post" action="/assets">
   <div class="card-head"><h2>Add asset manually</h2></div>
   <div class="row">
     <label>Kind<select name="kind">{% for k in kinds %}<option value="{{ k }}">{{ k }}</option>{% endfor %}</select></label>
     <label>Name<input name="name" required maxlength="300"></label>
     <label>Location / environment<input name="location" maxlength="200" placeholder="Office, datacenter, provider, region"></label>
   </div>
-  <label>Description<input name="description" maxlength="2000"></label>
+  <label>Description<textarea name="description" maxlength="2000" rows="2"></textarea></label>
   <div class="row">
     <label>Owner<input name="owner" maxlength="200"></label>
     <label>Classification<select name="classification">{% for c in classifications %}<option {{ 'selected' if c == 'Internal' }}>{{ c }}</option>{% endfor %}</select></label>

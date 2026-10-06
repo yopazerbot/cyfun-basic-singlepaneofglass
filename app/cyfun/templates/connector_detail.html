@@ -5,9 +5,7 @@
   <div class="eyebrow">Connector · <span class="mono">{{ key }}</span></div>
   <h1>{{ c.name }}</h1>
   <p class="lead">{{ c.description }}</p>
-  <nav class="pager"><a href="/connectors">← Connected systems</a>
-    {% if user.role == 'admin' and c.configured() %}<form method="post" action="/connectors/{{ key }}/run" class="inline"><button class="btn small" type="submit">Run now</button></form>{% endif %}
-  </nav>
+  <nav class="pager" aria-label="Back"><a href="/connectors">← Connected systems</a></nav>
 </header>
 
 {% if not c.configured() %}
@@ -15,7 +13,7 @@
 {% endif %}
 
 <section class="card">
-  <div class="card-head"><h2>Latest checks</h2>{% if latest %}<span class="muted">{{ latest.finished_at|date }} · <a href="/connectors/{{ key }}/snapshot/{{ latest.id }}">download snapshot</a></span>{% endif %}</div>
+  <div class="card-head"><h2>Latest checks</h2>{% if latest %}<span class="muted">{{ latest.finished_at|date }} · <a href="/connectors/{{ key }}/snapshot/{{ latest.id }}">download snapshot</a></span>{% endif %}{% if user.role == 'admin' and c.configured() %}<form method="post" action="/connectors/{{ key }}/run" class="inline"><button class="btn small" type="submit">Run now</button></form>{% endif %}</div>
   {% if checks %}
   <div class="table-wrap"><table class="list checks">
     <thead><tr><th>Status</th><th>Check</th><th>Requirements</th></tr></thead>
@@ -38,8 +36,8 @@
     <div class="card-head"><h2>Runs</h2></div>
     {% if runs %}
     <div class="table-wrap"><table class="list small">
-      <thead><tr><th>Started</th><th>Status</th><th>By</th><th class="num">Items</th><th class="num">Checks</th><th></th></tr></thead>
-      <tbody>{% for r in runs %}<tr><td class="nowrap">{{ r.started_at|date }}</td><td><span class="chip {{ 'ok' if r.status == 'ok' else ('info' if r.status == 'running' else 'bad') }}">{{ r.status }}</span>{% if r.error %}<div class="bad small">{{ r.error[:200] }}</div>{% endif %}</td><td class="muted">{{ r.triggered_by }}</td><td class="num">{{ r.inventory_count }}</td><td class="num">{{ r.check_count }}</td><td>{% if r.snapshot_file %}<a href="/connectors/{{ key }}/snapshot/{{ r.id }}">snapshot</a>{% endif %}</td></tr>{% endfor %}</tbody>
+      <thead><tr><th>Started</th><th>Status</th><th class="hide-sm">By</th><th class="num">Items</th><th class="num">Checks</th><th class="hide-sm"><span class="visually-hidden">Snapshot</span></th></tr></thead>
+      <tbody>{% for r in runs %}<tr><td class="nowrap">{{ r.started_at|date }}</td><td><span class="chip {{ 'ok' if r.status == 'ok' else ('info' if r.status == 'running' else 'bad') }}">{{ r.status }}</span>{% if r.error %}<div class="bad small">{{ r.error[:200] }}</div>{% endif %}</td><td class="muted hide-sm">{{ r.triggered_by }}</td><td class="num">{{ r.inventory_count }}</td><td class="num">{{ r.check_count }}</td><td class="hide-sm">{% if r.snapshot_file %}<a href="/connectors/{{ key }}/snapshot/{{ r.id }}">snapshot</a>{% endif %}</td></tr>{% endfor %}</tbody>
     </table></div>
     {% else %}<p class="muted">No runs yet.</p>{% endif %}
   </div>

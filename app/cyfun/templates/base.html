@@ -13,7 +13,7 @@
 <a class="skip" href="#content">Skip to content</a>
 <div class="shell">
   <aside class="side" aria-label="Main navigation">
-    <input type="checkbox" id="nav-toggle" class="nav-toggle" aria-controls="side-body">
+    <input type="checkbox" id="nav-toggle" class="nav-toggle" aria-controls="side-body" aria-label="Show the menu">
     <div class="side-top">
       <a class="brand" href="/">
         <span class="brand-mark" aria-hidden="true">CF</span>
@@ -22,7 +22,7 @@
       <label for="nav-toggle" class="nav-toggle-label"><span class="when-closed">Menu</span><span class="when-open">Close</span></label>
     </div>
     <div class="side-body" id="side-body">
-      <nav class="nav">
+      <nav class="nav" aria-label="Sections">
         <div class="nav-group">Assess</div>
         {{ link_on('/', 'Dashboard', active == 'dashboard') }}
         {{ link_on('/journey', 'Scope, level and journey', active == 'journey') }}
@@ -39,7 +39,8 @@
         <div class="nav-group">Verify</div>
         {{ link_on('/audit', 'Audit view and export', active == 'audit') }}
         {{ link_on('/activity', 'Activity log', active == 'activity') }}
-        {% if user and user.role == 'admin' %}{{ link_on('/auth/users', 'Users', active == 'users') }}
+        {% if user and user.role == 'admin' %}<div class="nav-group">Administration</div>
+        {{ link_on('/auth/users', 'Users', active == 'users') }}
         {{ link_on('/settings', 'Settings', active == 'settings') }}
         {{ link_on('/backup', 'Backup and restore', active == 'backup') }}{% endif %}
       </nav>

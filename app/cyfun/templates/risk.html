@@ -5,7 +5,7 @@
   <div class="eyebrow">CCB CyFun-Selection · {{ model.source.version }}</div>
   <h1>Risk assessment: assurance level</h1>
   <p class="lead">The CCB method: per attack category and threat actor, probability × impact × attack type × organisation size. Total 0 to 99 means BASIC, 100 to 199 IMPORTANT, 200 and above ESSENTIAL. Sector defaults come from the CCB workbook; adjust them to your situation and record the rationale.</p>
-  <nav class="tabs"><a class="on" href="/risk">Assurance level</a><a href="/risk/register">Risk register</a></nav>
+  <nav class="tabs" aria-label="Risk"><a class="on" href="/risk" aria-current="page">Assurance level</a><a href="/risk/register">Risk register</a></nav>
 </header>
 
 <form method="post" action="/risk" class="risk-form" id="risk-form" hx-post="/risk/preview" hx-trigger="change" hx-target="#risk-result" hx-swap="innerHTML">
@@ -40,9 +40,9 @@
         <tr>
           <td>{{ row.attack }}</td>
           <td class="muted">{{ "Targeted ×2" if row.attack_type == 2 else "Global ×1" }}</td>
-          <td><select name="impact_{{ i }}" class="{{ 'changed' if row.impact != defaults.rows[i].impact }}">{% for l in levels %}<option value="{{ l }}" {{ 'selected' if l == row.impact }}>{{ l }}</option>{% endfor %}</select></td>
+          <td><select name="impact_{{ i }}" aria-label="Impact of {{ row.attack }}" class="{{ 'changed' if row.impact != defaults.rows[i].impact }}">{% for l in levels %}<option value="{{ l }}" {{ 'selected' if l == row.impact }}>{{ l }}</option>{% endfor %}</select></td>
           {% for p in row.probability %}{% set j = loop.index0 %}
-          <td><select name="prob_{{ i }}_{{ j }}" class="{{ 'changed' if p != defaults.rows[i].probability[j] }}">{% for l in levels %}<option value="{{ l }}" {{ 'selected' if l == p }}>{{ l }}</option>{% endfor %}</select></td>
+          <td><select name="prob_{{ i }}_{{ j }}" aria-label="Probability of {{ row.attack }} by {{ sector.actors[j] }}" class="{{ 'changed' if p != defaults.rows[i].probability[j] }}">{% for l in levels %}<option value="{{ l }}" {{ 'selected' if l == p }}>{{ l }}</option>{% endfor %}</select></td>
           {% endfor %}
         </tr>
         {% endfor %}

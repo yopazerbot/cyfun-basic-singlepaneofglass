@@ -7,6 +7,8 @@
   <p class="lead">Credentials of the connected systems, the connector schedule, scheduled backups and Claude. Secrets are encrypted in the database with the server key and are never shown again after saving; you can replace or clear them. A value set as an environment variable on the server takes precedence and is shown read-only. Sign-in and session settings stay in environment variables.</p>
 </header>
 
+<nav class="tabs audit-jump" aria-label="Settings groups">{% for grp in groups %}<a href="#{{ grp.g.key }}">{{ grp.g.title.split(' (')[0].split(' / ')[0] }}</a>{% endfor %}</nav>
+
 {% if key_problem %}
 <div class="flash bad" role="alert">Secrets cannot be stored: {{ key_problem }} Set CYFUN_SECRET_KEY to a random value of at least 32 characters and restart the application. Settings without secrets can still be saved.</div>
 {% endif %}
@@ -57,7 +59,7 @@
     <h2>{{ g.title }}</h2>
     {% if g.connector %}<span class="chip {{ 'ok' if configured[g.connector] }}">{{ 'configured' if configured[g.connector] else 'not configured' }}</span>
     {% elif g.key == 'claude' %}<span class="chip {{ 'ok' if ai.configured }}">{{ 'configured' if ai.configured else 'no API key' }}</span>
-    {% elif g.key == 'backup' %}<span class="chip {{ 'ok' if onedrive }}">{{ 'OneDrive configured' if onedrive else 'server only' }}</span>{% endif %}
+    {% elif g.key == 'backup' %}{% set every = (grp['items']|selectattr('f.name', 'equalto', 'backup_interval_hours')|first).value %}<span class="chip {{ 'ok' if every }}">{% if not every %}off{% elif onedrive %}every {{ every }} h · OneDrive{% else %}every {{ every }} h · server only{% endif %}</span>{% endif %}
   </div>
   <p class="muted small">{{ g.help }}{% if g.connector %} Permissions and checks: docs/connectors.md.{% endif %}</p>
   {% if g.key == 'backup' %}

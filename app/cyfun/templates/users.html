@@ -17,7 +17,7 @@
 
 <section class="card">
   <div class="table-wrap">
-  <table class="list">
+  <table class="list stack">
     <thead><tr><th>User</th><th class="hide-sm">Sign-in</th><th>Role and state</th><th class="hide-sm">Last sign-in</th><th><span class="visually-hidden">Actions</span></th></tr></thead>
     <tbody>
     {% for u in users %}
@@ -36,7 +36,7 @@
         {% else %}<span class="chip">{{ u.role }}</span> <span class="muted small">this is you</span>{% endif %}
       </td>
       <td class="hide-sm muted small nowrap">{{ u.last_login_at|date }}</td>
-      <td class="nowrap">
+      <td>
         {% if u.auth_provider == 'local' and u.id != user.id %}<form class="inline" method="post" action="/auth/users/{{ u.id }}/reset"><button class="btn ghost small" type="submit" data-confirm="Reset the password of {{ u.username }}? Their sessions end and a temporary password is shown once.">Reset password</button></form>{% endif %}
         {% if u.id != user.id %}<form class="inline" method="post" action="/auth/users/{{ u.id }}/delete"><button class="btn link-danger small" type="submit" data-confirm="Delete {{ u.label }}?">Delete</button></form>{% endif %}
       </td>

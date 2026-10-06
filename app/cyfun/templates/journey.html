@@ -56,8 +56,8 @@
           <select name="status" aria-label="Status of {{ s.label }}">
             {% for st in statuses %}<option value="{{ st }}" {{ 'selected' if st == s.status }}>{{ st.replace('_', ' ') }}</option>{% endfor %}
           </select>
-          <input type="date" name="date" value="{{ s.date }}" aria-label="Date of {{ s.label }}">
-          <input class="note" name="note" value="{{ s.note }}" placeholder="Note" maxlength="1000" aria-label="Note for {{ s.label }}">
+          <label class="small-label">Target or completion date<input type="date" name="date" value="{{ s.date }}"></label>
+          <label class="small-label note">Note<input name="note" value="{{ s.note }}" maxlength="1000"></label>
           <button class="btn small secondary" type="submit">Save</button>
         </form>
         {% elif s.note %}<p class="muted small">{{ s.note }}</p>{% endif %}

@@ -1,15 +1,15 @@
 {% extends "base.html" %}
 {% block title %}Evidence · {{ settings.app_name }}{% endblock %}
 {% block content %}
-{% from "macros.html" import req_picker, req_links, delete_cell, register_form %}
+{% from "macros.html" import req_picker, req_links, delete_cell, register_form, add_button %}
 {% set admin = user.role == 'admin' %}
 <header class="page-head">
   <div class="eyebrow">Evidence register · files hashed with SHA-256</div>
   <h1>Evidence</h1>
-  <p class="lead">Files and links that show a requirement is documented and implemented. Each file is stored under a random name with its hash, so the auditor can verify integrity from the audit pack.</p>
+  {% if not edit %}<p class="lead">Files and links that show a requirement is documented and implemented. Each file is stored under a random name with its hash, so the auditor can verify integrity from the audit pack.</p>{% endif %}
 </header>
 
-{% set ev_form %}{% call register_form("evidence-form", "/evidence", "evidence", edit, admin, multipart=true) %}
+{% set ev_form %}{% call register_form("evidence-form", "/evidence", "evidence", edit, admin, multipart=true, delete_confirm="Delete this evidence item? A stored file is removed from disk.") %}
     <label class="span-all">Title<input name="title" maxlength="300" value="{{ edit.title if edit }}" placeholder="What this evidence shows"></label>
     <label class="span-all">Description<textarea name="description" rows="2">{{ edit.description if edit }}</textarea></label>
     {% if not edit %}
@@ -32,14 +32,14 @@
 {% if edit %}{{ ev_form }}{% endif %}
 
 <section class="card">
-  <div class="card-head"><h2>Evidence items</h2><span class="muted">{{ items|length }} shown</span></div>
-  <form class="filters" method="get" action="/evidence">
+  <div class="card-head"><h2>Evidence items</h2><span class="muted">{{ items|length }} shown</span>{% if not edit %}{{ add_button("evidence-form", "evidence", admin) }}{% endif %}</div>
+  <form class="filters" method="get" action="/evidence" data-autosubmit>
     <select name="requirement" aria-label="Filter by requirement"><option value="">All requirements</option>{% for r in fw.requirements %}<option value="{{ r.id }}" {{ 'selected' if r.id == f_requirement }}>{{ r.id }}</option>{% endfor %}</select>
-    <button class="btn secondary small" type="submit">Filter</button>
+    <button class="btn secondary small" type="submit" data-autosubmit-button>Filter</button>
   </form>
   {% if items %}
   <div class="table-wrap">
-  <table class="list">
+  <table class="list stack">
     <thead><tr><th>Evidence</th><th class="hide-sm">Kind</th><th>Requirements</th><th class="hide-sm">Collected</th><th class="hide-sm">SHA-256</th>{% if admin %}<th><span class="visually-hidden">Actions</span></th>{% endif %}</tr></thead>
     <tbody>
     {% for e in items %}
@@ -48,7 +48,7 @@
         <div class="muted small">{% if e.kind == 'file' %}<a href="/evidence/{{ e.id }}/download">download</a>{% elif e.kind == 'link' %}<a href="{{ e.url }}" rel="noopener noreferrer" target="_blank">open link</a>{% elif e.kind == 'automated' and e.run_id %}<a href="{{ e.url }}">open snapshot</a>{% endif %}{% if e.description %} · {{ e.description }}{% endif %}{% if e.size %} · {{ (e.size / 1024)|round|int }} KB{% endif %}{% if e.share_with_ai %} · Claude may read it{% endif %}</div></td>
       <td class="hide-sm"><span class="chip">{{ e.kind }}</span></td>
       <td class="small">{{ req_links(e.requirement_ids) }}</td>
-      <td class="hide-sm muted small nowrap">{{ e.collected_on|date }}<br>{{ e.collected_by }}</td>
+      <td class="muted small nowrap">{{ e.collected_on|date }}<br class="hide-sm"> {{ e.collected_by }}</td>
       <td class="hide-sm mono small" title="{{ e.sha256 }}">{{ e.sha256[:12] }}</td>
       {% if admin %}{{ delete_cell('/evidence/' ~ e.id ~ '/delete', "Delete '" ~ e.title ~ "'? The file is removed from disk.") }}{% endif %}
     </tr>

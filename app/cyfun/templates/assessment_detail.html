@@ -4,6 +4,13 @@
 {% from "macros.html" import maturity_chip, evidence_link %}
 {% set admin = user.role == 'admin' %}
 {% set target = summary.km_min if req.key_measure else summary.target %}
+{% macro guidance_body() %}
+      {% if req.goal %}<p class="goal">{{ req.goal }}</p>{% endif %}
+      {% if req.guidance %}<ul class="guidance">{% for g in req.guidance %}<li>{{ g }}</li>{% endfor %}</ul>{% endif %}
+      {% if req.evidence_examples %}<h3>Typical evidence</h3><ul class="guidance">{% for g in req.evidence_examples %}<li>{{ g }}</li>{% endfor %}</ul>{% endif %}
+      {% if not req.goal and not req.guidance %}<p class="muted">See the CCB booklet for this requirement.</p>{% endif %}
+      <p class="muted small">Authoritative text and full implementation guidance: CCB booklet CyberFundamentals 2025 {{ fw.level }}, <a href="https://www.cyfun.eu" rel="noopener noreferrer" target="_blank">cyfun.eu</a>.{% if req.goal %} The goal statement above is quoted from that booklet.{% endif %}</p>
+{% endmacro %}
 <header class="page-head">
   <div class="eyebrow"><span class="mono">{{ req.function_id }}</span> {{ req.function_name }} · <span class="mono">{{ req.category_id }}</span> {{ req.category_name }} · <span class="mono">{{ req.subcategory_id }}</span> {{ req.subcategory_title }}</div>
   <h1><span class="mono">{{ req.id }}</span> <span class="tag level-{{ req.level|lower }}">{{ req.level }}</span>{% if req.key_measure %} <span class="tag km">Key measure</span>{% endif %}{% if req.management_aspect %} <span class="tag ma">{{ req.management_label }}</span>{% endif %}</h1>
@@ -16,6 +23,12 @@
     <span class="muted small">{{ summary.scored_count }} of {{ summary.total_count }} scored</span>
   </nav>
 </header>
+
+{# On narrow screens the guidance column comes last; offer it before the scores instead. #}
+<details class="card show-narrow guidance-early">
+  <summary><h2>Guidance</h2></summary>
+  {{ guidance_body() }}
+</details>
 
 <section class="grid two-one">
   <div class="stack">
@@ -30,9 +43,10 @@
           <div class="radios" role="radiogroup" aria-labelledby="label-{{ dim }}">
             {% for m in fw.maturity_levels %}
             {% set current = score.doc_score if dim == 'doc' else score.impl_score %}
-            <label class="radio" title="{{ m.value }} · {{ m.name.split(' - ')[-1] }}: {{ m.documentation if dim == 'doc' else m.implementation }}"><input type="radio" name="{{ dim }}_score" value="{{ m.value }}" {{ 'checked' if score and current == m.value and not score.not_applicable }} aria-label="{{ label }} {{ m.value }}, {{ m.name.split(' - ')[-1] }}"><span><b>{{ m.value }}</b><small>{{ m.name.split(' - ')[-1] }}</small></span></label>
+            <label class="radio" title="{{ m.value }} · {{ m.name.split(' - ')[-1] }}: {{ m.documentation if dim == 'doc' else m.implementation }}"><input type="radio" name="{{ dim }}_score" value="{{ m.value }}" data-meaning="{{ m.name.split(' - ')[-1] }}. {{ m.documentation if dim == 'doc' else m.implementation }}" {{ 'checked' if score and current == m.value and not score.not_applicable }} aria-label="{{ label }} {{ m.value }}, {{ m.name.split(' - ')[-1] }}"><span><b>{{ m.value }}</b><small>{{ m.name.split(' - ')[-1] }}</small></span></label>
             {% endfor %}
           </div>
+          <p class="level-hint" data-level-hint="{{ dim }}_score"></p>
         </div>
         {% endfor %}
         {% if not na_blocked %}
@@ -45,7 +59,7 @@
         </label>
       </fieldset>
       {% if admin %}
-      <div class="actions">
+      <div class="actions score-actions">
         <button class="btn" type="submit" name="go" value="stay">Save</button>
         {% if next_unscored %}<button class="btn secondary" type="submit" name="go" value="next_unscored">Save and next unscored</button>{% elif next %}<button class="btn secondary" type="submit" name="go" value="next">Save and next</button>{% endif %}
         {% if score %}<span class="muted small">Last saved {{ score.updated_at|date }} by {{ score.updated_by }}{% if score.ai_proposal_id %}, from <a href="/ai/proposals/{{ score.ai_proposal_id }}">Claude's proposal</a>{% endif %}</span>{% endif %}
@@ -103,13 +117,9 @@
   </div>
 
   <div class="stack">
-    <div class="card">
+    <div class="card hide-narrow">
       <div class="card-head"><h2>Guidance</h2><span class="muted">{{ "summary" if req.guidance else "CCB booklet" }}</span></div>
-      {% if req.goal %}<p class="goal">{{ req.goal }}</p>{% endif %}
-      {% if req.guidance %}<ul class="guidance">{% for g in req.guidance %}<li>{{ g }}</li>{% endfor %}</ul>{% endif %}
-      {% if req.evidence_examples %}<h3>Typical evidence</h3><ul class="guidance">{% for g in req.evidence_examples %}<li>{{ g }}</li>{% endfor %}</ul>{% endif %}
-      {% if not req.goal and not req.guidance %}<p class="muted">See the CCB booklet for this requirement.</p>{% endif %}
-      <p class="muted small">Authoritative text and full implementation guidance: CCB booklet CyberFundamentals 2025 {{ fw.level }}, <a href="https://www.cyfun.eu" rel="noopener noreferrer" target="_blank">cyfun.eu</a>.{% if req.goal %} The goal statement above is quoted from that booklet.{% endif %}</p>
+      {{ guidance_body() }}
     </div>
 
     <div class="card">

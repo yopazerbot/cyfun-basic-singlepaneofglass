@@ -5,7 +5,7 @@
 <header class="page-head">
   <div class="eyebrow">Asset · {{ edit.kind }} · source {{ edit.source }}</div>
   <h1>{{ edit.name }}</h1>
-  <nav class="pager"><a href="/assets">← Inventory</a></nav>
+  <nav class="pager" aria-label="Back"><a href="/assets">← Inventory</a></nav>
 </header>
 <section class="grid two-one">
   <form class="card form" method="post" action="/assets/{{ edit.id }}">
@@ -14,7 +14,7 @@
       <label>Kind<select name="kind" {{ 'disabled' if not manual }}>{% for k in kinds %}<option value="{{ k }}" {{ 'selected' if k == edit.kind }}>{{ k }}</option>{% endfor %}</select></label>
       <label>Name<input name="name" value="{{ edit.name }}" maxlength="300" {{ 'readonly' if not manual }}></label>
     </div>
-    <label>Description<input name="description" value="{{ edit.description }}" maxlength="2000" {{ 'readonly' if not manual }}></label>
+    <label>Description<textarea name="description" maxlength="2000" rows="2" {{ 'readonly' if not manual }}>{{ edit.description }}</textarea></label>
     <label>Location / environment<input name="location" value="{{ edit.location }}" maxlength="200" {{ 'readonly' if not manual }}></label>
     <div class="row">
       <label>Owner<input name="owner" value="{{ edit.owner }}" maxlength="200"></label>

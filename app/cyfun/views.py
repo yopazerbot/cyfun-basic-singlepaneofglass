@@ -29,6 +29,54 @@ def fmt_score(value, digits: int = 2) -> str:
     return f"{float(value):.{digits}f}".replace(".", ",")
 
 
+ACTION_LABELS = {
+    "login": "Signed in",
+    "logout": "Signed out",
+    "login_failed": "Sign-in refused",
+    "score_update": "Scores changed",
+    "justification_update": "Justification changed",
+    "document_create": "Document added",
+    "document_update": "Document changed",
+    "document_delete": "Document deleted",
+    "evidence_add": "Evidence added",
+    "evidence_update": "Evidence changed",
+    "evidence_delete": "Evidence deleted",
+    "action_create": "Action added",
+    "action_update": "Action changed",
+    "action_delete": "Action deleted",
+    "connector_run": "Connector run",
+    "settings_update": "Settings changed",
+    "settings_test": "Connection tested",
+    "backup_created": "Backup written",
+    "backup_uploaded": "Backup copied to OneDrive",
+    "backup_downloaded": "Backup downloaded",
+    "backup_restored": "Backup restored",
+    "backup_failed": "Backup failed",
+    "export_pack": "Audit pack exported",
+}
+
+
+def action_label(code: str) -> str:
+    """Activity codes in words; unknown codes with underscores replaced."""
+    return ACTION_LABELS.get(code, (code or "").replace("_", " ").capitalize())
+
+
+def details_text(details) -> str:
+    """Activity details as short 'key: value' text; nested values are summarised."""
+    if not isinstance(details, dict):
+        return str(details or "")
+    parts = []
+    for k, v in details.items():
+        if v in (None, "", [], {}):
+            continue
+        if isinstance(v, dict):
+            v = ", ".join(f"{a} {b}" for a, b in v.items() if not isinstance(b, (dict, list)))
+        elif isinstance(v, list):
+            v = f"{len(v)} item{'s' if len(v) != 1 else ''}" if v and isinstance(v[0], dict) else ", ".join(map(str, v))
+        parts.append(f"{k.replace('_', ' ')}: {v}")
+    return " · ".join(parts)
+
+
 def fmt_date(value) -> str:
     if not value:
         return ""
@@ -74,6 +122,8 @@ templates.env.filters["status_word"] = status_word
 templates.env.filters["pct"] = pct
 templates.env.filters["nl2br"] = nl2br_safe
 templates.env.filters["confidence_chip"] = confidence_chip
+templates.env.filters["action_label"] = action_label
+templates.env.filters["details_text"] = details_text
 templates.env.globals["version"] = __version__
 
 

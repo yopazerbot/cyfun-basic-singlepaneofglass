@@ -1,16 +1,16 @@
 {% extends "base.html" %}
 {% block title %}Documents · {{ settings.app_name }}{% endblock %}
 {% block content %}
-{% from "macros.html" import req_picker, req_links, delete_cell, register_form %}
+{% from "macros.html" import req_picker, req_links, delete_cell, register_form, add_button %}
 {% set admin = user.role == 'admin' %}
 <header class="page-head">
   <div class="eyebrow">GV.PO-01.1 · documentation maturity</div>
   <h1>Document register</h1>
-  <p class="lead">Policies, procedures, plans and records with version, approval and review dates. Entries marked Notion come from the Notion connector and are edited in Notion. Documentation maturity 2 needs approved documents; 3 and above need review within two years and documented exceptions. Map each document to the requirements it supports.</p>
+  {% if not edit %}<p class="lead">Policies, procedures, plans and records with version, approval and review dates. Entries marked Notion come from the Notion connector and are edited in Notion. Documentation maturity 2 needs approved documents; 3 and above need review within two years and documented exceptions. Map each document to the requirements it supports.</p>{% endif %}
 </header>
 
 {% set from_notion = edit and edit.source == 'notion' %}
-{% set doc_form %}{% call register_form("document-form", "/documents", "document", edit, admin and not from_notion) %}
+{% set doc_form %}{% call register_form("document-form", "/documents", "document", edit, admin and not from_notion, delete_confirm="Delete this register entry?") %}
     {% if from_notion %}<p class="span-all notice small">Maintained in Notion. Change it there; the next Notion run updates this entry.{% if edit.link %} <a href="{{ edit.link }}" rel="noopener noreferrer" target="_blank">Open in Notion</a>{% endif %}</p>{% endif %}
     <label class="span-all">Title<input name="title" required maxlength="300" value="{{ edit.title if edit }}"></label>
     <label>Type<select name="doc_type">{% for t in types %}<option value="{{ t }}" {{ 'selected' if edit and edit.doc_type == t }}>{{ t }}</option>{% endfor %}</select></label>
@@ -29,10 +29,10 @@
 {% if edit %}{{ doc_form }}{% endif %}
 
 <section class="card">
-  <div class="card-head"><h2>Documents</h2><span class="muted">{{ docs|length }} registered</span></div>
+  <div class="card-head"><h2>Documents</h2><span class="muted">{{ docs|length }} registered</span>{% if not edit %}{{ add_button("document-form", "document", admin) }}{% endif %}</div>
   {% if docs %}
   <div class="table-wrap">
-  <table class="list">
+  <table class="list stack">
     <thead><tr><th>Title</th><th class="hide-sm">Type</th><th class="hide-sm">Version</th><th>Status</th><th class="hide-sm">Approved</th><th>Next review</th><th class="hide-sm">Requirements</th>{% if admin %}<th><span class="visually-hidden">Delete</span></th>{% endif %}</tr></thead>
     <tbody>
     {% for d in docs %}

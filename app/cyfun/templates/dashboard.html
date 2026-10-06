@@ -11,6 +11,7 @@
     {% if risk %}Assurance level from risk assessment: <strong>{{ risk.level }}</strong> (score {{ risk.total_score|score(1) }}).{% else %}Risk assessment not done.{% endif %}
     Target level <strong>{{ fw.level }}</strong>. {{ done_stages }} of {{ stages|length }} journey stages done.
   </p>
+  {% if next_unscored and user.role == 'admin' %}<div class="actions"><a class="btn" href="/assessment/{{ next_unscored.id }}">Continue scoring: {{ next_unscored.id }}</a><a class="link" href="/assessment?level=unscored">{{ summary.total_count - summary.scored_count }} still to score</a></div>{% endif %}
 </header>
 
 {% if level_mismatch %}<div class="notice">The CCB risk method points to <strong>{{ risk.level }}</strong> while the target level is <strong>{{ fw.level }}</strong>. Record the reason in the risk assessment rationale, or change the target level on the Scope page.</div>{% endif %}
@@ -32,7 +33,8 @@
   <div class="card stat {{ 'good' if summary.key_measures_passing == summary.key_measures|length else 'bad' }}">
     <div class="stat-label">Key measures ≥ {{ summary.km_min|score }}</div>
     <div class="stat-value">{{ summary.key_measures_passing }}<span class="of">/ {{ summary.key_measures|length }}</span></div>
-    <div class="stat-sub">{{ summary.key_measures_failing|length }} below target{% if summary.cat_min %} · categories ≥ {{ summary.cat_min|score }}: {{ summary.categories_failing|length }} below{% endif %}</div>
+    {% set km_unscored = summary.key_measures_failing|selectattr('maturity', 'none')|list|length %}
+    <div class="stat-sub">{{ summary.key_measures_failing|length - km_unscored }} below target{% if km_unscored %} · {{ km_unscored }} not scored{% endif %}{% if summary.cat_min %} · categories ≥ {{ summary.cat_min|score }}: {{ summary.categories_failing|length }} below{% endif %}</div>
   </div>
   <div class="card stat">
     <div class="stat-label">Evidence coverage</div>
@@ -139,7 +141,7 @@
         <tr class="{{ 'overdue' if a in overdue }}">
           <td>{% if a.requirement_id %}<span class="mono">{{ a.requirement_id }}</span> {% endif %}<a href="/actions/{{ a.id }}">{{ a.title }}</a></td>
           <td class="muted">{{ a.owner }}</td>
-          <td class="muted">{{ a.due_date|date }}</td>
+          <td class="muted nowrap">{{ a.due_date|date }}</td>
         </tr>
         {% endfor %}
       </table></div>
@@ -148,7 +150,7 @@
     <div class="card">
       <div class="card-head"><h2>Recent activity</h2><a href="/activity" class="link">Full log</a></div>
       <div class="table-wrap"><table class="list small">
-        {% for a in recent %}<tr><td class="muted nowrap">{{ a.at|date }}</td><td>{{ a.action }}{% if a.entity_id %} <span class="mono">{{ a.entity_id }}</span>{% endif %}</td><td class="muted">{{ a.actor }}</td></tr>{% endfor %}
+        {% for a in recent %}<tr><td class="muted nowrap">{{ a.at|date }}</td><td>{{ a.action|action_label }}{% if a.entity_id %} <span class="mono">{{ a.entity_id }}</span>{% endif %}</td><td class="muted">{{ a.actor }}</td></tr>{% endfor %}
       </table></div>
     </div>
   </div>

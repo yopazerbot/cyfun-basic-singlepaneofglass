@@ -206,3 +206,28 @@ def test_logout_clears_session(admin):
     assert r.status_code == 303
     admin.cookies.clear()
     assert admin.get("/", follow_redirects=False).status_code == 302
+
+
+def test_register_pages_offer_add_and_delete_in_the_form(admin):
+    admin.post("/documents", data={"title": "UX delete check"})
+    page = admin.get("/documents").text
+    assert 'href="#document-form"' in page
+    from cyfun import db as database
+    from cyfun.models import Document
+
+    with database.session() as db:
+        did = db.query(Document).filter(Document.title == "UX delete check").one().id
+    edit = admin.get(f"/documents/{did}").text
+    assert f'formaction="/documents/{did}/delete"' in edit
+    r = admin.post(f"/documents/{did}/delete", follow_redirects=False)
+    assert "msg=" in r.headers["location"]
+
+
+def test_activity_labels_and_details_in_words():
+    from cyfun.views import action_label, details_text
+
+    assert action_label("score_update") == "Scores changed"
+    assert action_label("some_new_event") == "Some new event"
+    assert (
+        details_text({"before": {"doc": 2, "impl": 1}, "files": 3, "pruned": [], "changes": [{"a": 1}]}) == "before: doc 2, impl 1 · files: 3 · changes: 1 item"
+    )

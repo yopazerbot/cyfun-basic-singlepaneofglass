@@ -33,17 +33,19 @@
 
 {% macro evidence_link(e) %}{% if e.kind == 'file' %}<a href="/evidence/{{ e.id }}/download">{{ e.title }}</a>{% elif e.kind == 'link' %}<a href="{{ e.url }}" rel="noopener noreferrer" target="_blank">{{ e.title }}</a>{% elif e.kind == 'automated' and e.run_id %}<a href="{{ e.url }}">{{ e.title }}</a>{% else %}{{ e.title }}{% endif %}{% endmacro %}
 
-{% macro delete_cell(action, confirm) %}<td><form method="post" action="{{ action }}" class="inline"><button class="btn link-danger small" data-confirm="{{ confirm }}">Delete</button></form></td>{% endmacro %}
+{% macro delete_cell(action, confirm) %}{# Hidden on phones: deleting there goes through the edit form. #}<td class="hide-sm"><form method="post" action="{{ action }}" class="inline"><button class="btn link-danger small" data-confirm="{{ confirm }}">Delete</button></form></td>{% endmacro %}
 
-{% macro register_form(form_id, list_url, noun, edit, admin, back_label="Back to the register", multipart=false) %}
+{% macro add_button(form_id, noun, admin) %}{% if admin %}<a class="btn secondary small" href="#{{ form_id }}">Add {{ noun }}</a>{% endif %}{% endmacro %}
+
+{% macro register_form(form_id, list_url, noun, edit, admin, back_label="Back to the register", multipart=false, delete_confirm="") %}
 {# Add/edit card of a register page; the caller supplies the fields. Auditors see the fields read-only. #}
 <form class="card form" id="{{ form_id }}" method="post" action="{{ list_url ~ ('/' ~ edit.id if edit else '') }}"{% if multipart %} enctype="multipart/form-data"{% endif %}>
-  <div class="card-head"><h2>{{ (("Edit " ~ noun) if admin else noun|capitalize) if edit else "Add " ~ noun }}</h2>{% if edit %}<a class="link" href="{{ list_url }}">{{ back_label }}</a>{% endif %}</div>
+  <div class="card-head"><h2>{{ (("Edit " ~ noun) if admin else noun|capitalize) if edit else "Add " ~ noun }}</h2>{% if edit and not admin %}<a class="link" href="{{ list_url }}">{{ back_label }}</a>{% endif %}</div>
   <fieldset {{ 'disabled' if not admin }}>
   <div class="form-grid">
 {{ caller() }}
   </div>
   </fieldset>
-  {% if admin %}<div class="actions"><button class="btn" type="submit">{{ "Save" if edit else "Add " ~ noun }}</button>{% if edit %}<a class="btn secondary" href="{{ list_url }}">Cancel</a>{% endif %}</div>{% endif %}
+  {% if admin %}<div class="actions"><button class="btn" type="submit">{{ "Save" if edit else "Add " ~ noun }}</button>{% if edit %}<a class="btn secondary" href="{{ list_url }}">Cancel</a>{% if delete_confirm %}<button class="btn link-danger push-right" type="submit" formaction="{{ list_url }}/{{ edit.id }}/delete" formnovalidate data-confirm="{{ delete_confirm }}">Delete</button>{% endif %}{% endif %}</div>{% endif %}
 </form>
 {% endmacro %}

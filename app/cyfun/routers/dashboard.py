@@ -70,5 +70,6 @@ def dashboard(request: Request, user: User = Depends(require_user), db: Session 
             "stages": stages,
             "done_stages": done_stages,
             "recent": recent,
+            "next_unscored": next((r for r in fw.requirements if not summary.requirements[r.id].scored), None),
         },
     )

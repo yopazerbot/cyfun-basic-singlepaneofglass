@@ -41,8 +41,10 @@
   </div>
 </section>
 
+<nav class="tabs audit-jump" aria-label="Functions">{% for f in fw.functions %}<a href="#fn-{{ f.id }}">{{ f.id }} · {{ f.name|capitalize }}</a>{% endfor %}<a href="/assessment?level=below">Below target</a><a href="/assessment?level=unscored">Not scored</a></nav>
+
 {% for f in fw.functions %}
-<section class="card audit-function">
+<section class="card audit-function" id="fn-{{ f.id }}">
   <h2><span class="mono">{{ f.id }}</span> {{ f.name }} <span class="muted">doc {{ summary.functions[f.id].doc|score }} · impl {{ summary.functions[f.id].impl|score }}</span></h2>
   {% for c in f.categories %}
   <h3><span class="mono">{{ c.id }}</span> {{ c.name }} <span class="chip {{ summary.categories[c.id].maturity|status_word(summary.cat_min or summary.target) }}">{{ summary.categories[c.id].maturity|score }}</span></h3>
@@ -51,17 +53,20 @@
   <article class="audit-req">
     <div class="audit-req-head">
       <a class="mono" href="/assessment/{{ r.id }}">{{ r.id }}</a> <span class="tag level-{{ r.level|lower }}">{{ r.level }}</span>{% if r.key_measure %} <span class="tag km">KM</span>{% endif %}{% if r.management_aspect %} <span class="tag ma">MA</span>{% endif %}
-      <span class="scores">doc {% if res.not_applicable %}N/A{% else %}{{ res.doc|score(0) if res.doc is not none else "·" }}{% endif %} · impl {% if res.not_applicable %}N/A{% else %}{{ res.impl|score(0) if res.impl is not none else "·" }}{% endif %}</span>
+      <span class="scores">{% if res.not_applicable %}not applicable{% elif res.doc is none and res.impl is none %}not scored{% else %}doc {{ res.doc|score(0) if res.doc is not none else "·" }} · impl {{ res.impl|score(0) if res.impl is not none else "·" }}{% endif %}</span>
       {{ maturity_chip(res.maturity, summary.km_min if r.key_measure else summary.target) }}
     </div>
     <p class="req-text">{{ r.text }}</p>
     {% if sc and sc.justification %}<p class="justification">{{ sc.justification|nl2br }}</p>{% else %}<p class="muted small">No justification recorded.</p>{% endif %}
     {% set origin = ai_origin.get(r.id) %}{% if origin %}<p class="muted small">Scores proposed by Claude ({{ origin.model }}) and accepted by {{ origin.accepted_by }} on {{ origin.accepted_at|date }}{{ ' after editing' if origin.edited_before_acceptance }}.</p>{% endif %}
+    {% set evs = evidence.get(r.id, []) %}{% set ds = documents.get(r.id, []) %}{% set cs = checks.get(r.id, []) %}
+    {% if not (evs or ds or cs) %}<p class="empty-line">No evidence, documents or automated checks linked.</p>{% else %}
     <div class="audit-cols">
-      <div><strong>Evidence</strong>{% set evs = evidence.get(r.id, []) %}{% if evs %}<ul class="plain-list small">{% for e in evs %}<li>{{ evidence_link(e) }} <span class="muted">{{ e.collected_on|date }}{% if e.sha256 %} · <span class="mono">{{ e.sha256[:12] }}</span>{% endif %}</span></li>{% endfor %}</ul>{% else %}<p class="muted small">none</p>{% endif %}</div>
-      <div><strong>Documents</strong>{% set ds = documents.get(r.id, []) %}{% if ds %}<ul class="plain-list small">{% for d in ds %}<li>{{ d.title }} <span class="muted">{{ d.status }}{% if d.version %} v{{ d.version }}{% endif %}{% if d.approved_on %} · approved {{ d.approved_on|date }}{% endif %}</span></li>{% endfor %}</ul>{% else %}<p class="muted small">none</p>{% endif %}</div>
-      <div><strong>Automated checks</strong>{% set cs = checks.get(r.id, []) %}{% if cs %}<ul class="plain-list small">{% for ch in cs %}<li><span class="chip {{ ch.status }}">{{ ch.status }}</span> {{ ch.title }}: {{ ch.summary }} <span class="muted">{{ ch.checked_at|date }}</span></li>{% endfor %}</ul>{% else %}<p class="muted small">none</p>{% endif %}</div>
+      <div><strong>Evidence</strong>{% if evs %}<ul class="plain-list small">{% for e in evs %}<li>{{ evidence_link(e) }} <span class="muted">{{ e.collected_on|date }}{% if e.sha256 %} · <span class="mono">{{ e.sha256[:12] }}</span>{% endif %}</span></li>{% endfor %}</ul>{% else %}<p class="muted small">none</p>{% endif %}</div>
+      <div><strong>Documents</strong>{% if ds %}<ul class="plain-list small">{% for d in ds %}<li>{{ d.title }} <span class="muted">{{ d.status }}{% if d.version %} v{{ d.version }}{% endif %}{% if d.approved_on %} · approved {{ d.approved_on|date }}{% endif %}</span></li>{% endfor %}</ul>{% else %}<p class="muted small">none</p>{% endif %}</div>
+      <div><strong>Automated checks</strong>{% if cs %}<ul class="plain-list small">{% for ch in cs %}<li><span class="chip {{ ch.status }}">{{ ch.status }}</span> {{ ch.title }}: {{ ch.summary }} <span class="muted">{{ ch.checked_at|date }}</span></li>{% endfor %}</ul>{% else %}<p class="muted small">none</p>{% endif %}</div>
     </div>
+    {% endif %}
   </article>
   {% endfor %}{% endfor %}
   {% endfor %}
