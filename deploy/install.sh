@@ -108,9 +108,9 @@ start() {
     die "the application did not start; the log is above"
   fi
   docker image prune -f >/dev/null
-  local host i
+  local host
   host="$(env_get APP_HOSTNAME)"
-  for i in $(seq 1 15); do
+  for _ in $(seq 1 15); do
     if curl -skf --connect-to "$host:443:127.0.0.1:443" "https://$host/healthz" >/dev/null; then return; fi
     sleep 2
   done
@@ -165,10 +165,10 @@ EOF
 }
 
 export_root_certificate() {
-  local tls i
+  local tls
   tls="$(env_get CADDY_TLS)"
   [ -z "$tls" ] || [ "$tls" = internal ] || return 0
-  for i in $(seq 1 15); do
+  for _ in $(seq 1 15); do
     if docker compose -f "$DIR/compose.yaml" --project-directory "$DIR" exec -T caddy \
       cat /data/caddy/pki/authorities/local/root.crt >"$DIR/cyfun-root-ca.crt" 2>/dev/null; then
       chmod 644 "$DIR/cyfun-root-ca.crt"
