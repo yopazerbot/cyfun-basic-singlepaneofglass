@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Risk register · {{ settings.app_name }}{% endblock %}
 {% block content %}
+{% from "macros.html" import delete_cell, register_form %}
 {% set admin = user.role == 'admin' %}
 <header class="page-head">
   <div class="eyebrow">ID.RA-01.1 · ID.RA-05.1</div>
@@ -9,27 +10,20 @@
   <nav class="tabs" aria-label="Risk"><a href="/risk">Assurance level</a><a class="on" href="/risk/register" aria-current="page">Risk register</a></nav>
 </header>
 
-{% set risk_form %}
-<form class="card form" id="risk-form" method="post" action="{{ '/risk/register/' ~ edit.id if edit else '/risk/register' }}">
-  <div class="card-head"><h2>{{ ("Edit risk" if admin else "Risk") if edit else "Add risk" }}</h2>{% if edit %}<a class="link" href="/risk/register">Back to the register</a>{% endif %}</div>
-  <fieldset {{ 'disabled' if not admin }}>
-  <div class="form-grid">
+{% set risk_form %}{% call register_form("risk-form", "/risk/register", "risk", edit, admin) %}
     <label class="span-all">Title<input name="title" required maxlength="200" value="{{ edit.title if edit }}"></label>
     <label>Threat<textarea name="threat" rows="2">{{ edit.threat if edit }}</textarea></label>
     <label>Vulnerability<textarea name="vulnerability" rows="2">{{ edit.vulnerability if edit }}</textarea></label>
     <label class="span-all">Affected assets<input name="assets" maxlength="300" value="{{ edit.assets if edit }}"></label>
-    <label>Likelihood<select name="likelihood">{% for v, n in [(1,'1 · low'),(2,'2 · medium'),(3,'3 · high')] %}<option value="{{ v }}" {{ 'selected' if (edit and edit.likelihood == v) or (not edit and v == 2) }}>{{ n }}</option>{% endfor %}</select></label>
-    <label>Impact<select name="impact">{% for v, n in [(1,'1 · low'),(2,'2 · medium'),(3,'3 · high')] %}<option value="{{ v }}" {{ 'selected' if (edit and edit.impact == v) or (not edit and v == 2) }}>{{ n }}</option>{% endfor %}</select></label>
+    {% for field, label in [('likelihood', 'Likelihood'), ('impact', 'Impact')] %}
+    <label>{{ label }}<select name="{{ field }}">{% for v, n in [(1,'1 · low'),(2,'2 · medium'),(3,'3 · high')] %}<option value="{{ v }}" {{ 'selected' if (edit and edit[field] == v) or (not edit and v == 2) }}>{{ n }}</option>{% endfor %}</select></label>
+    {% endfor %}
     <label>Treatment<select name="treatment">{% for t in treatments %}<option value="{{ t }}" {{ 'selected' if edit and edit.treatment == t }}>{{ t }}</option>{% endfor %}</select></label>
     <label>Status<select name="status">{% for s in statuses %}<option value="{{ s }}" {{ 'selected' if edit and edit.status == s }}>{{ s }}</option>{% endfor %}</select></label>
     <label class="span-all">Measures<textarea name="measures" rows="2">{{ edit.measures if edit }}</textarea></label>
     <label>Owner<input name="owner" maxlength="200" value="{{ edit.owner if edit }}"></label>
     <label>Review date<input type="date" name="review_date" value="{{ edit.review_date|date if edit }}"></label>
-  </div>
-  </fieldset>
-  {% if admin %}<div class="actions"><button class="btn" type="submit">{{ "Save" if edit else "Add risk" }}</button>{% if edit %}<a class="btn secondary" href="/risk/register">Cancel</a>{% endif %}</div>{% endif %}
-</form>
-{% endset %}
+{% endcall %}{% endset %}
 
 {% if edit %}{{ risk_form }}{% endif %}
 
@@ -47,7 +41,7 @@
       <td class="num hide-sm">{{ r.likelihood }}</td><td class="num hide-sm">{{ r.impact }}</td>
       <td class="num"><span class="chip {{ 'bad' if r.score >= 6 else ('warn' if r.score >= 3 else 'ok') }}">{{ r.score }}</span></td>
       <td>{{ r.treatment }}</td><td class="hide-sm muted">{{ r.owner }}</td><td><span class="chip">{{ r.status }}</span></td><td class="hide-sm muted small nowrap">{{ r.review_date|date }}</td>
-      {% if admin %}<td><form method="post" action="/risk/register/{{ r.id }}/delete" class="inline"><button class="btn link-danger small" data-confirm="Delete the risk '{{ r.title }}'?">Delete</button></form></td>{% endif %}
+      {% if admin %}{{ delete_cell('/risk/register/' ~ r.id ~ '/delete', "Delete the risk '" ~ r.title ~ "'?") }}{% endif %}
     </tr>
     {% endfor %}
     </tbody>

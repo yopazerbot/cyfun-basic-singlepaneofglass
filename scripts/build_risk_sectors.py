@@ -23,6 +23,7 @@ import openpyxl
 warnings.filterwarnings("ignore", category=UserWarning, module="openpyxl")
 
 SKIP = {"Introduction", "Criteria", "Sectors"}
+ACTOR_COLS = (5, 7, 9, 11, 13)  # one column per threat actor on each sector sheet
 
 
 def clean(s) -> str:
@@ -46,25 +47,22 @@ def build(path: Path) -> dict:
     for ws in wb.worksheets:
         if ws.title in SKIP:
             continue
-        actors = [clean(ws.cell(7, c).value) for c in (5, 7, 9, 11, 13)]
-        skills = [clean(ws.cell(6, c).value) for c in (5, 7, 9, 11, 13)]
-        rows = []
-        for r in range(9, 14):
-            rows.append(
-                {
-                    "attack": clean(ws.cell(r, 2).value),
-                    "attack_type": int(ws.cell(r, 3).value),
-                    "impact": clean(ws.cell(r, 4).value),
-                    "probability": [clean(ws.cell(r, c).value) for c in (5, 7, 9, 11, 13)],
-                }
-            )
+        rows = [
+            {
+                "attack": clean(ws.cell(r, 2).value),
+                "attack_type": int(ws.cell(r, 3).value),
+                "impact": clean(ws.cell(r, 4).value),
+                "probability": [clean(ws.cell(r, c).value) for c in ACTOR_COLS],
+            }
+            for r in range(9, 14)
+        ]
         sectors.append(
             {
                 "id": ws.title,
                 "name": clean(ws.cell(6, 2).value),
                 "default_size": int(ws.cell(7, 3).value),
-                "actors": actors,
-                "actor_skills": skills,
+                "actors": [clean(ws.cell(7, c).value) for c in ACTOR_COLS],
+                "actor_skills": [clean(ws.cell(6, c).value) for c in ACTOR_COLS],
                 "rows": rows,
                 "workbook_total": float(ws["O14"].value),
                 "workbook_level": clean(ws["P14"].value),

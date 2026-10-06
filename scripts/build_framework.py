@@ -28,6 +28,7 @@ from datetime import datetime
 from pathlib import Path
 
 import openpyxl
+from openpyxl.utils import column_index_from_string
 
 warnings.filterwarnings("ignore", category=UserWarning, module="openpyxl")
 
@@ -80,11 +81,11 @@ def find_cell(ws, predicate):
 def formula_cells(formula: str, col: str, wsf) -> list[int]:
     """Rows of the cells in column `col` that a category formula aggregates (refs and ranges)."""
     rows: list[int] = []
+    col_idx = column_index_from_string(col)
     for m in re.finditer(rf"\$?{col}\$?(\d+)(?::\$?{col}\$?(\d+))?", formula or ""):
         a, b = int(m.group(1)), int(m.group(2) or m.group(1))
         for r in range(a, b + 1):
-            v = wsf.cell(r, openpyxl.utils.column_index_from_string(col)).value
-            if r == a == b or v is not None:  # a range only counts cells that hold a value or formula
+            if r == a == b or wsf.cell(r, col_idx).value is not None:  # a range only counts cells that hold a value or formula
                 rows.append(r)
     return rows
 
@@ -142,15 +143,10 @@ def build(level: str, path: Path) -> dict:
 
     # layout -------------------------------------------------------------------------
     first = wb["GOVERN"]
+    # a workbook with an "Assurance level" column E has every later column one to the right
     shifted = clean(first["E2"].value).lower() == "assurance level"
-    cols = {
-        "level": 5 if shifted else None,
-        "req": 6 if shifted else 5,
-        "doc": 7 if shifted else 6,
-        "impl": 8 if shifted else 7,
-        "sub_doc": 9 if shifted else 8,
-        "comment": 13 if shifted else 12,
-    }
+    off = 1 if shifted else 0
+    cols = {"level": 5 if shifted else None, "req": 5 + off, "doc": 6 + off, "impl": 7 + off, "sub_doc": 8 + off, "comment": 12 + off}
     doc_l, impl_l = col_letter(cols["doc"]), col_letter(cols["impl"])
     sub_doc_l, sub_impl_l = col_letter(cols["sub_doc"]), col_letter(cols["sub_doc"] + 1)
     cat_doc_l, cat_impl_l = col_letter(cols["sub_doc"] + 2), col_letter(cols["sub_doc"] + 3)
@@ -227,13 +223,12 @@ def build(level: str, path: Path) -> dict:
             r0 = cat.pop("row")
             groups: dict[str, list[list[str]]] = {}
             for dim, cat_col, sub_col in (("doc", cat_doc_l, sub_doc_l), ("impl", cat_impl_l, sub_impl_l)):
-                formula = wsf.cell(r0, openpyxl.utils.column_index_from_string(cat_col)).value
+                formula = wsf.cell(r0, column_index_from_string(cat_col)).value
                 if not isinstance(formula, str) or not formula.startswith("="):
                     raise SystemExit(f"{sheet}!{cat_col}{r0}: category formula expected for {cat['id']}")
-                cells = formula_cells(formula, sub_col, wsf)
                 dim_groups: list[list[str]] = []
-                for cr in cells:
-                    sub_formula = wsf.cell(cr, openpyxl.utils.column_index_from_string(sub_col)).value
+                for cr in formula_cells(formula, sub_col, wsf):
+                    sub_formula = wsf.cell(cr, column_index_from_string(sub_col)).value
                     rows = formula_rows(str(sub_formula), doc_l, impl_l) if isinstance(sub_formula, str) else [cr]
                     ids = [row_to_id[x] for x in rows if x in row_to_id]
                     if ids:

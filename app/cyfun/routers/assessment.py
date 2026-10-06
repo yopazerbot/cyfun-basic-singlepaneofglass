@@ -24,9 +24,10 @@ from ..services import (
     parse_date,
     parse_int,
     scores_by_id,
-    store_upload,
 )
 from ..views import redirect, render
+from .actions import PRIORITIES
+from .evidence import attach_file_or_link, log_evidence_added
 
 router = APIRouter(prefix="/assessment", tags=["assessment"])
 LEVEL_FILTERS = ("all", "Basic", "Important", "Essential", "km", "unscored", "below")
@@ -77,10 +78,9 @@ def overview(request: Request, level: str = "all", user: User = Depends(require_
 
 def _next_unscored(fw, summary, rid: str):
     """The first unscored requirement after `rid` in framework order, wrapping around; None when all are scored."""
-    ids = [r.id for r in fw.requirements]
-    start = ids.index(rid) + 1 if rid in ids else 0
-    for i in list(range(start, len(ids))) + list(range(0, start)):
-        r = fw.requirements[i]
+    reqs = fw.requirements
+    start = next((i + 1 for i, r in enumerate(reqs) if r.id == rid), 0)
+    for r in reqs[start:] + reqs[:start]:
         if r.id != rid and not summary.requirements[r.id].scored:
             return r
     return None
@@ -195,7 +195,7 @@ def save_score(
         _, nxt = fw.neighbours(rid)
         if nxt:
             return redirect(f"/assessment/{nxt.id}", msg=f"{rid} saved.")
-    if go == "next_unscored":
+    elif go == "next_unscored":
         nxt = _next_unscored(fw, current_summary(db, fw), rid)
         if nxt:
             return redirect(f"/assessment/{nxt.id}", msg=f"{rid} saved.")
@@ -218,36 +218,13 @@ def add_evidence(
     fw = current_framework(db)
     if fw.get(rid) is None:
         return redirect("/assessment", err="Unknown requirement.")
-    settings = get_settings()
     ev = Evidence(title=title.strip()[:300], description=description.strip(), requirement_ids=[rid], collected_on=date.today(), collected_by=user.label)
-    if file is not None and file.filename:
-        try:
-            stored, original, digest, size = store_upload(settings, file)
-        except ValueError as exc:
-            return redirect(f"/assessment/{rid}", err=str(exc))
-        ev.kind = "file"
-        ev.stored_name, ev.file_name, ev.sha256, ev.size = stored, original, digest, size
-        ev.mime = (file.content_type or "")[:100]
-        ev.title = ev.title or original
-        ev.share_with_ai = share_with_ai == "1"
-    elif url.strip():
-        if not url.strip().lower().startswith(("https://", "http://")):
-            return redirect(f"/assessment/{rid}", err="Links must start with https:// or http://.")
-        ev.kind = "link"
-        ev.url = url.strip()[:1000]
-        ev.title = ev.title or ev.url
-    else:
-        return redirect(f"/assessment/{rid}", err="Provide a file or a link.")
+    error = attach_file_or_link(ev, file, url, share_with_ai == "1")
+    if error:
+        return redirect(f"/assessment/{rid}", err=error)
     db.add(ev)
     db.commit()
-    log_activity(
-        db,
-        user.label,
-        "evidence_add",
-        "evidence",
-        str(ev.id),
-        {"title": ev.title, "requirements": [rid], "sha256": ev.sha256, "share_with_ai": ev.share_with_ai},
-    )
+    log_evidence_added(db, user, ev)
     return redirect(f"/assessment/{rid}", msg="Evidence added.")
 
 
@@ -270,7 +247,7 @@ def add_action(
         requirement_id=rid,
         owner=owner.strip()[:200],
         due_date=parse_date(due_date),
-        priority=priority if priority in ("high", "medium", "low") else "medium",
+        priority=priority if priority in PRIORITIES else "medium",
     )
     db.add(a)
     db.commit()

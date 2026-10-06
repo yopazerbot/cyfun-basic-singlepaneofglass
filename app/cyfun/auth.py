@@ -28,7 +28,7 @@ import base64
 import hashlib
 import logging
 import time
-from datetime import timedelta
+from datetime import datetime, timedelta
 from urllib.parse import urlencode
 
 import httpx
@@ -45,6 +45,8 @@ from .config import Settings, get_settings, new_token
 from .db import get_db
 from .models import LoginState, SessionRow, User, utcnow
 from .passwords import hash_password, password_problems, temporary_password, verify_password
+from .services import log_activity
+from .views import redirect, render
 
 log = logging.getLogger("cyfun.auth")
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -52,13 +54,13 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 COOKIE = "cyfun_session"
 SECURE_COOKIE = "__Host-cyfun_session"  # https: host-only, Secure, path=/ enforced by the browser
 ID_TOKEN_ALGORITHMS = ["RS256"]  # Entra ID signs ID tokens with RS256; anything else is refused
+OIDC_SCOPE = "openid profile email"
 GENERIC_LOGIN_ERROR = "Unknown username or wrong password. After repeated failures the account is locked for a few minutes."
-ROLES = ("admin", "auditor")
-ROLE_MAP = {"admin": "admin", "auditor": "auditor"}
+ROLES = ("admin", "auditor")  # in order of precedence
 DEFAULT_ADMIN = ("admin", "admin")
 
 _discovery_cache: dict[str, tuple[float, dict]] = {}
-_jwks_cache: dict[str, tuple[float, object]] = {}
+_jwks_cache: dict[str, tuple[float, KeySet]] = {}
 
 
 _DUMMY_HASH = hash_password(new_token(16))  # verified for unknown users so every attempt costs the same
@@ -73,30 +75,29 @@ def _authority(s: Settings) -> str:
     return f"https://login.microsoftonline.com/{s.auth_tenant_id}/v2.0"
 
 
-def discovery(s: Settings) -> dict:
-    key = s.auth_tenant_id
-    now = time.time()
-    cached = _discovery_cache.get(key)
-    if cached and cached[0] > now:
-        return cached[1]
-    r = httpx.get(f"{_authority(s)}/.well-known/openid-configuration", timeout=10)
-    r.raise_for_status()
-    doc = r.json()
-    _discovery_cache[key] = (now + 3600, doc)
-    return doc
+def _redirect_uri(s: Settings) -> str:
+    return f"{s.app_base_url}/auth/callback"
 
 
-def jwks(s: Settings, force: bool = False):
-    key = s.auth_tenant_id
+def _cached_fetch(cache: dict, s: Settings, url, parse, force: bool = False):
+    """GET a JSON document per tenant and keep the parsed result for an hour. `url` is called only on a miss."""
     now = time.time()
-    cached = _jwks_cache.get(key)
+    cached = cache.get(s.auth_tenant_id)
     if cached and cached[0] > now and not force:
         return cached[1]
-    r = httpx.get(discovery(s)["jwks_uri"], timeout=10)
+    r = httpx.get(url(), timeout=10)
     r.raise_for_status()
-    keyset = KeySet.import_key_set(r.json())
-    _jwks_cache[key] = (now + 3600, keyset)
-    return keyset
+    value = parse(r.json())
+    cache[s.auth_tenant_id] = (now + 3600, value)
+    return value
+
+
+def discovery(s: Settings) -> dict:
+    return _cached_fetch(_discovery_cache, s, lambda: f"{_authority(s)}/.well-known/openid-configuration", dict)
+
+
+def jwks(s: Settings, force: bool = False) -> KeySet:
+    return _cached_fetch(_jwks_cache, s, lambda: discovery(s)["jwks_uri"], KeySet.import_key_set, force)
 
 
 def _hash(token: str) -> str:
@@ -120,11 +121,10 @@ def role_from_claims(claims: dict, s: Settings) -> str | None:
     roles = claims.get("roles") or []
     if isinstance(roles, str):
         roles = [roles]
-    found = [ROLE_MAP[r.lower()] for r in roles if isinstance(r, str) and r.lower() in ROLE_MAP]
-    if "admin" in found:
-        return "admin"
-    if "auditor" in found:
-        return "auditor"
+    found = {r.lower() for r in roles if isinstance(r, str)}
+    for role in ROLES:
+        if role in found:
+            return role
     default = s.auth_default_role.strip().lower()
     return default if default in ROLES else None
 
@@ -182,6 +182,14 @@ def clear_cookie(response: Response, s: Settings) -> None:
     response.delete_cookie(cookie_name(s), path="/", httponly=True, secure=s.secure_cookies, samesite="lax")
 
 
+def _signed_in(db: Session, s: Settings, user: User, request: Request, target: str, status_code: int) -> RedirectResponse:
+    """Start a session for `user` and redirect to `target` with the session cookie."""
+    token = create_session(db, s, user, request)
+    resp = RedirectResponse(target, status_code=status_code)
+    set_cookie(resp, s, token)
+    return resp
+
+
 def load_user(request: Request, db: Session, s: Settings) -> User | None:
     token = request.cookies.get(cookie_name(s))
     if not token:
@@ -190,11 +198,8 @@ def load_user(request: Request, db: Session, s: Settings) -> User | None:
     if row is None:
         return None
     now = utcnow()
-    if now > row.expires_at or now > row.last_seen_at + timedelta(minutes=s.session_idle_minutes):
-        db.delete(row)
-        db.commit()
-        return None
-    user = db.get(User, row.user_id)
+    expired = now > row.expires_at or now > row.last_seen_at + timedelta(minutes=s.session_idle_minutes)
+    user = None if expired else db.get(User, row.user_id)
     if user is None or user.disabled or (user.auth_provider == "local" and not s.auth_local_enabled):
         db.delete(row)
         db.commit()
@@ -237,6 +242,30 @@ def require_admin(user: User = Depends(require_user)) -> User:
 
 
 # --------------------------------------------------------------------------- local accounts
+def _new_local_user(username: str, display_name: str, role: str, password: str) -> User:
+    """A local account that must change its password at first login."""
+    return User(
+        oid=f"local:{username}",
+        email="",
+        display_name=display_name,
+        role=role,
+        auth_provider="local",
+        username=username,
+        password_hash=hash_password(password),
+        must_change_password=True,
+    )
+
+
+def _record_failed_password(user: User, s: Settings, now: datetime) -> bool:
+    """Count a wrong password. At the limit the account locks and the count restarts; returns True then."""
+    user.failed_logins = (user.failed_logins or 0) + 1
+    if user.failed_logins < s.login_max_failures:
+        return False
+    user.locked_until = now + timedelta(minutes=s.login_lockout_minutes)
+    user.failed_logins = 0
+    return True
+
+
 def ensure_default_admin(s: Settings) -> None:
     """Create the first administrator (password change forced) when local login is on and no user exists at all.
 
@@ -244,55 +273,46 @@ def ensure_default_admin(s: Settings) -> None:
     added later; an Entra administrator creates local accounts on the Users page instead."""
     if not s.auth_local_enabled:
         return
-    db = database.session()
-    try:
-        exists = db.execute(select(User.id).limit(1)).first()
-        if exists is None:
-            username, password = DEFAULT_ADMIN
-            if s.auth_bootstrap_password.strip():
-                password = s.auth_bootstrap_password.strip()
-            db.add(
-                User(
-                    oid=f"local:{username}",
-                    email="",
-                    display_name="Administrator",
-                    role="admin",
-                    auth_provider="local",
-                    username=username,
-                    password_hash=hash_password(password),
-                    must_change_password=True,
-                )
-            )
-            db.commit()
-            log.warning(
-                "created the local account '%s' with the %s password; it must be changed at first login",
-                username,
-                "AUTH_BOOTSTRAP_PASSWORD" if s.auth_bootstrap_password.strip() else "default",
-            )
-    finally:
-        db.close()
+    with database.session() as db:
+        if db.execute(select(User.id).limit(1)).first() is not None:
+            return
+        username, password = DEFAULT_ADMIN
+        bootstrap = s.auth_bootstrap_password.strip()
+        db.add(_new_local_user(username, "Administrator", "admin", bootstrap or password))
+        db.commit()
+        log.warning(
+            "created the local account '%s' with the %s password; it must be changed at first login",
+            username,
+            "AUTH_BOOTSTRAP_PASSWORD" if bootstrap else "default",
+        )
 
 
-def _render(request: Request, name: str, ctx: dict, status_code: int = 200):
-    from .views import render
+def _login_page(request: Request, s: Settings, next_path: str, error: str = "", username: str = "", status_code: int = 200):
+    ctx = {"user": None, "entra": s.auth_configured, "local": s.auth_local_enabled, "next": next_path, "error": error, "username": username, "hide_nav": True}
+    return render(request, "login.html", ctx, status_code=status_code)
 
-    return render(request, name, ctx, status_code=status_code)
+
+def _password_page(request: Request, user: User, next_path: str, error: str = "", status_code: int = 200):
+    return render(request, "password.html", {"next": next_path, "forced": user.must_change_password, "error": error}, status_code=status_code)
 
 
-def _login_context(s: Settings, next_path: str, error: str = "", username: str = "") -> dict:
-    return {"user": None, "entra": s.auth_configured, "local": s.auth_local_enabled, "next": next_path, "error": error, "username": username, "hide_nav": True}
+def _local_account(user: User | None) -> User:
+    """The signed-in user, who must have a local account to manage a password here."""
+    if user is None:
+        raise HTTPException(status_code=401, detail="Sign in required")
+    if user.auth_provider != "local":
+        raise HTTPException(status_code=403, detail="Passwords of Microsoft accounts are managed in Entra ID")
+    return user
 
 
 @router.get("/login")
 def login(request: Request, next: str = "/", s: Settings = Depends(get_settings)):
     nxt = _safe_next(next)
     if not s.any_login:
-        return _render(
-            request, "login.html", _login_context(s, nxt, "No sign-in method is configured. Set AUTH_LOCAL_ENABLED=true or configure Entra ID."), 503
-        )
+        return _login_page(request, s, nxt, "No sign-in method is configured. Set AUTH_LOCAL_ENABLED=true or configure Entra ID.", status_code=503)
     if s.auth_configured and not s.auth_local_enabled:
         return RedirectResponse(f"/auth/microsoft?next={nxt}", status_code=302)
-    return _render(request, "login.html", _login_context(s, nxt))
+    return _login_page(request, s, nxt)
 
 
 @router.post("/local")
@@ -307,8 +327,6 @@ def local_login(
     nxt = _safe_next(next)
     if not s.auth_local_enabled:
         raise HTTPException(status_code=404)
-    from .services import log_activity
-
     uname = username.strip().lower()[:64]
     user = db.execute(select(User).where(User.username == uname, User.auth_provider == "local")).scalar_one_or_none()
     now = utcnow()
@@ -316,41 +334,31 @@ def local_login(
     # in every branch, so neither the response nor its timing reveals whether an account exists.
     password_ok = verify_password(password, user.password_hash if user else _DUMMY_HASH)
     if user is None:
-        log_activity(db, uname, "login_failed", "user", "", {"reason": "unknown user"})
-        return _render(request, "login.html", _login_context(s, nxt, GENERIC_LOGIN_ERROR, uname), 401)
-    if user.disabled:
-        log_activity(db, uname, "login_failed", "user", str(user.id), {"reason": "disabled"})
-        return _render(request, "login.html", _login_context(s, nxt, GENERIC_LOGIN_ERROR, uname), 401)
-    if user.locked_until and user.locked_until > now:
-        log_activity(db, uname, "login_failed", "user", str(user.id), {"reason": "locked"})
-        return _render(request, "login.html", _login_context(s, nxt, GENERIC_LOGIN_ERROR, uname), 401)
-    if not password_ok:
-        user.failed_logins = (user.failed_logins or 0) + 1
-        if user.failed_logins >= s.login_max_failures:
-            user.locked_until = now + timedelta(minutes=s.login_lockout_minutes)
-            user.failed_logins = 0
+        refusal = "unknown user"
+    elif user.disabled:
+        refusal = "disabled"
+    elif user.locked_until and user.locked_until > now:
+        refusal = "locked"
+    elif not password_ok:
+        refusal = "wrong password"
+        _record_failed_password(user, s, now)
         db.commit()
-        log_activity(db, uname, "login_failed", "user", str(user.id), {"reason": "wrong password"})
-        return _render(request, "login.html", _login_context(s, nxt, GENERIC_LOGIN_ERROR, uname), 401)
+    else:
+        refusal = ""
+    if refusal:
+        log_activity(db, uname, "login_failed", "user", str(user.id) if user else "", {"reason": refusal})
+        return _login_page(request, s, nxt, GENERIC_LOGIN_ERROR, uname, 401)
     user.failed_logins = 0
     user.locked_until = None
     user.last_login_at = now
     db.commit()
     log_activity(db, user.username or "", "login", "user", str(user.id), {"provider": "local", "role": user.role})
-    token = create_session(db, s, user, request)
-    target = f"/auth/password?next={nxt}" if user.must_change_password else nxt
-    resp = RedirectResponse(target, status_code=303)
-    set_cookie(resp, s, token)
-    return resp
+    return _signed_in(db, s, user, request, f"/auth/password?next={nxt}" if user.must_change_password else nxt, 303)
 
 
 @router.get("/password")
 def password_form(request: Request, next: str = "/", user: User | None = Depends(current_user)):
-    if user is None:
-        raise HTTPException(status_code=401, detail="Sign in required")
-    if user.auth_provider != "local":
-        raise HTTPException(status_code=403, detail="Passwords of Microsoft accounts are managed in Entra ID")
-    return _render(request, "password.html", {"next": _safe_next(next), "forced": user.must_change_password, "error": ""})
+    return _password_page(request, _local_account(user), _safe_next(next))
 
 
 @router.post("/password")
@@ -364,38 +372,26 @@ def password_change(
     db: Session = Depends(get_db),
     s: Settings = Depends(get_settings),
 ):
-    if user is None:
-        raise HTTPException(status_code=401, detail="Sign in required")
-    if user.auth_provider != "local":
-        raise HTTPException(status_code=403, detail="Passwords of Microsoft accounts are managed in Entra ID")
-    from .services import log_activity
-
+    user = _local_account(user)
     nxt = _safe_next(next)
-    ctx = {"next": nxt, "forced": user.must_change_password, "error": ""}
     if not verify_password(current, user.password_hash):
-        user.failed_logins = (user.failed_logins or 0) + 1
-        if user.failed_logins >= s.login_max_failures:
-            user.locked_until = utcnow() + timedelta(minutes=s.login_lockout_minutes)
-            user.failed_logins = 0
-            db.commit()
+        locked = _record_failed_password(user, s, utcnow())
+        db.commit()
+        if locked:
             end_all_sessions(db, user.id)
             log_activity(db, user.label, "password_change_locked", "user", str(user.id), {})
             resp = RedirectResponse("/auth/login", status_code=303)
             clear_cookie(resp, s)
             return resp
-        db.commit()
         log_activity(db, user.label, "password_change_failed", "user", str(user.id), {})
-        ctx["error"] = "The current password is wrong."
-        return _render(request, "password.html", ctx, 400)
+        return _password_page(request, user, nxt, "The current password is wrong.", 400)
     if new != confirm:
-        ctx["error"] = "The new passwords do not match."
-        return _render(request, "password.html", ctx, 400)
+        return _password_page(request, user, nxt, "The new passwords do not match.", 400)
     problems = password_problems(new, user.username or "")
     if verify_password(new, user.password_hash):
         problems.append("Choose a password different from the current one.")
     if problems:
-        ctx["error"] = " ".join(problems)
-        return _render(request, "password.html", ctx, 400)
+        return _password_page(request, user, nxt, " ".join(problems), 400)
     user.password_hash = hash_password(new)
     user.must_change_password = False
     user.failed_logins = 0
@@ -403,17 +399,18 @@ def password_change(
     # all other sessions of this account end; the current one is replaced
     end_all_sessions(db, user.id)
     log_activity(db, user.username or "", "password_change", "user", str(user.id), {})
-    token = create_session(db, s, user, request)
-    resp = RedirectResponse(nxt, status_code=303)
-    set_cookie(resp, s, token)
-    return resp
+    return _signed_in(db, s, user, request, nxt, 303)
 
 
 # --------------------------------------------------------------------------- user administration
+def _users_page(request: Request, db: Session, local: bool, temp: str | None = None, temp_user: User | None = None):
+    users = db.execute(select(User).order_by(User.auth_provider, User.username, User.email)).scalars().all()
+    return render(request, "users.html", {"active": "users", "users": users, "local": local, "temp": temp, "temp_user": temp_user})
+
+
 @router.get("/users")
 def users_page(request: Request, user: User = Depends(require_admin), db: Session = Depends(get_db), s: Settings = Depends(get_settings)):
-    users = db.execute(select(User).order_by(User.auth_provider, User.username, User.email)).scalars().all()
-    return _render(request, "users.html", {"active": "users", "users": users, "local": s.auth_local_enabled, "temp": None, "temp_user": None})
+    return _users_page(request, db, s.auth_local_enabled)
 
 
 @router.post("/users")
@@ -426,9 +423,6 @@ def users_create(
     db: Session = Depends(get_db),
     s: Settings = Depends(get_settings),
 ):
-    from .services import log_activity
-    from .views import redirect
-
     if not s.auth_local_enabled:
         return redirect("/auth/users", err="Local accounts are disabled (AUTH_LOCAL_ENABLED).")
     uname = username.strip().lower()[:64]
@@ -437,28 +431,15 @@ def users_create(
     if db.execute(select(User).where(User.username == uname)).first():
         return redirect("/auth/users", err="That username exists already.")
     temp = temporary_password()
-    new = User(
-        oid=f"local:{uname}",
-        email="",
-        display_name=display_name.strip()[:200] or uname,
-        role=role if role in ROLES else "auditor",
-        auth_provider="local",
-        username=uname,
-        password_hash=hash_password(temp),
-        must_change_password=True,
-    )
+    new = _new_local_user(uname, display_name.strip()[:200] or uname, role if role in ROLES else "auditor", temp)
     db.add(new)
     db.commit()
     log_activity(db, user.label, "user_create", "user", str(new.id), {"username": uname, "role": new.role})
-    users = db.execute(select(User).order_by(User.auth_provider, User.username, User.email)).scalars().all()
-    return _render(request, "users.html", {"active": "users", "users": users, "local": True, "temp": temp, "temp_user": new})
+    return _users_page(request, db, True, temp, new)
 
 
 @router.post("/users/{user_id}/reset")
 def users_reset(request: Request, user_id: int, user: User = Depends(require_admin), db: Session = Depends(get_db)):
-    from .services import log_activity
-    from .views import redirect
-
     target = db.get(User, user_id)
     if target is None or target.auth_provider != "local":
         return redirect("/auth/users", err="Only local accounts have passwords here.")
@@ -470,8 +451,7 @@ def users_reset(request: Request, user_id: int, user: User = Depends(require_adm
     db.commit()
     end_all_sessions(db, target.id)
     log_activity(db, user.label, "user_password_reset", "user", str(target.id), {"username": target.username})
-    users = db.execute(select(User).order_by(User.auth_provider, User.username, User.email)).scalars().all()
-    return _render(request, "users.html", {"active": "users", "users": users, "local": True, "temp": temp, "temp_user": target})
+    return _users_page(request, db, True, temp, target)
 
 
 @router.post("/users/{user_id}/update")
@@ -483,9 +463,6 @@ def users_update(
     user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
-    from .services import log_activity
-    from .views import redirect
-
     target = db.get(User, user_id)
     if target is None:
         return redirect("/auth/users", err="User not found.")
@@ -503,9 +480,6 @@ def users_update(
 
 @router.post("/users/{user_id}/delete")
 def users_delete(request: Request, user_id: int, user: User = Depends(require_admin), db: Session = Depends(get_db)):
-    from .services import log_activity
-    from .views import redirect
-
     target = db.get(User, user_id)
     if target is None:
         return redirect("/auth/users", err="User not found.")
@@ -533,9 +507,9 @@ def microsoft(request: Request, next: str = "/", db: Session = Depends(get_db), 
     params = {
         "client_id": s.auth_client_id,
         "response_type": "code",
-        "redirect_uri": f"{s.app_base_url}/auth/callback",
+        "redirect_uri": _redirect_uri(s),
         "response_mode": "query",
-        "scope": "openid profile email",
+        "scope": OIDC_SCOPE,
         "state": state,
         "nonce": nonce,
         "code_challenge": challenge,
@@ -573,9 +547,9 @@ def callback(
             "client_secret": s.auth_client_secret,
             "grant_type": "authorization_code",
             "code": code,
-            "redirect_uri": f"{s.app_base_url}/auth/callback",
+            "redirect_uri": _redirect_uri(s),
             "code_verifier": ls.code_verifier,
-            "scope": "openid profile email",
+            "scope": OIDC_SCOPE,
         },
         timeout=15,
     )
@@ -597,11 +571,8 @@ def callback(
     name = claims.get("name") or email
     if role is None:
         log.warning("user %s has no app role; access denied", email)
-        return _render(
-            request,
-            "login.html",
-            _login_context(s, ls.next_path, "Your Microsoft account is authenticated but has no Admin or Auditor app role for this application."),
-            403,
+        return _login_page(
+            request, s, ls.next_path, "Your Microsoft account is authenticated but has no Admin or Auditor app role for this application.", status_code=403
         )
     user = db.execute(select(User).where(User.oid == oid)).scalar_one_or_none()
     if user is None:
@@ -610,26 +581,20 @@ def callback(
     else:
         user.email, user.display_name, user.role = email, name, role
     if user.disabled:
-        return _render(request, "login.html", _login_context(s, ls.next_path, "This account is disabled."), 403)
+        return _login_page(request, s, ls.next_path, "This account is disabled.", status_code=403)
     user.last_login_at = utcnow()
     db.commit()
-    from .services import log_activity
-
     log_activity(db, email, "login", "user", str(user.id), {"provider": "entra", "role": role})
-    token = create_session(db, s, user, request)
-    resp = RedirectResponse(ls.next_path, status_code=302)
-    set_cookie(resp, s, token)
-    return resp
+    return _signed_in(db, s, user, request, ls.next_path, 302)
 
 
 @router.post("/logout")
 def logout(request: Request, db: Session = Depends(get_db), s: Settings = Depends(get_settings)):
     token = request.cookies.get(cookie_name(s))
-    if token:
-        row = db.get(SessionRow, _hash(token))
-        if row:
-            db.delete(row)
-            db.commit()
+    row = db.get(SessionRow, _hash(token)) if token else None
+    if row is not None:
+        db.delete(row)
+        db.commit()
     resp = RedirectResponse("/auth/signed-out", status_code=303)
     clear_cookie(resp, s)
     return resp
@@ -637,4 +602,4 @@ def logout(request: Request, db: Session = Depends(get_db), s: Settings = Depend
 
 @router.get("/signed-out")
 def signed_out(request: Request):
-    return _render(request, "signed_out.html", {"user": None})
+    return render(request, "signed_out.html", {"user": None})

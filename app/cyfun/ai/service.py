@@ -21,10 +21,10 @@ from ..appsettings import AI_MODELS, load_config
 from ..config import Settings
 from ..framework import Framework
 from ..models import Action, AiBatch, AiProposal, Evidence, Score, utcnow
-from ..services import current_framework, evidence_path, log_activity, parse_int
-from ..views import fmt_score
+from ..services import current_framework, log_activity, parse_int
+from ..views import fmt_usd
 from . import claude, guard
-from .packet import Packet, build_packet, pseudonymizer_for
+from .packet import Packet, build_packet, evidence_file, pseudonymizer_for
 from .prompt import PROMPT_VERSION, system_prompt, user_instruction
 from .pseudonym import Pseudonymizer
 
@@ -38,10 +38,6 @@ class AiError(Exception):
     """A reason shown to the administrator."""
 
 
-def usd(value: float) -> str:
-    return "USD " + fmt_score(value, 2)
-
-
 # --------------------------------------------------------------------------- status and spend
 def month_start(now: datetime | None = None) -> datetime:
     now = now or utcnow()
@@ -50,7 +46,7 @@ def month_start(now: datetime | None = None) -> datetime:
 
 def month_spend(db: Session) -> float:
     total = db.execute(select(func.coalesce(func.sum(AiProposal.cost_usd), 0.0)).where(AiProposal.created_at >= month_start())).scalar_one()
-    return float(total or 0.0)
+    return float(total)
 
 
 def status(db: Session, settings: Settings) -> dict:
@@ -77,17 +73,12 @@ def _ensure_ready(db: Session, cfg, needed: float) -> None:
         raise AiError("Reviews are off: the monthly spend limit on the Settings page is 0.")
     spent = month_spend(db)
     if spent + needed > cap:
-        raise AiError(f"This would pass the monthly spend limit of USD {cap}: {usd(spent)} spent this month, about {usd(needed)} needed.")
+        raise AiError(f"This would pass the monthly spend limit of USD {cap}: {fmt_usd(spent)} spent this month, about {fmt_usd(needed)} needed.")
 
 
 def _estimate(packet: Packet, cfg, batch: bool) -> float:
-    binary = 0
-    images = 0
-    for a in packet.attachments:
-        if a["type"] == "image":
-            images += 1
-        else:
-            binary += int(a.get("size", 0))
+    images = sum(1 for a in packet.attachments if a["type"] == "image")
+    binary = sum(int(a.get("size", 0)) for a in packet.attachments if a["type"] != "image")
     return claude.estimate(cfg.ai_model, cfg.ai_effort, len(packet.text) + len(system_prompt()), binary, images, batch)
 
 
@@ -137,12 +128,8 @@ def _content(db: Session, settings: Settings, prop: AiProposal) -> list[dict]:
     blocks: list[dict] = []
     missing: list[str] = []
     for att in (prop.meta or {}).get("attachments", []):
-        ev = db.get(Evidence, att.get("evidence_id"))
-        try:
-            path = evidence_path(settings, ev) if ev is not None else None
-        except ValueError:
-            path = None
-        if path is None or not path.exists():
+        path = evidence_file(settings, db.get(Evidence, att.get("evidence_id")))
+        if path is None:
             missing.append(att["ref"])
             continue
         data = base64.standard_b64encode(path.read_bytes()).decode("ascii")
@@ -265,13 +252,10 @@ def apply_reply(db: Session, prop: AiProposal, reply: claude.Reply, batch: bool)
 # --------------------------------------------------------------------------- batch review
 def _latest_basis(db: Session) -> dict[str, str]:
     """Requirement id -> basis hash of its latest review that produced a result."""
-    latest: dict[str, str] = {}
     rows = db.execute(
         select(AiProposal.requirement_id, AiProposal.basis_hash).where(AiProposal.status.notin_(["failed", *ACTIVE])).order_by(AiProposal.id)
     ).all()
-    for rid, basis in rows:
-        latest[rid] = basis
-    return latest
+    return dict(rows)  # ordered by id, so the latest review wins
 
 
 def batch_candidates(db: Session, settings: Settings, fw: Framework, scope: str) -> list[Packet]:

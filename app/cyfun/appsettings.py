@@ -143,7 +143,10 @@ FIELDS: tuple[SettingField, ...] = (
         help="Submits a batch for the requirements whose documents, evidence or checks changed since their last review.",
     ),
 )
-BY_NAME = {f.name: f for f in FIELDS}
+
+
+def fields_of(group: str) -> list[SettingField]:
+    return [f for f in FIELDS if f.group == group]
 
 
 class Config:
@@ -173,13 +176,13 @@ def _env_value(settings: Settings, f: SettingField):
         if v not in f.choices:
             log.warning("%s=%s is not one of %s; ignored", f.env, v, ", ".join(f.choices))
             return None
-    if f.kind == "int":
+    elif f.kind == "int":
         v = int(v)
         if f.minimum is not None:
             v = max(f.minimum, v)
         if f.maximum is not None:
             v = min(f.maximum, v)
-    if f.kind == "text":
+    elif f.kind == "text":
         v = str(v).strip()
     return v
 
@@ -197,15 +200,17 @@ def _parse_stored(f: SettingField, raw: str):
     return raw
 
 
+def _stored_rows(db: Session) -> dict[str, AppSetting]:
+    return {r.key: r for r in db.execute(select(AppSetting)).scalars()}
+
+
 def load_config(db: Session | None = None, settings: Settings | None = None) -> Config:
     settings = settings or get_settings()
-    own = db is None
-    db = db or database.session()
-    try:
-        rows = {r.key: r for r in db.execute(select(AppSetting)).scalars().all()}
-    finally:
-        if own:
-            db.close()
+    if db is None:
+        with database.session() as own:
+            rows = _stored_rows(own)
+    else:
+        rows = _stored_rows(db)
     values: dict = {}
     sources: dict[str, str] = {}
     problems: dict[str, str] = {}
@@ -256,11 +261,11 @@ def save_group(db: Session, settings: Settings, group: str, form, actor: str) ->
     """Apply one Settings form. Nothing is written when any field is invalid.
 
     Returns (changes for the activity log, errors). Changes never contain secret values."""
-    rows = {r.key: r for r in db.execute(select(AppSetting)).scalars().all()}
+    rows = _stored_rows(db)
     changes: list[dict] = []
     errors: list[str] = []
     writes: list[tuple[str, SettingField, str | None]] = []
-    for f in (f for f in FIELDS if f.group == group):
+    for f in fields_of(group):
         if _env_value(settings, f) is not None:
             continue  # set by the environment; the form shows it read-only
         row = rows.get(f.name)
@@ -282,8 +287,8 @@ def save_group(db: Session, settings: Settings, group: str, form, actor: str) ->
             writes.append(("secret", f, new))
             changes.append({"setting": f.label, "change": "replaced" if row is not None else "set"})
             continue
-        raw = form.get(f.name)
-        value, err = _validate(f, (raw or "").strip() if f.kind != "bool" else (raw or ""))
+        raw = form.get(f.name) or ""
+        value, err = _validate(f, raw if f.kind == "bool" else raw.strip())
         if err:
             errors.append(err)
             continue
@@ -300,8 +305,7 @@ def save_group(db: Session, settings: Settings, group: str, form, actor: str) ->
     for op, f, value in writes:
         row = rows.get(f.name)
         if op == "delete":
-            if row is not None:
-                db.delete(row)
+            db.delete(row)  # only queued for an existing row
             continue
         if row is None:
             row = AppSetting(key=f.name)
@@ -323,7 +327,7 @@ def describe(config: Config, settings: Settings) -> list[dict]:
     out = []
     for g in GROUPS:
         items = []
-        for f in (f for f in FIELDS if f.group == g.key):
+        for f in fields_of(g.key):
             src = config.sources[f.name]
             row = config.rows.get(f.name)
             item = {"f": f, "source": src, "locked": src == "env", "row": row, "problem": config.problems.get(f.name, "")}

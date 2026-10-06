@@ -94,36 +94,32 @@ def check(data: dict, refs: dict, facts: dict, pseudo: Pseudonymizer) -> Checked
 
     doc, impl = a.documentation.score, a.implementation.score
     caps = []
+
+    def cap(dimension: str, proposed: int, applied: int, reason: str) -> int:
+        caps.append({"dimension": dimension, "proposed": proposed, "applied": applied, "reason": reason})
+        return applied
+
     if doc >= 2 and facts.get("approved_documents", 0) == 0:
-        caps.append(
-            {
-                "dimension": "documentation",
-                "proposed": doc,
-                "applied": 1,
-                "reason": "No approved document in the register is linked to this requirement. CCB level 2 needs formally approved documentation.",
-            }
+        doc = cap(
+            "documentation",
+            doc,
+            1,
+            "No approved document in the register is linked to this requirement. CCB level 2 needs formally approved documentation.",
         )
-        doc = 1
     elif doc >= 3 and facts.get("recently_reviewed_documents", 0) == 0:
-        caps.append(
-            {
-                "dimension": "documentation",
-                "proposed": doc,
-                "applied": 2,
-                "reason": "No linked approved document was reviewed or approved in the previous 2 years. CCB level 3 needs a review within 2 years.",
-            }
+        doc = cap(
+            "documentation",
+            doc,
+            2,
+            "No linked approved document was reviewed or approved in the previous 2 years. CCB level 3 needs a review within 2 years.",
         )
-        doc = 2
     if impl >= 3 and facts.get("evidence_items", 0) == 0 and facts.get("passing_checks", 0) == 0:
-        caps.append(
-            {
-                "dimension": "implementation",
-                "proposed": impl,
-                "applied": 2,
-                "reason": "No evidence item and no passing automated check is linked to this requirement. CCB level 3 needs evidence for most activities.",
-            }
+        impl = cap(
+            "implementation",
+            impl,
+            2,
+            "No evidence item and no passing automated check is linked to this requirement. CCB level 3 needs evidence for most activities.",
         )
-        impl = 2
     if len(a.justification) > JUSTIFICATION_LIMIT * 1.5:
         notes.append(f"The justification has {len(a.justification)} characters; shorten it before the export.")
 

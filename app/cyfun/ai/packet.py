@@ -14,6 +14,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+from collections import Counter
 from dataclasses import dataclass, field
 from datetime import date, timedelta
 from pathlib import Path
@@ -64,6 +65,11 @@ class Packet:
 
 def _iso(d) -> str | None:
     return d.isoformat() if d else None
+
+
+def _compact(item: dict) -> dict:
+    """Leave out empty fields."""
+    return {k: v for k, v in item.items() if v not in (None, "")}
 
 
 def _host(url: str) -> str:
@@ -133,6 +139,17 @@ def pseudonymizer_for(db: Session) -> Pseudonymizer:
     return p
 
 
+def evidence_file(settings: Settings, e: Evidence | None) -> Path | None:
+    """The stored file of an evidence item, or None when it is missing."""
+    if e is None:
+        return None
+    try:
+        path = evidence_path(settings, e)
+    except ValueError:
+        return None
+    return path if path.exists() else None
+
+
 def _attachment(settings: Settings, e: Evidence, used: dict) -> tuple[str, dict | None, str]:
     """Decide how a shared evidence file is sent. Returns (status for the packet, binary attachment, text content)."""
     if e.kind != "file" or not e.stored_name:
@@ -140,11 +157,8 @@ def _attachment(settings: Settings, e: Evidence, used: dict) -> tuple[str, dict 
     if not e.share_with_ai:
         return "not shared with Claude (metadata only)", None, ""
     ext = Path(e.file_name or e.stored_name).suffix.lower()
-    try:
-        path = evidence_path(settings, e)
-    except ValueError:
-        return "not attached: file missing", None, ""
-    if not path.exists():
+    path = evidence_file(settings, e)
+    if path is None:
         return "not attached: file missing", None, ""
     size = path.stat().st_size
     if ext == ".pdf" or ext in IMAGE_TYPES:
@@ -226,16 +240,16 @@ def build_packet(db: Session, settings: Settings, fw: Framework, rid: str, today
             "title": p.text(d.title),
             "type": d.doc_type,
             "status": d.status,
-            "version": d.version or None,
-            "owner": p.text(d.owner) or None,
-            "approved_by": p.text(d.approved_by) or None,
+            "version": d.version,
+            "owner": p.text(d.owner),
+            "approved_by": p.text(d.approved_by),
             "approved_on": _iso(d.approved_on),
             "last_review": _iso(d.last_review),
             "next_review": _iso(d.next_review),
-            "stored_at": _host(d.link) or None,
-            "notes": p.text(d.notes) or None,
+            "stored_at": _host(d.link),
+            "notes": p.text(d.notes),
         }
-        item = {k: v for k, v in item.items() if v not in (None, "")}
+        item = _compact(item)
         docs_out.append({"ref": add_ref("D", i, "document", d.title, item, f"/documents/{d.id}"), **item})
         if d.status == "approved":
             approved += 1
@@ -246,8 +260,7 @@ def build_packet(db: Session, settings: Settings, fw: Framework, rid: str, today
     others = [d for d in all_docs if rid not in (d.requirement_ids or [])][:OTHER_DOCS_LIMIT]
     other_out = []
     for i, d in enumerate(others, 1):
-        item = {"title": p.text(d.title), "type": d.doc_type, "status": d.status, "last_review": _iso(d.last_review or d.approved_on)}
-        item = {k: v for k, v in item.items() if v}
+        item = _compact({"title": p.text(d.title), "type": d.doc_type, "status": d.status, "last_review": _iso(d.last_review or d.approved_on)})
         other_out.append({"ref": add_ref("O", i, "document", d.title, item, f"/documents/{d.id}"), **item})
     if other_out:
         packet["other_documents_in_register"] = other_out
@@ -268,15 +281,15 @@ def build_packet(db: Session, settings: Settings, fw: Framework, rid: str, today
         item = {
             "title": p.text(e.title),
             "kind": e.kind,
-            "description": p.text(e.description) or None,
+            "description": p.text(e.description),
             "collected_on": _iso(e.collected_on),
-            "collected_by": p.text(e.collected_by) or None,
-            "file": p.text(e.file_name) or None,
+            "collected_by": p.text(e.collected_by),
+            "file": p.text(e.file_name),
             "size_kb": round(e.size / 1024) if e.size else None,
             "link_host": _host(e.url) if e.kind == "link" else None,
-            "content": status or None,
+            "content": status,
         }
-        item = {k: v for k, v in item.items() if v not in (None, "")}
+        item = _compact(item)
         ref = add_ref("E", i, "evidence", e.title, item, f"/evidence/{e.id}")
         ev_out.append({"ref": ref, **item})
         if att is not None:
@@ -306,7 +319,7 @@ def build_packet(db: Session, settings: Settings, fw: Framework, rid: str, today
         if notes:
             item["shortened"] = notes
             shortened.extend(notes)
-        item = {k: v for k, v in item.items() if v not in (None, "")}
+        item = _compact(item)
         ch_out.append({"ref": add_ref("C", i, "check", f"{item['system']}: {c.title}", item, f"/connectors/{c.connector}"), **item})
         passing += c.status == "pass"
         failing += c.status == "fail"
@@ -317,8 +330,7 @@ def build_packet(db: Session, settings: Settings, fw: Framework, rid: str, today
     actions = db.execute(select(Action).where(Action.requirement_id == rid, Action.status.in_(["open", "in_progress"])).order_by(Action.id)).scalars().all()
     act_out = []
     for i, a in enumerate(actions, 1):
-        item = {"title": p.text(a.title), "status": a.status, "owner": p.text(a.owner) or None, "due": _iso(a.due_date)}
-        item = {k: v for k, v in item.items() if v}
+        item = _compact({"title": p.text(a.title), "status": a.status, "owner": p.text(a.owner), "due": _iso(a.due_date)})
         act_out.append({"ref": add_ref("A", i, "action", a.title, item, f"/actions/{a.id}"), **item})
     if act_out:
         packet["open_actions"] = act_out
@@ -335,10 +347,10 @@ def build_packet(db: Session, settings: Settings, fw: Framework, rid: str, today
                 "impact_1_3": r.impact,
                 "treatment": r.treatment,
                 "status": r.status,
-                "owner": p.text(r.owner) or None,
+                "owner": p.text(r.owner),
                 "review_date": _iso(r.review_date),
             }
-            item = {k: v for k, v in item.items() if v not in (None, "")}
+            item = _compact(item)
             r_out.append({"ref": add_ref("R", i, "risk", r.title, item, "/risk/register"), **item})
         packet["risk_register"] = {"items": len(risks), "listed": r_out}
         basis["risks"] = [[r.id, r.title, r.likelihood, r.impact, r.treatment, r.status, _iso(r.review_date)] for r in risks]
@@ -346,15 +358,10 @@ def build_packet(db: Session, settings: Settings, fw: Framework, rid: str, today
     # inventory summary for asset-management requirements -------------------------------------
     if rid.startswith("ID.AM"):
         assets = db.execute(select(Asset).where(Asset.lifecycle != "retired")).scalars().all()
-        by_kind: dict[str, int] = {}
-        by_source: dict[str, int] = {}
-        for a in assets:
-            by_kind[a.kind] = by_kind.get(a.kind, 0) + 1
-            by_source[a.source] = by_source.get(a.source, 0) + 1
         summary = {
             "active_assets": len(assets),
-            "by_kind": by_kind,
-            "by_source": by_source,
+            "by_kind": dict(Counter(a.kind for a in assets)),
+            "by_source": dict(Counter(a.source for a in assets)),
             "with_owner": sum(1 for a in assets if a.owner),
             "marked_primary": sum(1 for a in assets if a.primary_asset),
             "criticality_high": sum(1 for a in assets if a.criticality == "High"),

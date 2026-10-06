@@ -32,8 +32,9 @@ def verify_password(password: str, stored: str) -> bool:
         algo, n, r, p, salt, digest = stored.split("$")
         if algo != "scrypt":
             return False
-        dk = hashlib.scrypt(password.encode("utf-8"), salt=base64.b64decode(salt), n=int(n), r=int(r), p=int(p), dklen=len(base64.b64decode(digest)))
-        return hmac.compare_digest(dk, base64.b64decode(digest))
+        expected = base64.b64decode(digest)
+        dk = hashlib.scrypt(password.encode("utf-8"), salt=base64.b64decode(salt), n=int(n), r=int(r), p=int(p), dklen=len(expected))
+        return hmac.compare_digest(dk, expected)
     except (ValueError, TypeError):
         return False
 

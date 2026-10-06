@@ -14,7 +14,7 @@ from . import db as database
 from .appsettings import load_config
 from .config import Settings
 from .connectors import registry
-from .connectors.base import ERROR, Check, Connector
+from .connectors.base import ERROR, Check, Connector, InventoryItem, SyncResult
 from .models import Asset, CheckResult, ConnectorRun, Evidence, utcnow
 from .services import log_activity
 
@@ -35,27 +35,7 @@ def run_connector(settings: Settings, key: str, actor: str = "scheduler") -> int
     try:
         result = connector.sync()
         now = utcnow()
-        # inventory upsert -------------------------------------------------------------
-        existing = {a.external_id: a for a in db.execute(select(Asset).where(Asset.source == key)).scalars().all()}
-        seen: set[str] = set()
-        for item in result.inventory:
-            seen.add(item.external_id)
-            a = existing.get(item.external_id)
-            if a is None:
-                a = Asset(kind=item.kind, name=item.name[:300], source=key, external_id=item.external_id[:300])
-                db.add(a)
-            a.name = item.name[:300] or a.name
-            a.description = item.description[:2000]
-            a.location = item.location[:200]
-            a.attributes = item.attributes
-            a.last_seen_at = now
-            if a.lifecycle == "retired":
-                a.lifecycle = "active"
-        for ext, a in existing.items():
-            if ext not in seen and a.lifecycle != "retired":
-                a.lifecycle = "retired"
-                a.attributes = {**(a.attributes or {}), "missing_since": now.date().isoformat()}
-        # checks -----------------------------------------------------------------------
+        _upsert_inventory(db, key, result.inventory, now)
         for ch in result.checks:
             db.add(
                 CheckResult(
@@ -70,35 +50,7 @@ def run_connector(settings: Settings, key: str, actor: str = "scheduler") -> int
                     checked_at=now,
                 )
             )
-        # snapshot ---------------------------------------------------------------------
-        snap_dir = settings.snapshots_dir / key
-        snap_dir.mkdir(parents=True, exist_ok=True)
-        stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
-        snap_file = snap_dir / f"{stamp}.json"
-        snap_bytes = json.dumps(
-            {
-                "connector": key,
-                "collected_at": stamp,
-                "checks": [
-                    {
-                        "id": c.id,
-                        "title": c.title,
-                        "status": c.status,
-                        "summary": c.summary,
-                        "requirements": c.requirement_ids,
-                        "details": _jsonable(c.details),
-                    }
-                    for c in result.checks
-                ],
-                "inventory_count": len(result.inventory),
-                "raw": _jsonable(result.raw),
-            },
-            indent=1,
-            ensure_ascii=False,
-            default=str,
-        ).encode("utf-8")
-        snap_file.write_bytes(snap_bytes)
-        run.snapshot_file = f"{key}/{snap_file.name}"
+        run.snapshot_file, snap_bytes = _write_snapshot(settings, key, result)
         run.inventory_count = len(result.inventory)
         run.check_count = len(result.checks)
         register_evidence(db, connector, run, result.checks, hashlib.sha256(snap_bytes).hexdigest(), len(snap_bytes))
@@ -119,6 +71,60 @@ def run_connector(settings: Settings, key: str, actor: str = "scheduler") -> int
     finally:
         db.close()
     return run.id
+
+
+def _upsert_inventory(db, key: str, items: list[InventoryItem], now: datetime) -> None:
+    """Refresh this connector's assets; items no longer reported are retired, returning ones reactivated."""
+    existing = {a.external_id: a for a in db.execute(select(Asset).where(Asset.source == key)).scalars().all()}
+    seen: set[str] = set()
+    for item in items:
+        seen.add(item.external_id)
+        a = existing.get(item.external_id)
+        if a is None:
+            a = Asset(kind=item.kind, name=item.name[:300], source=key, external_id=item.external_id[:300])
+            db.add(a)
+        a.name = item.name[:300] or a.name
+        a.description = item.description[:2000]
+        a.location = item.location[:200]
+        a.attributes = item.attributes
+        a.last_seen_at = now
+        if a.lifecycle == "retired":
+            a.lifecycle = "active"
+    for ext, a in existing.items():
+        if ext not in seen and a.lifecycle != "retired":
+            a.lifecycle = "retired"
+            a.attributes = {**(a.attributes or {}), "missing_since": now.date().isoformat()}
+
+
+def _write_snapshot(settings: Settings, key: str, result: SyncResult) -> tuple[str, bytes]:
+    """Write the run's JSON snapshot. Returns its path relative to the snapshots folder and its bytes."""
+    snap_dir = settings.snapshots_dir / key
+    snap_dir.mkdir(parents=True, exist_ok=True)
+    stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
+    snap_bytes = json.dumps(
+        {
+            "connector": key,
+            "collected_at": stamp,
+            "checks": [
+                {
+                    "id": c.id,
+                    "title": c.title,
+                    "status": c.status,
+                    "summary": c.summary,
+                    "requirements": c.requirement_ids,
+                    "details": _jsonable(c.details),
+                }
+                for c in result.checks
+            ],
+            "inventory_count": len(result.inventory),
+            "raw": _jsonable(result.raw),
+        },
+        indent=1,
+        ensure_ascii=False,
+        default=str,
+    ).encode("utf-8")
+    (snap_dir / f"{stamp}.json").write_bytes(snap_bytes)
+    return f"{key}/{stamp}.json", snap_bytes
 
 
 def register_evidence(db, connector: Connector, run: ConnectorRun, checks: list[Check], digest: str, size: int) -> None:
@@ -149,15 +155,13 @@ def register_evidence(db, connector: Connector, run: ConnectorRun, checks: list[
 
 def run_all(settings: Settings, actor: str = "scheduler") -> None:
     config = load_config(settings=settings)
-    ran = False
-    for key, connector in registry(config).items():
-        if connector.configured():
-            ran = True
-            try:
-                run_connector(settings, key, actor)
-            except Exception:  # noqa: BLE001
-                log.exception("connector %s crashed", key)
-    if ran and actor == "scheduler" and config.ai_review_after_sync:
+    keys = [key for key, connector in registry(config).items() if connector.configured()]
+    for key in keys:
+        try:
+            run_connector(settings, key, actor)
+        except Exception:  # noqa: BLE001
+            log.exception("connector %s crashed", key)
+    if keys and actor == "scheduler" and config.ai_review_after_sync:
         from .ai import service as ai
 
         db = database.session()

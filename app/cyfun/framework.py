@@ -14,13 +14,13 @@ All framework data is loaded from JSON files in this package:
 from __future__ import annotations
 
 import json
+from collections import Counter
 from dataclasses import dataclass, field
 from functools import lru_cache
 from pathlib import Path
 
 HERE = Path(__file__).parent / "framework"
 LEVELS = ("BASIC", "IMPORTANT", "ESSENTIAL")
-LEVEL_RANK = {"Basic": 0, "Important": 1, "Essential": 2}
 
 
 def normalise_level(value: str | None) -> str:
@@ -90,6 +90,30 @@ class Function:
         return [r for c in self.categories for r in c.requirements]
 
 
+def _requirement(q: dict, f: dict, c: dict, s: dict, guidance: dict, goals: dict) -> Requirement:
+    g = guidance.get(q["id"], {})
+    return Requirement(
+        id=q["id"],
+        workbook_id=q["workbook_id"],
+        text=q["text"],
+        level=q["level"],
+        key_measure=q["key_measure"],
+        management_aspect=q.get("management_aspect", False),
+        management_label=q.get("management_label", ""),
+        sheet=q["sheet"],
+        row=q["row"],
+        function_id=f["id"],
+        function_name=f["name"],
+        category_id=c["id"],
+        category_name=c["name"],
+        subcategory_id=s["id"],
+        subcategory_title=s["title"],
+        goal=(goals.get(q["id"]) or {}).get("goal", ""),
+        guidance=list(g.get("guidance", [])),
+        evidence_examples=list(g.get("evidence", [])),
+    )
+
+
 class Framework:
     def __init__(self, data: dict, guidance: dict, goals: dict):
         self.level: str = data["level"]
@@ -104,32 +128,8 @@ class Framework:
             for c in f["categories"]:
                 subs: list[Subcategory] = []
                 for s in c["subcategories"]:
-                    reqs = []
-                    for q in s["requirements"]:
-                        g = guidance.get(q["id"], {})
-                        reqs.append(
-                            Requirement(
-                                id=q["id"],
-                                workbook_id=q["workbook_id"],
-                                text=q["text"],
-                                level=q["level"],
-                                key_measure=q["key_measure"],
-                                management_aspect=q.get("management_aspect", False),
-                                management_label=q.get("management_label", ""),
-                                sheet=q["sheet"],
-                                row=q["row"],
-                                function_id=f["id"],
-                                function_name=f["name"],
-                                category_id=c["id"],
-                                category_name=c["name"],
-                                subcategory_id=s["id"],
-                                subcategory_title=s["title"],
-                                goal=(goals.get(q["id"]) or {}).get("goal", ""),
-                                guidance=list(g.get("guidance", [])),
-                                evidence_examples=list(g.get("evidence", [])),
-                            )
-                        )
-                    subs.append(Subcategory(s["id"], s["title"], tuple(reqs)))
+                    reqs = tuple(_requirement(q, f, c, s, guidance, goals) for q in s["requirements"])
+                    subs.append(Subcategory(s["id"], s["title"], reqs))
                 sg = c.get("score_groups") or {}
                 cats.append(
                     Category(
@@ -159,17 +159,13 @@ class Framework:
         return self.by_id.get(requirement_id)
 
     def neighbours(self, requirement_id: str) -> tuple[Requirement | None, Requirement | None]:
-        ids = [r.id for r in self.requirements]
-        i = ids.index(requirement_id)
+        i = [r.id for r in self.requirements].index(requirement_id)
         prev_ = self.requirements[i - 1] if i > 0 else None
-        next_ = self.requirements[i + 1] if i < len(ids) - 1 else None
+        next_ = self.requirements[i + 1] if i < len(self.requirements) - 1 else None
         return prev_, next_
 
     def count_by_level(self) -> dict[str, int]:
-        out: dict[str, int] = {}
-        for r in self.requirements:
-            out[r.level] = out.get(r.level, 0) + 1
-        return out
+        return dict(Counter(r.level for r in self.requirements))
 
 
 def _read(name: str) -> dict:

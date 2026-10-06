@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 import re
 import secrets
-from datetime import date, datetime
+from datetime import date
 from pathlib import Path
 
 from fastapi import UploadFile
@@ -17,31 +17,7 @@ from .framework import Framework, all_requirement_ids, load_framework, normalise
 from .models import Action, Activity, CheckResult, ConnectorRun, Document, Evidence, Organisation, RiskAssessment, Score
 from .scoring import ReqInput, Summary, compute
 
-ALLOWED_EXTENSIONS = {
-    ".pdf",
-    ".png",
-    ".jpg",
-    ".jpeg",
-    ".gif",
-    ".webp",
-    ".txt",
-    ".md",
-    ".csv",
-    ".json",
-    ".xml",
-    ".docx",
-    ".xlsx",
-    ".pptx",
-    ".odt",
-    ".ods",
-    ".zip",
-    ".log",
-    ".eml",
-    ".msg",
-    ".html",
-    ".yaml",
-    ".yml",
-}
+ALLOWED_EXTENSIONS = set(".pdf .png .jpg .jpeg .gif .webp .txt .md .csv .json .xml .docx .xlsx .pptx .odt .ods .zip .log .eml .msg .html .yaml .yml".split())
 
 JOURNEY_STAGES = [
     ("scope", "Scope, organisation and target level"),
@@ -89,17 +65,16 @@ def get_risk(db: Session) -> RiskAssessment | None:
 
 
 # --------------------------------------------------------------------------- assessment
+def scores_by_id(db: Session) -> dict[str, Score]:
+    return {r.requirement_id: r for r in db.execute(select(Score)).scalars().all()}
+
+
 def score_inputs(db: Session) -> dict[str, ReqInput]:
-    rows = db.execute(select(Score)).scalars().all()
-    return {r.requirement_id: ReqInput(r.doc_score, r.impl_score, r.not_applicable) for r in rows}
+    return {rid: ReqInput(r.doc_score, r.impl_score, r.not_applicable) for rid, r in scores_by_id(db).items()}
 
 
 def current_summary(db: Session, fw: Framework) -> Summary:
     return compute(fw, score_inputs(db))
-
-
-def scores_by_id(db: Session) -> dict[str, Score]:
-    return {r.requirement_id: r for r in db.execute(select(Score)).scalars().all()}
 
 
 # --------------------------------------------------------------------------- evidence files
@@ -151,24 +126,17 @@ def latest_runs(db: Session) -> dict[str, ConnectorRun]:
 
 
 def latest_checks(db: Session) -> list[CheckResult]:
-    runs = latest_runs(db)
-    if not runs:
-        return []
-    ids = [r.id for r in runs.values() if r.status == "ok"]
+    ids = [r.id for r in latest_runs(db).values() if r.status == "ok"]
     if not ids:
         return []
     return list(db.execute(select(CheckResult).where(CheckResult.run_id.in_(ids)).order_by(CheckResult.connector, CheckResult.check_id)).scalars().all())
 
 
-def checks_by_requirement(checks: list[CheckResult]) -> dict[str, list[CheckResult]]:
-    out: dict[str, list[CheckResult]] = {}
-    for c in checks:
-        for rid in c.requirement_ids or []:
-            out.setdefault(rid, []).append(c)
-    return out
-
-
 # --------------------------------------------------------------------------- grouping helpers
+def checks_by_requirement(checks: list[CheckResult]) -> dict[str, list[CheckResult]]:
+    return by_requirement(checks)
+
+
 def by_requirement(items, attr: str = "requirement_ids") -> dict[str, list]:
     out: dict[str, list] = {}
     for it in items:
@@ -202,18 +170,10 @@ def parse_date(value: str | None) -> date | None:
 
 
 def parse_int(value: str | None, lo: int | None = None, hi: int | None = None) -> int | None:
-    if value is None or str(value).strip() == "":
-        return None
     try:
-        n = int(str(value).strip())
+        n = int(str(value).strip())  # None and "" fail here too
     except ValueError:
         return None
-    if lo is not None and n < lo:
-        return None
-    if hi is not None and n > hi:
+    if (lo is not None and n < lo) or (hi is not None and n > hi):
         return None
     return n
-
-
-def fmt_dt(value: datetime | None) -> str:
-    return value.strftime("%Y-%m-%d %H:%M") if value else ""

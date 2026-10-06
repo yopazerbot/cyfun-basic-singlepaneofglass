@@ -9,6 +9,7 @@ The Batches API does not accept fallbacks; a declined batch request ends as "dec
 
 from __future__ import annotations
 
+import contextlib
 import json
 from collections.abc import Iterator
 from dataclasses import dataclass
@@ -91,19 +92,25 @@ def friendly(exc: Exception) -> str:
     return str(exc)[:300]
 
 
+@contextlib.contextmanager
+def _api() -> Iterator[None]:
+    """Turn SDK errors into ApiError with a message for the administrator."""
+    try:
+        yield
+    except anthropic.AnthropicError as exc:
+        raise ApiError(friendly(exc)) from exc
+
+
 def reply_from(message) -> Reply:
     stop = message.stop_reason or ""
     refusal = ""
     if stop == "refusal":
-        details = getattr(message, "stop_details", None)
-        refusal = (getattr(details, "category", None) or "unspecified") if details else "unspecified"
+        refusal = getattr(getattr(message, "stop_details", None), "category", None) or "unspecified"
     text = next((b.text for b in message.content if getattr(b, "type", "") == "text"), "")
     data = None
     if stop != "refusal" and text:
-        try:
+        with contextlib.suppress(json.JSONDecodeError):
             data = json.loads(text)
-        except json.JSONDecodeError:
-            data = None
     u = message.usage
     usage = Usage(
         getattr(u, "input_tokens", 0) or 0,
@@ -115,10 +122,8 @@ def reply_from(message) -> Reply:
 
 
 def review(c: anthropic.Anthropic, body: dict) -> Reply:
-    try:
+    with _api():
         message = c.beta.messages.create(**body, betas=[FALLBACK_BETA], fallbacks="default")
-    except anthropic.AnthropicError as exc:
-        raise ApiError(friendly(exc)) from exc
     return reply_from(message)
 
 
@@ -137,37 +142,26 @@ def estimate(model: str, effort: str, input_chars: int, binary_bytes: int = 0, i
 
 
 def test_key(api_key: str, model: str) -> str:
-    try:
+    with _api():
         info = client(api_key).models.retrieve(model)
-    except anthropic.AnthropicError as exc:
-        raise ApiError(friendly(exc)) from exc
     return f"The key works and {getattr(info, 'display_name', '') or model} is available."
 
 
 def submit_batch(c: anthropic.Anthropic, entries: list[tuple[str, dict]]) -> str:
-    try:
-        batch = c.messages.batches.create(requests=[{"custom_id": cid, "params": body} for cid, body in entries])
-    except anthropic.AnthropicError as exc:
-        raise ApiError(friendly(exc)) from exc
-    return batch.id
+    with _api():
+        return c.messages.batches.create(requests=[{"custom_id": cid, "params": body} for cid, body in entries]).id
 
 
 def batch_status(c: anthropic.Anthropic, batch_id: str) -> str:
-    try:
+    with _api():
         return c.messages.batches.retrieve(batch_id).processing_status
-    except anthropic.AnthropicError as exc:
-        raise ApiError(friendly(exc)) from exc
 
 
 def batch_results(c: anthropic.Anthropic, batch_id: str) -> Iterator:
-    try:
+    with _api():
         yield from c.messages.batches.results(batch_id)
-    except anthropic.AnthropicError as exc:
-        raise ApiError(friendly(exc)) from exc
 
 
 def cancel_batch(c: anthropic.Anthropic, batch_id: str) -> None:
-    try:
+    with _api():
         c.messages.batches.cancel(batch_id)
-    except anthropic.AnthropicError as exc:
-        raise ApiError(friendly(exc)) from exc

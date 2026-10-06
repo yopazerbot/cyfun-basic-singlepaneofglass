@@ -9,6 +9,7 @@
   <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
 </head>
 <body>
+{% from "macros.html" import link_on %}
 <a class="skip" href="#content">Skip to content</a>
 <div class="shell">
   <aside class="side" aria-label="Main navigation">
@@ -23,23 +24,23 @@
     <div class="side-body" id="side-body">
       <nav class="nav">
         <div class="nav-group">Assess</div>
-        <a href="/" class="{{ 'on' if active == 'dashboard' }}" {{ 'aria-current=page' if active == 'dashboard' }}>Dashboard</a>
-        <a href="/journey" class="{{ 'on' if active == 'journey' }}" {{ 'aria-current=page' if active == 'journey' }}>Scope, level and journey</a>
-        <a href="/risk" class="{{ 'on' if active == 'risk' }}" {{ 'aria-current=page' if active == 'risk' }}>Risk assessment</a>
-        <a href="/assessment" class="{{ 'on' if active == 'assessment' }}" {{ 'aria-current=page' if active == 'assessment' }}>Self-assessment</a>
-        {% if user and user.role == 'admin' %}<a href="/ai" class="{{ 'on' if active == 'ai' }}" {{ 'aria-current=page' if active == 'ai' }}>Claude review</a>{% endif %}
+        {{ link_on('/', 'Dashboard', active == 'dashboard') }}
+        {{ link_on('/journey', 'Scope, level and journey', active == 'journey') }}
+        {{ link_on('/risk', 'Risk assessment', active == 'risk') }}
+        {{ link_on('/assessment', 'Self-assessment', active == 'assessment') }}
+        {% if user and user.role == 'admin' %}{{ link_on('/ai', 'Claude review', active == 'ai') }}{% endif %}
         <div class="nav-group">Manage</div>
-        <a href="/assets" class="{{ 'on' if active == 'assets' }}" {{ 'aria-current=page' if active == 'assets' }}>Assets</a>
-        <a href="/documents" class="{{ 'on' if active == 'documents' }}" {{ 'aria-current=page' if active == 'documents' }}>Documents</a>
-        <a href="/evidence" class="{{ 'on' if active == 'evidence' }}" {{ 'aria-current=page' if active == 'evidence' }}>Evidence</a>
-        <a href="/actions" class="{{ 'on' if active == 'actions' }}" {{ 'aria-current=page' if active == 'actions' }}>Actions</a>
+        {{ link_on('/assets', 'Assets', active == 'assets') }}
+        {{ link_on('/documents', 'Documents', active == 'documents') }}
+        {{ link_on('/evidence', 'Evidence', active == 'evidence') }}
+        {{ link_on('/actions', 'Actions', active == 'actions') }}
         <div class="nav-group">Connect</div>
-        <a href="/connectors" class="{{ 'on' if active == 'connectors' }}" {{ 'aria-current=page' if active == 'connectors' }}>Connected systems</a>
+        {{ link_on('/connectors', 'Connected systems', active == 'connectors') }}
         <div class="nav-group">Verify</div>
-        <a href="/audit" class="{{ 'on' if active == 'audit' }}" {{ 'aria-current=page' if active == 'audit' }}>Audit view and export</a>
-        <a href="/activity" class="{{ 'on' if active == 'activity' }}" {{ 'aria-current=page' if active == 'activity' }}>Activity log</a>
-        {% if user and user.role == 'admin' %}<a href="/auth/users" class="{{ 'on' if active == 'users' }}" {{ 'aria-current=page' if active == 'users' }}>Users</a>
-        <a href="/settings" class="{{ 'on' if active == 'settings' }}" {{ 'aria-current=page' if active == 'settings' }}>Settings</a>{% endif %}
+        {{ link_on('/audit', 'Audit view and export', active == 'audit') }}
+        {{ link_on('/activity', 'Activity log', active == 'activity') }}
+        {% if user and user.role == 'admin' %}{{ link_on('/auth/users', 'Users', active == 'users') }}
+        {{ link_on('/settings', 'Settings', active == 'settings') }}{% endif %}
       </nav>
       <div class="side-foot">
         {% if user %}

@@ -26,6 +26,12 @@ from dataclasses import dataclass, field
 from .framework import Category, Framework, Requirement
 
 
+def _maturity(doc: float | None, impl: float | None) -> float | None:
+    if doc is None or impl is None:
+        return None
+    return (doc + impl) / 2
+
+
 @dataclass
 class ReqInput:
     doc: int | None = None
@@ -43,9 +49,7 @@ class ReqResult:
 
     @property
     def maturity(self) -> float | None:
-        if self.doc is None or self.impl is None:
-            return None
-        return (self.doc + self.impl) / 2
+        return _maturity(self.doc, self.impl)
 
     def meets(self, target: float) -> bool:
         return self.maturity is not None and self.maturity >= target
@@ -60,9 +64,7 @@ class GroupResult:
 
     @property
     def maturity(self) -> float | None:
-        if self.doc is None or self.impl is None:
-            return None
-        return (self.doc + self.impl) / 2
+        return _maturity(self.doc, self.impl)
 
 
 @dataclass
@@ -92,18 +94,10 @@ class Summary:
 
     def category_value(self, category_id: str) -> tuple[float | None, bool]:
         """(value, provisional) for display: the exact value when complete, else the partial one."""
-        g = self.categories[category_id]
-        if g.maturity is not None:
-            return g.maturity, False
-        p = self.partial_categories.get(category_id)
-        return (p.maturity if p else None), True
+        return _display_value(self.categories[category_id], self.partial_categories.get(category_id))
 
     def function_value(self, function_id: str) -> tuple[float | None, bool]:
-        g = self.functions[function_id]
-        if g.maturity is not None:
-            return g.maturity, False
-        p = self.partial_functions.get(function_id)
-        return (p.maturity if p else None), True
+        return _display_value(self.functions[function_id], self.partial_functions.get(function_id))
 
     @property
     def key_measures_failing(self) -> list[ReqResult]:
@@ -137,11 +131,17 @@ class Summary:
         return [r for r in self.requirements.values() if r.maturity is not None and r.maturity < self.target]
 
 
+def _display_value(exact: GroupResult, partial: GroupResult | None) -> tuple[float | None, bool]:
+    if exact.maturity is not None:
+        return exact.maturity, False
+    return (partial.maturity if partial else None), True
+
+
 def _avg(values: list[float | None]) -> float | None:
-    vals = [v for v in values if v is not None]
-    if not vals or len(vals) != len(values):
+    """Average, or None when the list is empty or any value is missing."""
+    if not values or any(v is None for v in values):
         return None
-    return sum(vals) / len(vals)
+    return sum(values) / len(values)
 
 
 def _avg_any(values: list[float | None]) -> float | None:
@@ -169,6 +169,10 @@ def validate_input(req: Requirement, inp: ReqInput, thresholds: dict) -> list[st
         if v is not None and not (lo <= v <= hi):
             errors.append(f"{req.id}: {label} score must be between {lo} and {hi}.")
     return errors
+
+
+def _as_float(value: int | None) -> float | None:
+    return float(value) if value is not None else None
 
 
 def _category_dimension(cat: Category, dimension: str, results: dict[str, ReqResult], partial: bool = False) -> float | None:
@@ -199,43 +203,32 @@ def compute(fw: Framework, inputs: dict[str, ReqInput]) -> Summary:
             req_results[r.id] = ReqResult(r, na_value, na_value, True, True)
         else:
             scored = inp.doc is not None and inp.impl is not None
-            req_results[r.id] = ReqResult(
-                r,
-                float(inp.doc) if inp.doc is not None else None,
-                float(inp.impl) if inp.impl is not None else None,
-                False,
-                scored,
-            )
+            req_results[r.id] = ReqResult(r, _as_float(inp.doc), _as_float(inp.impl), False, scored)
 
     if len(na_ids) > t["na_allowed"]:
         joined = ", ".join(na_ids)
         problems.append(f"{len(na_ids)} requirements are marked not applicable; {fw.level} allows at most {t['na_allowed']} ({joined}).")
 
+    # Exact values decide pass/fail; the partial (provisional) ones cover only what is scored so far.
     subs: dict[str, GroupResult] = {}
     cats: dict[str, GroupResult] = {}
     funcs: dict[str, GroupResult] = {}
+    pcats: dict[str, GroupResult] = {}
+    pfuncs: dict[str, GroupResult] = {}
     for f in fw.functions:
         for c in f.categories:
             for s in c.subcategories:
                 rr = [req_results[q.id] for q in s.requirements]
                 subs[s.id] = GroupResult(s.id, s.title, _avg([x.doc for x in rr]), _avg([x.impl for x in rr]))
             cats[c.id] = GroupResult(c.id, c.name, _category_dimension(c, "doc", req_results), _category_dimension(c, "impl", req_results))
-        cc = [cats[c.id] for c in f.categories]
-        funcs[f.id] = GroupResult(f.id, f.name, _avg([x.doc for x in cc]), _avg([x.impl for x in cc]))
-
-    total = _avg([cats[c.id].maturity for c in fw.categories])
-    pcats: dict[str, GroupResult] = {}
-    pfuncs: dict[str, GroupResult] = {}
-    for f in fw.functions:
-        for c in f.categories:
             pd = _category_dimension(c, "doc", req_results, partial=True)
             pi = _category_dimension(c, "impl", req_results, partial=True)
             pcats[c.id] = GroupResult(c.id, c.name, pd, pi)
+        cc = [cats[c.id] for c in f.categories]
+        funcs[f.id] = GroupResult(f.id, f.name, _avg([x.doc for x in cc]), _avg([x.impl for x in cc]))
         pc = [pcats[c.id] for c in f.categories if pcats[c.id].maturity is not None]
         pfuncs[f.id] = GroupResult(f.id, f.name, _avg_any([x.doc for x in pc]), _avg_any([x.impl for x in pc]))
-    provisional = _avg_any([pcats[c.id].maturity for c in fw.categories])
-    kms = [req_results[k.id] for k in fw.key_measures]
-    scored_count = sum(1 for x in req_results.values() if x.scored)
+
     return Summary(
         level=fw.level,
         target=float(t["total_min"]),
@@ -246,9 +239,9 @@ def compute(fw: Framework, inputs: dict[str, ReqInput]) -> Summary:
         subcategories=subs,
         categories=cats,
         functions=funcs,
-        total_maturity=total,
-        key_measures=kms,
-        scored_count=scored_count,
+        total_maturity=_avg([cats[c.id].maturity for c in fw.categories]),
+        key_measures=[req_results[k.id] for k in fw.key_measures],
+        scored_count=sum(1 for x in req_results.values() if x.scored),
         total_count=len(fw.requirements),
         na_count=len(na_ids),
         na_allowed=int(t["na_allowed"]),
@@ -256,8 +249,12 @@ def compute(fw: Framework, inputs: dict[str, ReqInput]) -> Summary:
         problems=problems,
         partial_categories=pcats,
         partial_functions=pfuncs,
-        provisional_total=provisional,
+        provisional_total=_avg_any([pcats[c.id].maturity for c in fw.categories]),
     )
+
+
+def _groups_to_dict(groups: dict[str, GroupResult]) -> dict:
+    return {k: {"doc": v.doc, "impl": v.impl, "maturity": v.maturity} for k, v in groups.items()}
 
 
 def summary_to_dict(s: Summary) -> dict:
@@ -274,9 +271,9 @@ def summary_to_dict(s: Summary) -> dict:
         "not_applicable": s.na_ids,
         "problems": s.problems,
         "categories_failing": [c.id for c in s.categories_failing],
-        "functions": {k: {"doc": v.doc, "impl": v.impl, "maturity": v.maturity} for k, v in s.functions.items()},
-        "categories": {k: {"doc": v.doc, "impl": v.impl, "maturity": v.maturity} for k, v in s.categories.items()},
-        "subcategories": {k: {"doc": v.doc, "impl": v.impl, "maturity": v.maturity} for k, v in s.subcategories.items()},
+        "functions": _groups_to_dict(s.functions),
+        "categories": _groups_to_dict(s.categories),
+        "subcategories": _groups_to_dict(s.subcategories),
         "requirements": {
             k: {
                 "doc": v.doc,

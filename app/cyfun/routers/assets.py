@@ -21,6 +21,7 @@ KINDS = ("hardware", "software", "service", "data", "network", "cloud", "identit
 CLASSIFICATIONS = ("Public", "Internal", "Confidential", "Restricted")
 CRITICALITY = ("Low", "Medium", "High")
 LIFECYCLE = ("planned", "active", "retired")
+CHOICES = {"kinds": KINDS, "classifications": CLASSIFICATIONS, "criticality": CRITICALITY, "lifecycles": LIFECYCLE}
 
 
 def _query(db: Session, kind: str, source: str, lifecycle: str, q: str):
@@ -49,26 +50,23 @@ def list_assets(
 ):
     items = _query(db, kind, source, lifecycle, q)
     sources = sorted(set(db.execute(select(Asset.source).distinct()).scalars().all()))
-    counts = {k: 0 for k in KINDS}
-    for a in db.execute(select(Asset).where(Asset.lifecycle != "retired")).scalars().all():
-        counts[a.kind] = counts.get(a.kind, 0) + 1
+    counts = dict.fromkeys(KINDS, 0)
+    for k in db.execute(select(Asset.kind).where(Asset.lifecycle != "retired")).scalars():
+        counts[k] = counts.get(k, 0) + 1
     return render(
         request,
         "assets.html",
         {
             "active": "assets",
             "items": items,
-            "kinds": KINDS,
             "sources": sources,
             "counts": counts,
             "f_kind": kind,
             "f_source": source,
             "f_lifecycle": lifecycle,
             "q": q,
-            "classifications": CLASSIFICATIONS,
-            "criticality": CRITICALITY,
-            "lifecycles": LIFECYCLE,
             "edit": None,
+            **CHOICES,
         },
     )
 
@@ -106,11 +104,7 @@ def edit_asset(request: Request, asset_id: int, user: User = Depends(require_use
     item = db.get(Asset, asset_id)
     if item is None:
         return redirect("/assets", err="Asset not found.")
-    return render(
-        request,
-        "asset_form.html",
-        {"active": "assets", "edit": item, "kinds": KINDS, "classifications": CLASSIFICATIONS, "criticality": CRITICALITY, "lifecycles": LIFECYCLE},
-    )
+    return render(request, "asset_form.html", {"active": "assets", "edit": item, **CHOICES})
 
 
 def _apply(item: Asset, form, manual: bool) -> None:

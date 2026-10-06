@@ -14,7 +14,6 @@ assessment page shows the latest checks next to each requirement.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
 
 import httpx
 
@@ -41,15 +40,28 @@ class Check:
     details: dict = field(default_factory=dict)
 
 
+@dataclass(frozen=True)
+class CheckSpec:
+    """One check's identity and requirement mapping, shared by its results and its error."""
+
+    id: str
+    title: str
+    requirement_ids: tuple[str, ...]
+
+    def result(self, status: str, summary: str, details: dict | None = None) -> Check:
+        return Check(self.id, self.title, status, summary, list(self.requirement_ids), details or {})
+
+    def error(self, exc: Exception, requirement_ids: list[str] | None = None) -> Check:
+        """Error result for a failed call; mapped to the first requirement unless told otherwise."""
+        rid = requirement_ids or [self.requirement_ids[0]]
+        return Check(self.id, self.title, ERROR, Connector.describe_error(exc)[:300], rid, {"error": str(exc)[:1000]})
+
+
 @dataclass
 class SyncResult:
     inventory: list[InventoryItem] = field(default_factory=list)
     checks: list[Check] = field(default_factory=list)
     raw: dict = field(default_factory=dict)  # snapshot saved to disk as evidence
-
-
-class ConnectorError(Exception):
-    pass
 
 
 class Connector:
@@ -78,8 +90,10 @@ class Connector:
         return httpx.Client(base_url=base_url, headers=headers or {}, timeout=30, follow_redirects=False)
 
     @staticmethod
-    def now_iso() -> str:
-        return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    def get_json(c: httpx.Client, url: str, params: dict | None = None):
+        r = c.get(url, params=params)
+        r.raise_for_status()
+        return r.json()
 
     @staticmethod
     def describe_error(exc: Exception) -> str:
@@ -96,8 +110,3 @@ class Connector:
         if isinstance(exc, httpx.TransportError):
             return f"no connection ({type(exc).__name__})"
         return str(exc)[:300]
-
-    @staticmethod
-    def error_check(check_id: str, title: str, requirement_ids: list[str], exc: Exception) -> Check:
-        msg = Connector.describe_error(exc)
-        return Check(check_id, title, ERROR, msg[:300], requirement_ids, {"error": str(exc)[:1000]})

@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Evidence · {{ settings.app_name }}{% endblock %}
 {% block content %}
-{% from "macros.html" import req_picker, req_links %}
+{% from "macros.html" import req_picker, req_links, delete_cell, register_form %}
 {% set admin = user.role == 'admin' %}
 <header class="page-head">
   <div class="eyebrow">Evidence register · files hashed with SHA-256</div>
@@ -9,11 +9,7 @@
   <p class="lead">Files and links that show a requirement is documented and implemented. Each file is stored under a random name with its hash, so the auditor can verify integrity from the audit pack.</p>
 </header>
 
-{% set ev_form %}
-<form class="card form" id="evidence-form" method="post" action="{{ '/evidence/' ~ edit.id if edit else '/evidence' }}" enctype="multipart/form-data">
-  <div class="card-head"><h2>{{ ("Edit evidence" if admin else "Evidence") if edit else "Add evidence" }}</h2>{% if edit %}<a class="link" href="/evidence">Back to the register</a>{% endif %}</div>
-  <fieldset {{ 'disabled' if not admin }}>
-  <div class="form-grid">
+{% set ev_form %}{% call register_form("evidence-form", "/evidence", "evidence", edit, admin, multipart=true) %}
     <label class="span-all">Title<input name="title" maxlength="300" value="{{ edit.title if edit }}" placeholder="What this evidence shows"></label>
     <label class="span-all">Description<textarea name="description" rows="2">{{ edit.description if edit }}</textarea></label>
     {% if not edit %}
@@ -31,11 +27,7 @@
     {% endif %}
     <label>Collected on<input type="date" name="collected_on" value="{{ edit.collected_on|date if edit else today|date }}"></label>
     <div class="span-all"><span class="field-label">Requirements this evidence supports</span>{{ req_picker(fw, edit.requirement_ids if edit else ([f_requirement] if f_requirement else []), "Requirements") }}</div>
-  </div>
-  </fieldset>
-  {% if admin %}<div class="actions"><button class="btn" type="submit">{{ "Save" if edit else "Add evidence" }}</button>{% if edit %}<a class="btn secondary" href="/evidence">Cancel</a>{% endif %}</div>{% endif %}
-</form>
-{% endset %}
+{% endcall %}{% endset %}
 
 {% if edit %}{{ ev_form }}{% endif %}
 
@@ -58,7 +50,7 @@
       <td class="small">{{ req_links(e.requirement_ids) }}</td>
       <td class="hide-sm muted small nowrap">{{ e.collected_on|date }}<br>{{ e.collected_by }}</td>
       <td class="hide-sm mono small" title="{{ e.sha256 }}">{{ e.sha256[:12] }}</td>
-      {% if admin %}<td><form method="post" action="/evidence/{{ e.id }}/delete" class="inline"><button class="btn link-danger small" data-confirm="Delete '{{ e.title }}'? The file is removed from disk.">Delete</button></form></td>{% endif %}
+      {% if admin %}{{ delete_cell('/evidence/' ~ e.id ~ '/delete', "Delete '" ~ e.title ~ "'? The file is removed from disk.") }}{% endif %}
     </tr>
     {% endfor %}
     </tbody>

@@ -12,9 +12,10 @@ from ..appsettings import load_config
 from ..auth import require_admin, require_user
 from ..config import get_settings
 from ..connectors import registry
+from ..connectors.base import ERROR, FAIL, INFO, PASS, WARN
 from ..db import get_db
 from ..models import Asset, CheckResult, ConnectorRun, User
-from ..services import current_framework, latest_runs, log_activity
+from ..services import latest_runs, log_activity
 from ..views import redirect, render
 
 router = APIRouter(prefix="/connectors", tags=["connectors"])
@@ -28,14 +29,12 @@ def list_connectors(request: Request, user: User = Depends(require_user), db: Se
     for key, c in registry(config).items():
         run = runs.get(key)
         checks = db.execute(select(CheckResult).where(CheckResult.run_id == run.id)).scalars().all() if run and run.status == "ok" else []
-        counts = {s: sum(1 for x in checks if x.status == s) for s in ("pass", "fail", "warn", "info", "error")}
+        counts = {s: sum(1 for x in checks if x.status == s) for s in (PASS, FAIL, WARN, INFO, ERROR)}
         rows.append(
             {
                 "key": key,
                 "name": c.name,
                 "description": c.description,
-                "env_vars": c.env_vars,
-                "docs": c.docs,
                 "configured": c.configured(),
                 "run": run,
                 "counts": counts,
@@ -49,7 +48,6 @@ def connector_detail(request: Request, key: str, user: User = Depends(require_us
     c = registry(load_config(db)).get(key)
     if c is None:
         return redirect("/connectors", err="Unknown connector.")
-    fw = current_framework(db)
     runs = db.execute(select(ConnectorRun).where(ConnectorRun.connector == key).order_by(ConnectorRun.id.desc()).limit(20)).scalars().all()
     latest_ok = next((r for r in runs if r.status == "ok"), None)
     checks = (
@@ -61,7 +59,7 @@ def connector_detail(request: Request, key: str, user: User = Depends(require_us
     return render(
         request,
         "connector_detail.html",
-        {"active": "connectors", "c": c, "key": key, "runs": runs, "latest": latest_ok, "checks": checks, "assets": assets, "fw": fw},
+        {"active": "connectors", "c": c, "key": key, "runs": runs, "latest": latest_ok, "checks": checks, "assets": assets},
     )
 
 

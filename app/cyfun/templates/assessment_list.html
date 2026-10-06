@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Self-assessment · {{ settings.app_name }}{% endblock %}
 {% block content %}
+{% from "macros.html" import link_on, maturity_chip %}
 <header class="page-head">
   <div class="eyebrow">CyFun 2025 {{ fw.level }} · {{ fw.requirements|length }} requirements · {{ fw.key_measures|length }} key measures · CCB tool {{ fw.tool_version }}</div>
   <h1>Self-assessment</h1>
@@ -12,11 +13,11 @@
     {{ summary.na_count }} not applicable (max {{ summary.na_allowed }}).
   </p>
   <nav class="tabs" aria-label="Filter requirements">
-    <a class="{{ 'on' if flt == 'all' }}" href="/assessment" {{ 'aria-current=page' if flt == 'all' }}>All ({{ fw.requirements|length }})</a>
-    {% for lv in ('Basic', 'Important', 'Essential') %}{% if counts.get(lv) and counts|length > 1 %}<a class="{{ 'on' if flt == lv }}" href="/assessment?level={{ lv }}" {{ 'aria-current=page' if flt == lv }}>{{ lv }} ({{ counts[lv] }})</a>{% endif %}{% endfor %}
-    <a class="{{ 'on' if flt == 'km' }}" href="/assessment?level=km" {{ 'aria-current=page' if flt == 'km' }}>Key measures ({{ fw.key_measures|length }})</a>
-    <a class="{{ 'on' if flt == 'unscored' }}" href="/assessment?level=unscored" {{ 'aria-current=page' if flt == 'unscored' }}>Unscored ({{ summary.total_count - summary.scored_count }})</a>
-    <a class="{{ 'on' if flt == 'below' }}" href="/assessment?level=below" {{ 'aria-current=page' if flt == 'below' }}>Below target ({{ summary.below_target|length }})</a>
+    {{ link_on('/assessment', 'All (' ~ fw.requirements|length ~ ')', flt == 'all') }}
+    {% for lv in ('Basic', 'Important', 'Essential') %}{% if counts.get(lv) and counts|length > 1 %}{{ link_on('/assessment?level=' ~ lv, lv ~ ' (' ~ counts[lv] ~ ')', flt == lv) }}{% endif %}{% endfor %}
+    {{ link_on('/assessment?level=km', 'Key measures (' ~ fw.key_measures|length ~ ')', flt == 'km') }}
+    {{ link_on('/assessment?level=unscored', 'Unscored (' ~ (summary.total_count - summary.scored_count) ~ ')', flt == 'unscored') }}
+    {{ link_on('/assessment?level=below', 'Below target (' ~ summary.below_target|length ~ ')', flt == 'below') }}
   </nav>
 </header>
 
@@ -58,7 +59,7 @@
             </td>
             <td class="num">{% if res.not_applicable %}<span class="chip">N/A</span>{% else %}{{ res.doc|score(0) if res.doc is not none else "·" }}{% endif %}</td>
             <td class="num">{% if res.not_applicable %}<span class="chip">N/A</span>{% else %}{{ res.impl|score(0) if res.impl is not none else "·" }}{% endif %}</td>
-            <td class="num">{% if res.maturity is not none %}<span class="chip {{ res.maturity|status_word(summary.km_min if r.key_measure else summary.target) }}">{{ res.maturity|score }}</span>{% else %}<span class="chip none">not scored</span>{% endif %}</td>
+            <td class="num">{{ maturity_chip(res.maturity, summary.km_min if r.key_measure else summary.target) }}</td>
             <td class="num hide-sm">{{ evidence.get(r.id, [])|length or "" }}</td>
             <td class="num hide-sm">{{ documents.get(r.id, [])|length or "" }}</td>
             <td class="hide-sm">{% if ch %}{% if fails %}<span class="chip bad">{{ fails|length }} fail</span>{% else %}<span class="chip ok">{{ ch|length }}</span>{% endif %}{% endif %}</td>

@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block title %}{{ req.id }} · {{ settings.app_name }}{% endblock %}
 {% block content %}
+{% from "macros.html" import maturity_chip, evidence_link %}
 {% set admin = user.role == 'admin' %}
 {% set target = summary.km_min if req.key_measure else summary.target %}
 <header class="page-head">
@@ -20,7 +21,7 @@
   <div class="stack">
     <form class="card form" method="post" action="/assessment/{{ req.id }}/score">
       <div class="card-head"><h2>Maturity scores</h2>
-        <span>{% if res.maturity is not none %}<span class="chip {{ res.maturity|status_word(target) }}">{{ res.maturity|score }}</span>{% else %}<span class="chip none">not scored</span>{% endif %} <span class="muted small">target ≥ {{ target|score }}</span></span>
+        <span>{{ maturity_chip(res.maturity, target) }} <span class="muted small">target ≥ {{ target|score }}</span></span>
       </div>
       <fieldset class="scores" {{ 'disabled' if not admin }}>
         {% for dim, label in [('doc', 'Documentation'), ('impl', 'Implementation')] %}
@@ -70,7 +71,7 @@
       {% if evidence %}
       <ul class="plain-list">
         {% for e in evidence %}
-        <li>{% if e.kind == 'file' %}<a href="/evidence/{{ e.id }}/download">{{ e.title }}</a>{% elif e.kind == 'link' %}<a href="{{ e.url }}" rel="noopener noreferrer" target="_blank">{{ e.title }}</a>{% elif e.kind == 'automated' and e.run_id %}<a href="{{ e.url }}">{{ e.title }}</a>{% else %}{{ e.title }}{% endif %}
+        <li>{{ evidence_link(e) }}
           <div class="muted small">{{ e.kind }} · {{ e.collected_on|date }}{% if e.sha256 %} · <span class="mono" title="{{ e.sha256 }}">{{ e.sha256[:12] }}</span>{% endif %}{% if e.share_with_ai %} · Claude may read it{% endif %}{% if e.description %} · {{ e.description }}{% endif %}</div></li>
         {% endfor %}
       </ul>
@@ -121,7 +122,7 @@
     <div class="card">
       <div class="card-head"><h2>Actions</h2><a class="link" href="/actions">All actions</a></div>
       {% if actions %}
-      <ul class="plain-list">{% for a in actions %}<li><span class="chip {{ 'ok' if a.status == 'done' else ('info' if a.status == 'in_progress' else '') }}">{{ a.status.replace('_',' ') }}</span> <a href="/actions/{{ a.id }}">{{ a.title }}</a>{% if a.due_date %} <span class="muted small">due {{ a.due_date|date }}</span>{% endif %}</li>{% endfor %}</ul>
+      <ul class="plain-list">{% for a in actions %}<li><span class="chip {{ {'done': 'ok', 'in_progress': 'info'}.get(a.status, '') }}">{{ a.status.replace('_',' ') }}</span> <a href="/actions/{{ a.id }}">{{ a.title }}</a>{% if a.due_date %} <span class="muted small">due {{ a.due_date|date }}</span>{% endif %}</li>{% endfor %}</ul>
       {% else %}<p class="muted">No actions.</p>{% endif %}
       {% if admin %}
       <form class="form compact" method="post" action="/assessment/{{ req.id }}/action">

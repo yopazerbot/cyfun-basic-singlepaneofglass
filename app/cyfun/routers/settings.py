@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from .. import scheduler
 from ..ai import claude
 from ..ai.service import status as ai_status
-from ..appsettings import BY_NAME, FIELDS, GROUP_KEYS, Config, _validate, describe, load_config, save_group
+from ..appsettings import GROUP_KEYS, Config, _validate, describe, fields_of, load_config, save_group
 from ..auth import require_admin
 from ..config import get_settings
 from ..connectors import registry
@@ -58,9 +58,9 @@ async def save(request: Request, group: str, user: User = Depends(require_admin)
 
 def _with_form(config: Config, group: str, form) -> tuple[Config, bool]:
     """The saved configuration with the values typed in the form on top, for testing before saving."""
-    values = dict(config.__dict__["_values"])
+    values = dict(config._values)
     typed = False
-    for f in (f for f in FIELDS if f.group == group):
+    for f in fields_of(group):
         if config.sources[f.name] == "env":
             continue
         raw = (form.get(f.name) or "").strip()
@@ -97,7 +97,7 @@ async def test(request: Request, group: str, user: User = Depends(require_admin)
         return redirect("/settings#claude", msg=result + suffix)
     connector = registry(config)[g.connector]
     if not connector.configured():
-        missing = ", ".join(BY_NAME[n].label for n in BY_NAME if BY_NAME[n].group == group and BY_NAME[n].secret)
+        missing = ", ".join(f.label for f in fields_of(group) if f.secret)
         return redirect(f"/settings#{group}", err=f"{g.title} is not configured: {missing} missing.")
     try:
         result = connector.test()

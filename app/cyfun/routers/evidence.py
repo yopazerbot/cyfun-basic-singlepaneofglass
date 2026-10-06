@@ -19,23 +19,56 @@ from ..views import redirect, render
 router = APIRouter(prefix="/evidence", tags=["evidence"])
 
 
-@router.get("")
-def list_evidence(request: Request, requirement: str = "", user: User = Depends(require_user), db: Session = Depends(get_db)):
-    fw = current_framework(db)
+def is_web_link(url: str) -> bool:
+    return url.lower().startswith(("https://", "http://"))
+
+
+def attach_file_or_link(ev: Evidence, file: UploadFile | None, url: str, share_with_ai: bool) -> str | None:
+    """Store the upload, or else the link, on a new evidence item. Returns an error message, or None."""
+    url = url.strip()
+    if file is not None and file.filename:
+        try:
+            stored, original, digest, size = store_upload(get_settings(), file)
+        except ValueError as exc:
+            return str(exc)
+        ev.kind, ev.stored_name, ev.file_name, ev.sha256, ev.size = "file", stored, original, digest, size
+        ev.mime = (file.content_type or "")[:100]
+        ev.title = ev.title or original
+        ev.share_with_ai = share_with_ai
+    elif url:
+        if not is_web_link(url):
+            return "Links must start with https:// or http://."
+        ev.kind, ev.url = "link", url[:1000]
+        ev.title = ev.title or ev.url
+    else:
+        return "Provide a file or a link."
+    return None
+
+
+def log_evidence_added(db: Session, user: User, ev: Evidence) -> None:
+    details = {"title": ev.title, "requirements": ev.requirement_ids, "sha256": ev.sha256, "share_with_ai": ev.share_with_ai}
+    log_activity(db, user.label, "evidence_add", "evidence", str(ev.id), details)
+
+
+def _page(request: Request, db: Session, requirement: str, edit: Evidence | None):
     items = db.execute(select(Evidence).order_by(Evidence.id.desc())).scalars().all()
     if requirement:
         items = [e for e in items if requirement in (e.requirement_ids or [])]
-    return render(request, "evidence.html", {"active": "evidence", "items": items, "fw": fw, "f_requirement": requirement, "edit": None})
+    ctx = {"active": "evidence", "items": items, "fw": current_framework(db), "f_requirement": requirement, "edit": edit}
+    return render(request, "evidence.html", ctx)
+
+
+@router.get("")
+def list_evidence(request: Request, requirement: str = "", user: User = Depends(require_user), db: Session = Depends(get_db)):
+    return _page(request, db, requirement, None)
 
 
 @router.get("/{ev_id}")
 def edit_evidence(request: Request, ev_id: int, user: User = Depends(require_user), db: Session = Depends(get_db)):
-    fw = current_framework(db)
     ev = db.get(Evidence, ev_id)
     if ev is None:
         return redirect("/evidence", err="Evidence not found.")
-    items = db.execute(select(Evidence).order_by(Evidence.id.desc())).scalars().all()
-    return render(request, "evidence.html", {"active": "evidence", "items": items, "fw": fw, "f_requirement": "", "edit": ev})
+    return _page(request, db, "", ev)
 
 
 @router.get("/{ev_id}/download")
@@ -52,42 +85,19 @@ def download(request: Request, ev_id: int, user: User = Depends(require_user), d
 @router.post("")
 async def create_evidence(request: Request, file: UploadFile | None = File(None), user: User = Depends(require_admin), db: Session = Depends(get_db)):
     form = await request.form()
-    settings = get_settings()
-    reqs = valid_requirement_ids(form.getlist("requirement_ids"))
     ev = Evidence(
         title=(form.get("title") or "").strip()[:300],
         description=(form.get("description") or "").strip(),
-        requirement_ids=reqs,
+        requirement_ids=valid_requirement_ids(form.getlist("requirement_ids")),
         collected_on=parse_date(form.get("collected_on")) or date.today(),
         collected_by=user.label,
     )
-    url = (form.get("url") or "").strip()
-    if file is not None and file.filename:
-        try:
-            stored, original, digest, size = store_upload(settings, file)
-        except ValueError as exc:
-            return redirect("/evidence", err=str(exc))
-        ev.kind, ev.stored_name, ev.file_name, ev.sha256, ev.size = "file", stored, original, digest, size
-        ev.mime = (file.content_type or "")[:100]
-        ev.title = ev.title or original
-        ev.share_with_ai = form.get("share_with_ai") == "1"
-    elif url:
-        if not url.lower().startswith(("https://", "http://")):
-            return redirect("/evidence", err="Links must start with https:// or http://.")
-        ev.kind, ev.url = "link", url[:1000]
-        ev.title = ev.title or url
-    else:
-        return redirect("/evidence", err="Provide a file or a link.")
+    error = attach_file_or_link(ev, file, form.get("url") or "", form.get("share_with_ai") == "1")
+    if error:
+        return redirect("/evidence", err=error)
     db.add(ev)
     db.commit()
-    log_activity(
-        db,
-        user.label,
-        "evidence_add",
-        "evidence",
-        str(ev.id),
-        {"title": ev.title, "requirements": reqs, "sha256": ev.sha256, "share_with_ai": ev.share_with_ai},
-    )
+    log_evidence_added(db, user, ev)
     return redirect("/evidence", msg="Evidence added.")
 
 
@@ -103,9 +113,9 @@ async def update_evidence(request: Request, ev_id: int, user: User = Depends(req
     ev.collected_on = parse_date(form.get("collected_on")) or ev.collected_on
     if ev.kind == "link":
         url = (form.get("url") or "").strip()
-        if url.lower().startswith(("https://", "http://")):
+        if is_web_link(url):
             ev.url = url[:1000]
-    if ev.kind == "file":
+    elif ev.kind == "file":
         ev.share_with_ai = form.get("share_with_ai") == "1"
     db.commit()
     log_activity(

@@ -26,7 +26,8 @@ import csv
 import io
 import json
 import zipfile
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
+from pathlib import Path
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -36,6 +37,16 @@ from .framework import Framework
 from .models import AiProposal, Asset, Document, Evidence, RiskItem, Score
 from .scoring import summary_to_dict
 from .services import current_summary, evidence_path, get_org, get_risk, latest_checks, latest_runs, scores_by_id
+
+
+def _iso(value: date | datetime | None) -> str | None:
+    return value.isoformat() if value else None
+
+
+def _snapshot(settings: Settings, *parts: str) -> Path | None:
+    """A file under the snapshots directory, or None when it is missing or the path escapes the directory."""
+    p = settings.snapshots_dir.joinpath(*parts).resolve()
+    return p if settings.snapshots_dir.resolve() in p.parents and p.exists() else None
 
 
 def ai_origins(db: Session) -> dict[str, dict]:
@@ -109,7 +120,7 @@ def assessment_payload(db: Session, fw: Framework) -> dict:
             "scope": org.scope_description,
             "exclusions": org.scope_exclusions,
             "conformity_assessment_body": org.cab_name,
-            "self_assessment_date": org.self_assessment_date.isoformat() if org.self_assessment_date else None,
+            "self_assessment_date": _iso(org.self_assessment_date),
         },
         "summary": summary_to_dict(summary),
         "requirements": reqs,
@@ -122,7 +133,7 @@ def assessment_payload(db: Session, fw: Framework) -> dict:
                 "url": e.url,
                 "sha256": e.sha256,
                 "size": e.size,
-                "collected_on": e.collected_on.isoformat() if e.collected_on else None,
+                "collected_on": _iso(e.collected_on),
                 "requirements": e.requirement_ids,
             }
             for e in evidence
@@ -136,9 +147,9 @@ def assessment_payload(db: Session, fw: Framework) -> dict:
                 "status": d.status,
                 "owner": d.owner,
                 "approved_by": d.approved_by,
-                "approved_on": d.approved_on.isoformat() if d.approved_on else None,
-                "last_review": d.last_review.isoformat() if d.last_review else None,
-                "next_review": d.next_review.isoformat() if d.next_review else None,
+                "approved_on": _iso(d.approved_on),
+                "last_review": _iso(d.last_review),
+                "next_review": _iso(d.next_review),
                 "link": d.link,
                 "requirements": d.requirement_ids,
             }
@@ -176,7 +187,7 @@ def risk_payload(db: Session) -> dict:
                 "measures": i.measures,
                 "owner": i.owner,
                 "status": i.status,
-                "review_date": i.review_date.isoformat() if i.review_date else None,
+                "review_date": _iso(i.review_date),
             }
             for i in items
         ],
@@ -196,24 +207,9 @@ def build_pack(db: Session, fw: Framework, settings: Settings, summary_html: str
         z.writestr("summary.html", summary_html)
         z.writestr("assessment.json", json.dumps(payload, indent=1, ensure_ascii=False))
         z.writestr("risk_assessment.json", json.dumps(risk_payload(db), indent=1, ensure_ascii=False))
-        docs = [["id", "title", "type", "version", "status", "owner", "approved_by", "approved_on", "last_review", "next_review", "link", "requirements"]]
-        for d in payload["documents"]:
-            docs.append(
-                [
-                    d["id"],
-                    d["title"],
-                    d["type"],
-                    d["version"],
-                    d["status"],
-                    d["owner"],
-                    d["approved_by"],
-                    d["approved_on"],
-                    d["last_review"],
-                    d["next_review"],
-                    d["link"],
-                    " ".join(d["requirements"]),
-                ]
-            )
+        doc_cols = ["id", "title", "type", "version", "status", "owner", "approved_by", "approved_on", "last_review", "next_review", "link"]
+        docs = [[*doc_cols, "requirements"]]
+        docs += [[d[c] for c in doc_cols] + [" ".join(d["requirements"])] for d in payload["documents"]]
         z.writestr("documents.csv", _csv(docs))
         assets = [["kind", "name", "description", "owner", "location", "classification", "criticality", "primary", "lifecycle", "source", "last_seen"]]
         for a in db.execute(select(Asset).where(Asset.lifecycle != "retired").order_by(Asset.kind, Asset.name)).scalars().all():
@@ -238,8 +234,8 @@ def build_pack(db: Session, fw: Framework, settings: Settings, summary_html: str
         for e in db.execute(select(Evidence).order_by(Evidence.id)).scalars().all():
             fname = ""
             if e.kind == "automated" and e.source and e.file_name:
-                p = (settings.snapshots_dir / e.source / e.file_name).resolve()
-                if settings.snapshots_dir.resolve() in p.parents and p.exists():
+                p = _snapshot(settings, e.source, e.file_name)
+                if p:
                     fname = f"checks/snapshots/{e.source}-{e.file_name}"
                     if fname not in added:
                         z.write(p, fname)
@@ -252,11 +248,8 @@ def build_pack(db: Session, fw: Framework, settings: Settings, summary_html: str
                 if p and p.exists():
                     fname = f"{e.id}_{e.file_name or e.stored_name}"
                     z.write(p, f"evidence/{fname}")
-            index.append(
-                [e.id, e.title, e.kind, fname, e.url, e.sha256, e.collected_on.isoformat() if e.collected_on else "", " ".join(e.requirement_ids or [])]
-            )
+            index.append([e.id, e.title, e.kind, fname, e.url, e.sha256, _iso(e.collected_on) or "", " ".join(e.requirement_ids or [])])
         z.writestr("evidence/index.csv", _csv(index))
-        checks = latest_checks(db)
         z.writestr(
             "checks/latest_checks.json",
             json.dumps(
@@ -271,14 +264,12 @@ def build_pack(db: Session, fw: Framework, settings: Settings, summary_html: str
                         "checked_at": c.checked_at.isoformat(),
                         "details": c.details,
                     }
-                    for c in checks
+                    for c in latest_checks(db)
                 ],
                 indent=1,
                 ensure_ascii=False,
             ),
         )
         for key, run in latest_runs(db).items():
-            if run.status == "ok" and run.snapshot_file:
-                p = (settings.snapshots_dir / run.snapshot_file).resolve()
-                if settings.snapshots_dir.resolve() in p.parents and p.exists():
-                    z.write(p, f"checks/{key}.json")
+            if run.status == "ok" and run.snapshot_file and (p := _snapshot(settings, run.snapshot_file)):
+                z.write(p, f"checks/{key}.json")

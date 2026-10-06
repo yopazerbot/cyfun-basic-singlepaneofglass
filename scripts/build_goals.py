@@ -48,13 +48,8 @@ def extract(path: Path) -> dict[str, str]:
             i += 1
             continue
         rid = normalise(m.group(1))
-        j = i + 1
-        found = None
-        while j < min(i + 14, len(lines)):
-            if lines[j].strip().lower().startswith("implementation guidance"):
-                found = j
-                break
-            j += 1
+        end = min(i + 14, len(lines))
+        found = next((j for j in range(i + 1, end) if lines[j].strip().lower().startswith("implementation guidance")), None)
         if found is not None:
             k = found + 1
             para: list[str] = []
@@ -71,7 +66,7 @@ def extract(path: Path) -> dict[str, str]:
             goal = re.sub(r"\s+", " ", goal).strip()
             if goal and rid not in goals:
                 goals[rid] = goal
-        i = j
+        i = end if found is None else found
     return goals
 
 

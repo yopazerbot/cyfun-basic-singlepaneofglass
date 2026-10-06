@@ -24,8 +24,7 @@ class RiskResult:
 
 
 def sector(model: dict, sector_id: str) -> dict:
-    found = next((s for s in model["sectors"] if s["id"] == sector_id), None)
-    return found or model["sectors"][0]
+    return next((s for s in model["sectors"] if s["id"] == sector_id), model["sectors"][0])
 
 
 def default_matrix(model: dict, sector_id: str) -> dict:
@@ -67,22 +66,10 @@ def validate_matrix(matrix: dict) -> list[str]:
 
 
 def compute(model: dict, matrix: dict, organisation_size: int) -> RiskResult:
-    crit = model["criteria"]
-    prob = crit["probability"]
-    imp = crit["impact"]
-    cells: list[list[float]] = []
-    per_row: list[float] = []
-    n_actors = len(matrix["rows"][0]["probability"]) if matrix["rows"] else 0
-    per_actor = [0.0] * n_actors
-    for row in matrix["rows"]:
-        impact = imp[row["impact"]]
-        atype = row["attack_type"]
-        vals = []
-        for i, p in enumerate(row["probability"]):
-            v = prob[p] * impact * atype * organisation_size
-            vals.append(v)
-            per_actor[i] += v
-        cells.append(vals)
-        per_row.append(sum(vals))
+    prob = model["criteria"]["probability"]
+    imp = model["criteria"]["impact"]
+    cells = [[prob[p] * imp[row["impact"]] * row["attack_type"] * organisation_size for p in row["probability"]] for row in matrix["rows"]]
+    per_row = [sum(vals) for vals in cells]
+    per_actor = [sum(col, 0.0) for col in zip(*cells, strict=True)]
     total = sum(per_row)
     return RiskResult(total=total, level=level_for(model, total), per_actor=per_actor, per_row=per_row, cells=cells)

@@ -24,3 +24,24 @@
 {% endmacro %}
 
 {% macro req_links(ids) %}{% for r in ids %}<a class="mono" href="/assessment/{{ r }}">{{ r }}</a>{{ " " }}{% endfor %}{% endmacro %}
+
+{% macro link_on(href, label, on) %}<a href="{{ href }}" class="{{ 'on' if on }}" {{ 'aria-current=page' if on }}>{{ label }}</a>{% endmacro %}
+
+{% macro maturity_chip(value, target) %}{% if value is not none %}<span class="chip {{ value|status_word(target) }}">{{ value|score }}</span>{% else %}<span class="chip none">not scored</span>{% endif %}{% endmacro %}
+
+{% macro evidence_link(e) %}{% if e.kind == 'file' %}<a href="/evidence/{{ e.id }}/download">{{ e.title }}</a>{% elif e.kind == 'link' %}<a href="{{ e.url }}" rel="noopener noreferrer" target="_blank">{{ e.title }}</a>{% elif e.kind == 'automated' and e.run_id %}<a href="{{ e.url }}">{{ e.title }}</a>{% else %}{{ e.title }}{% endif %}{% endmacro %}
+
+{% macro delete_cell(action, confirm) %}<td><form method="post" action="{{ action }}" class="inline"><button class="btn link-danger small" data-confirm="{{ confirm }}">Delete</button></form></td>{% endmacro %}
+
+{% macro register_form(form_id, list_url, noun, edit, admin, back_label="Back to the register", multipart=false) %}
+{# Add/edit card of a register page; the caller supplies the fields. Auditors see the fields read-only. #}
+<form class="card form" id="{{ form_id }}" method="post" action="{{ list_url ~ ('/' ~ edit.id if edit else '') }}"{% if multipart %} enctype="multipart/form-data"{% endif %}>
+  <div class="card-head"><h2>{{ (("Edit " ~ noun) if admin else noun|capitalize) if edit else "Add " ~ noun }}</h2>{% if edit %}<a class="link" href="{{ list_url }}">{{ back_label }}</a>{% endif %}</div>
+  <fieldset {{ 'disabled' if not admin }}>
+  <div class="form-grid">
+{{ caller() }}
+  </div>
+  </fieldset>
+  {% if admin %}<div class="actions"><button class="btn" type="submit">{{ "Save" if edit else "Add " ~ noun }}</button>{% if edit %}<a class="btn secondary" href="{{ list_url }}">Cancel</a>{% endif %}</div>{% endif %}
+</form>
+{% endmacro %}

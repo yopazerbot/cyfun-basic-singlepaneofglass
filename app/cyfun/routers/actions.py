@@ -51,10 +51,10 @@ def _apply(a: Action, form) -> None:
     a.owner = (form.get("owner") or "").strip()[:200]
     a.priority = form.get("priority") if form.get("priority") in PRIORITIES else "medium"
     new_status = form.get("status") if form.get("status") in STATUSES else "open"
-    if new_status == "done" and a.status != "done":
-        a.completed_on = parse_date(form.get("completed_on")) or date.today()
-    elif new_status != "done":
+    if new_status != "done":
         a.completed_on = None
+    elif a.status != "done":
+        a.completed_on = parse_date(form.get("completed_on")) or date.today()
     a.status = new_status
     a.due_date = parse_date(form.get("due_date"))
 

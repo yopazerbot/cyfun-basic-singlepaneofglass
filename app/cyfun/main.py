@@ -26,9 +26,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
-        settings.data_dir.mkdir(parents=True, exist_ok=True)
-        settings.evidence_dir.mkdir(parents=True, exist_ok=True)
-        settings.snapshots_dir.mkdir(parents=True, exist_ok=True)
+        for directory in (settings.data_dir, settings.evidence_dir, settings.snapshots_dir):
+            directory.mkdir(parents=True, exist_ok=True)
         db.init_engine(f"sqlite:///{settings.db_path.as_posix()}")
         db.create_schema()
         for level in LEVELS:

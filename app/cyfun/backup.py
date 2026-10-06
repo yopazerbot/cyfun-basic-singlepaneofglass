@@ -11,9 +11,12 @@ from __future__ import annotations
 
 import sqlite3
 import sys
+from contextlib import closing
 from datetime import UTC, datetime
 
 from .config import get_settings
+
+KEEP = 14
 
 
 def main() -> int:
@@ -22,16 +25,12 @@ def main() -> int:
     out_dir.mkdir(parents=True, exist_ok=True)
     stamp = datetime.now(UTC).strftime("%Y%m%d-%H%M%S")
     target = out_dir / f"cyfun-{stamp}.sqlite3"
-    src = sqlite3.connect(f"file:{s.db_path.as_posix()}?mode=ro", uri=True)
-    dst = sqlite3.connect(target.as_posix())
-    with dst:
+    with closing(sqlite3.connect(f"file:{s.db_path.as_posix()}?mode=ro", uri=True)) as src, closing(sqlite3.connect(target.as_posix())) as dst:
         src.backup(dst)
-    src.close()
-    dst.close()
     backups = sorted(out_dir.glob("cyfun-*.sqlite3"))
-    for old in backups[:-14]:
+    for old in backups[:-KEEP]:
         old.unlink()
-    print(f"backup written: {target} ({target.stat().st_size} bytes); {min(len(backups), 14)} kept")
+    print(f"backup written: {target} ({target.stat().st_size} bytes); {min(len(backups), KEEP)} kept")
     return 0
 
 

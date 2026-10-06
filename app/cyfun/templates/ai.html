@@ -57,7 +57,7 @@
       <td class="num nowrap">{% if s and s.not_applicable %}N/A{% elif s and s.doc_score %}{{ s.doc_score }} / {{ s.impl_score }}{% else %}-{% endif %}</td>
       <td class="num nowrap"><strong>{{ p.doc_score }} / {{ p.impl_score }}</strong></td>
       <td><span class="chip {{ {'high': 'ok', 'medium': 'warn', 'low': 'bad'}[p.confidence] }}">{{ p.confidence }}</span></td>
-      <td class="hide-sm small nowrap">{% set caps = (p.result or {}).get('caps', []) %}{% set con = (p.result or {}).get('contradictions', []) %}{% if caps %}{{ caps|length }} limited{% endif %}{% if caps and con %} · {% endif %}{% if con %}{{ con|length }} conflict(s){% endif %}</td>
+      <td class="hide-sm small nowrap">{% set res = p.result or {} %}{% set caps = res.get('caps', []) %}{% set con = res.get('contradictions', []) %}{% if caps %}{{ caps|length }} limited{% endif %}{% if caps and con %} · {% endif %}{% if con %}{{ con|length }} conflict(s){% endif %}</td>
       <td class="hide-sm muted small nowrap">{{ p.created_at|date }}</td>
     </tr>
     {% endfor %}

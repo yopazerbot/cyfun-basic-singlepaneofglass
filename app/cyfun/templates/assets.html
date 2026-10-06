@@ -31,7 +31,7 @@
       <td class="hide-sm muted">{{ a.location }}</td>
       <td class="hide-sm muted">{{ a.owner }}</td>
       <td class="hide-sm">{{ a.classification }}</td>
-      <td><span class="chip {{ 'bad' if a.criticality == 'High' else ('warn' if a.criticality == 'Medium' else '') }}">{{ a.criticality }}</span></td>
+      <td><span class="chip {{ {'High': 'bad', 'Medium': 'warn'}.get(a.criticality, '') }}">{{ a.criticality }}</span></td>
       <td class="hide-sm">{{ "yes" if a.primary_asset else "" }}</td>
       <td class="hide-sm muted mono small">{{ a.source }}</td>
       <td class="hide-sm muted small">{{ a.last_seen_at|date if a.last_seen_at else "" }}{% if a.lifecycle == 'retired' %} · retired{% endif %}</td>

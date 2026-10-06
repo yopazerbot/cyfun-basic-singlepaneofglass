@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Documents · {{ settings.app_name }}{% endblock %}
 {% block content %}
-{% from "macros.html" import req_picker, req_links %}
+{% from "macros.html" import req_picker, req_links, delete_cell, register_form %}
 {% set admin = user.role == 'admin' %}
 <header class="page-head">
   <div class="eyebrow">GV.PO-01.1 · documentation maturity</div>
@@ -9,11 +9,7 @@
   <p class="lead">Policies, procedures, plans and records with version, approval and review dates. Documentation maturity 2 needs approved documents; 3 and above need review within two years and documented exceptions. Map each document to the requirements it supports.</p>
 </header>
 
-{% set doc_form %}
-<form class="card form" id="document-form" method="post" action="{{ '/documents/' ~ edit.id if edit else '/documents' }}">
-  <div class="card-head"><h2>{{ ("Edit document" if admin else "Document") if edit else "Add document" }}</h2>{% if edit %}<a class="link" href="/documents">Back to the register</a>{% endif %}</div>
-  <fieldset {{ 'disabled' if not admin }}>
-  <div class="form-grid">
+{% set doc_form %}{% call register_form("document-form", "/documents", "document", edit, admin) %}
     <label class="span-all">Title<input name="title" required maxlength="300" value="{{ edit.title if edit }}"></label>
     <label>Type<select name="doc_type">{% for t in types %}<option value="{{ t }}" {{ 'selected' if edit and edit.doc_type == t }}>{{ t }}</option>{% endfor %}</select></label>
     <label>Status<select name="status">{% for s in statuses %}<option value="{{ s }}" {{ 'selected' if edit and edit.status == s }}>{{ s }}</option>{% endfor %}</select></label>
@@ -26,11 +22,7 @@
     <label class="span-all">Link (SharePoint, wiki, repository)<input name="link" maxlength="1000" placeholder="https://" value="{{ edit.link if edit }}" inputmode="url"></label>
     <div class="span-all"><span class="field-label">Requirements supported</span>{{ req_picker(fw, edit.requirement_ids if edit else [], "Requirements supported") }}</div>
     <label class="span-all">Notes<textarea name="notes" rows="2">{{ edit.notes if edit }}</textarea></label>
-  </div>
-  </fieldset>
-  {% if admin %}<div class="actions"><button class="btn" type="submit">{{ "Save" if edit else "Add document" }}</button>{% if edit %}<a class="btn secondary" href="/documents">Cancel</a>{% endif %}</div>{% endif %}
-</form>
-{% endset %}
+{% endcall %}{% endset %}
 
 {% if edit %}{{ doc_form }}{% endif %}
 
@@ -47,11 +39,11 @@
       <td><a href="/documents/{{ d.id }}">{{ d.title }}</a><div class="muted small">{{ d.owner }}{% if d.link %}{{ " · " if d.owner }}<a href="{{ d.link }}" rel="noopener noreferrer" target="_blank">open document</a>{% endif %}</div></td>
       <td class="hide-sm">{{ d.doc_type }}</td>
       <td class="hide-sm mono small">{{ d.version }}</td>
-      <td><span class="chip {{ 'ok' if d.status == 'approved' else ('none' if d.status == 'retired' else 'warn') }}">{{ d.status }}</span></td>
+      <td><span class="chip {{ {'approved': 'ok', 'retired': 'none'}.get(d.status, 'warn') }}">{{ d.status }}</span></td>
       <td class="hide-sm muted small nowrap">{{ d.approved_on|date }}{% if d.approved_by %}<br>{{ d.approved_by }}{% endif %}</td>
       <td class="small nowrap">{{ d.next_review|date }}{% if due %}<br><span class="bad">review due</span>{% endif %}</td>
       <td class="hide-sm small">{{ req_links(d.requirement_ids) }}</td>
-      {% if admin %}<td><form method="post" action="/documents/{{ d.id }}/delete" class="inline"><button class="btn link-danger small" data-confirm="Delete the register entry '{{ d.title }}'?">Delete</button></form></td>{% endif %}
+      {% if admin %}{{ delete_cell('/documents/' ~ d.id ~ '/delete', "Delete the register entry '" ~ d.title ~ "'?") }}{% endif %}
     </tr>
     {% endfor %}
     </tbody>

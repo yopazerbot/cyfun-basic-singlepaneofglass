@@ -23,7 +23,7 @@ _SessionLocal: sessionmaker[Session] | None = None
 
 def init_engine(db_url: str):
     global _engine, _SessionLocal
-    _engine = create_engine(db_url, connect_args={"check_same_thread": False}, future=True)
+    _engine = create_engine(db_url, connect_args={"check_same_thread": False})
 
     @event.listens_for(_engine, "connect")
     def _pragmas(dbapi_conn, _record):  # pragma: no cover - trivial
@@ -33,7 +33,7 @@ def init_engine(db_url: str):
         cur.execute("PRAGMA synchronous=NORMAL")
         cur.close()
 
-    _SessionLocal = sessionmaker(bind=_engine, autoflush=False, expire_on_commit=False, future=True)
+    _SessionLocal = sessionmaker(bind=_engine, autoflush=False, expire_on_commit=False)
     return _engine
 
 
@@ -79,8 +79,5 @@ def session() -> Session:
 
 
 def get_db() -> Iterator[Session]:
-    db = session()
-    try:
+    with session() as db:
         yield db
-    finally:
-        db.close()

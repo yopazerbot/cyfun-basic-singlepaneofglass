@@ -12,6 +12,7 @@ from urllib.parse import quote
 from fastapi import Request
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
+from markupsafe import Markup, escape
 
 from . import __version__
 from . import db as database
@@ -51,8 +52,6 @@ def pct(value: float | None, scale: float = 5.0) -> int:
 
 
 def nl2br_safe(value: str) -> str:
-    from markupsafe import Markup, escape
-
     return Markup("<br>".join(escape(value or "").split("\n")))  # noqa: S704 - every fragment is escaped
 
 
@@ -101,13 +100,14 @@ def _current_level() -> str:
 
 
 def render(request: Request, name: str, context: dict | None = None, status_code: int = 200):
+    msg, err = _flash(request)
     ctx = {
         "user": getattr(request.state, "user", None),
         "settings": get_settings(),
         "active": "",
         "today": date.today(),
-        "msg": _flash(request)[0],
-        "err": _flash(request)[1],
+        "msg": msg,
+        "err": err,
         "level": _current_level(),
         "now_utc": datetime.now(UTC).replace(tzinfo=None),
     }

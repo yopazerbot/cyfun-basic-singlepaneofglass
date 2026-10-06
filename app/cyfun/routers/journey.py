@@ -16,6 +16,10 @@ router = APIRouter(prefix="/journey", tags=["journey"])
 STAGE_STATUS = ("not_started", "in_progress", "done")
 
 
+def _level_set_msg(level: str) -> str:
+    return f"Target assurance level set to {level}. Scores entered so far are kept; the requirement set and thresholds now follow {level}."
+
+
 def _level_cards() -> list[dict]:
     cards = []
     for lv in LEVELS:
@@ -87,10 +91,7 @@ def save_org(
     log_activity(db, user.label, "organisation_update", "organisation", "1", {"name": org.name, "target_level": org.target_level})
     if org.target_level != before_level:
         log_activity(db, user.label, "level_change", "organisation", "1", {"from": before_level, "to": org.target_level})
-        return redirect(
-            "/journey",
-            msg=f"Target assurance level set to {org.target_level}. Scores entered so far are kept; the requirement set and thresholds now follow {org.target_level}.",
-        )
+        return redirect("/journey", msg=_level_set_msg(org.target_level))
     return redirect("/journey", msg="Organisation and scope saved.")
 
 
@@ -104,9 +105,7 @@ def save_level(request: Request, target_level: str = Form(...), user: User = Dep
     org.target_level = after
     db.commit()
     log_activity(db, user.label, "level_change", "organisation", "1", {"from": before, "to": after})
-    return redirect(
-        "/journey", msg=f"Target assurance level set to {after}. Scores entered so far are kept; the requirement set and thresholds now follow {after}."
-    )
+    return redirect("/journey", msg=_level_set_msg(after))
 
 
 @router.post("/stage/{stage}")
@@ -119,8 +118,8 @@ def save_stage(
     user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
-    keys = {k for k, _ in JOURNEY_STAGES}
-    if stage not in keys or status not in STAGE_STATUS:
+    labels = dict(JOURNEY_STAGES)
+    if stage not in labels or status not in STAGE_STATUS:
         return redirect("/journey", err="Unknown stage or status.")
     org = get_org(db)
     j = dict(org.journey or {})
@@ -129,4 +128,4 @@ def save_stage(
     org.journey = j
     db.commit()
     log_activity(db, user.label, "journey_stage", "journey", stage, j[stage])
-    return redirect("/journey", msg=f"Stage updated: {dict(JOURNEY_STAGES)[stage]}.")
+    return redirect("/journey", msg=f"Stage updated: {labels[stage]}.")

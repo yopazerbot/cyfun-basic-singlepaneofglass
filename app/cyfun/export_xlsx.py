@@ -26,7 +26,7 @@ import re
 import zipfile
 from dataclasses import dataclass
 from datetime import date
-from xml.sax.saxutils import escape
+from xml.sax.saxutils import escape, unescape
 
 from .framework import Framework
 
@@ -88,15 +88,21 @@ def excel_serial(d: date) -> int:
     return (d - date(1899, 12, 30)).days
 
 
+def _text_runs(xml: str) -> str:
+    """Concatenated <t> runs of a shared or inline string."""
+    return "".join(re.findall(r"<t[^>]*>(.*?)</t>", xml, re.S))
+
+
 def _read_shared_strings(xml: str) -> list[str]:
-    out = []
-    for si in re.findall(r"<si>(.*?)</si>", xml, re.S):
-        out.append("".join(re.findall(r"<t[^>]*>(.*?)</t>", si, re.S)))
-    return out
+    return [_text_runs(si) for si in re.findall(r"<si>(.*?)</si>", xml, re.S)]
 
 
 def _unescape(s: str) -> str:
-    return s.replace("&lt;", "<").replace("&gt;", ">").replace("&quot;", '"').replace("&apos;", "'").replace("&amp;", "&")
+    return unescape(s, {"&quot;": '"', "&apos;": "'"})
+
+
+def _find_cell(xml: str, ref: str) -> re.Match | None:
+    return re.search(_CELL_RE_TMPL.format(ref=ref), xml, re.S)
 
 
 # --------------------------------------------------------------------------- package
@@ -139,12 +145,9 @@ class Package:
     def set_sheet_xml(self, name: str, xml: str) -> None:
         self.parts[self.sheet_part[name]] = xml.encode("utf-8")
 
-    def cell(self, xml: str, ref: str) -> re.Match | None:
-        return re.search(_CELL_RE_TMPL.format(ref=ref), xml, re.S)
-
     def cell_text(self, name: str, ref: str) -> str:
         """Literal text of a cell (shared or inline string, or number as text)."""
-        m = self.cell(self.sheet_xml(name), ref)
+        m = _find_cell(self.sheet_xml(name), ref)
         if not m:
             return ""
         attrs, inner = m.group(1) or "", m.group(2) or ""
@@ -152,7 +155,7 @@ class Package:
         if 't="s"' in attrs and v:
             return self.shared[int(v.group(1))]
         if 't="inlineStr"' in attrs:
-            return "".join(re.findall(r"<t[^>]*>(.*?)</t>", inner, re.S))
+            return _text_runs(inner)
         return _unescape(v.group(1)) if v else ""
 
     def write(self) -> bytes:
@@ -167,12 +170,12 @@ class Package:
         return buf.getvalue()
 
 
-def _set_cell(xml: str, ref: str, value: float | int | str | None, keep_style: bool = True) -> str:
-    """Replace the content of a value cell. Numbers become <v>, strings become inline strings."""
-    m = re.search(_CELL_RE_TMPL.format(ref=ref), xml, re.S)
+def _set_cell(xml: str, ref: str, value: float | int | str | None) -> str:
+    """Replace the content of a value cell, keeping its style. Numbers become <v>, strings become inline strings."""
+    m = _find_cell(xml, ref)
     attrs = (m.group(1) or "") if m else ""
     style = re.search(r'\ss="(\d+)"', attrs)
-    s_attr = f' s="{style.group(1)}"' if (style and keep_style) else ""
+    s_attr = f' s="{style.group(1)}"' if style else ""
     if value is None or value == "":
         new = f'<c r="{ref}"{s_attr}/>'
     elif isinstance(value, str):
@@ -208,7 +211,7 @@ def _insert_cell(xml: str, ref: str, cell_xml: str) -> str:
 
 def _set_cached(xml: str, ref: str, value: float) -> str:
     """Update the cached <v> of a formula cell, leaving the formula untouched."""
-    m = re.search(_CELL_RE_TMPL.format(ref=ref), xml, re.S)
+    m = _find_cell(xml, ref)
     if not m or m.group(2) is None or "<f" not in m.group(2):
         return xml
     inner = m.group(2)
@@ -412,10 +415,7 @@ def _shift_formula(formula: str, d_col: int, d_row: int) -> str:
 
 def _sheet_cells(xml: str) -> list[tuple[str, str, str | None]]:
     """(ref, attrs, inner) for every cell element in the sheet."""
-    out = []
-    for m in re.finditer(r'<c r="([A-Z]+\d+)"((?:\s[^>]*?)?)(?:/>|>(.*?)</c>)', xml, re.S):
-        out.append((m.group(1), m.group(2) or "", m.group(3)))
-    return out
+    return [(m.group(1), m.group(2) or "", m.group(3)) for m in re.finditer(_CELL_RE_TMPL.format(ref=r"([A-Z]+\d+)"), xml, re.S)]
 
 
 def _collect_values_and_formulas(pkg: Package, sheets: list[str]):
@@ -460,7 +460,7 @@ def _collect_values_and_formulas(pkg: Package, sheets: list[str]):
                     except ValueError:
                         values[name][ref] = raw
             elif 't="inlineStr"' in attrs:
-                values[name][ref] = "".join(re.findall(r"<t[^>]*>(.*?)</t>", inner, re.S))
+                values[name][ref] = _text_runs(inner)
     return values, formulas
 
 
@@ -469,7 +469,6 @@ def _recalculate(pkg: Package, sheets: list[str]) -> int:
     values, formulas = _collect_values_and_formulas(pkg, sheets)
     computed: dict[str, dict[str, float]] = {s: {} for s in sheets}
     pending = {s: dict(fs) for s, fs in formulas.items()}
-    unsupported: dict[str, set[str]] = {s: set() for s in sheets}
     for _ in range(20):
         progress = False
         for sheet in sheets:
@@ -481,16 +480,11 @@ def _recalculate(pkg: Package, sheets: list[str]) -> int:
                     continue
                 except Exception:
                     # Unsupported formula: leave its cached value alone; Excel recalculates on load.
-                    pending[sheet].pop(ref)
-                    unsupported[sheet].add(ref)
-                    progress = True
-                    continue
+                    result = None
                 pending[sheet].pop(ref)
                 progress = True
-                if isinstance(result, bool) or not isinstance(result, (int, float)):
-                    continue
-                values[sheet][ref] = float(result)
-                computed[sheet][ref] = float(result)
+                if isinstance(result, (int, float)) and not isinstance(result, bool):
+                    values[sheet][ref] = computed[sheet][ref] = float(result)
         if not progress or not any(pending.values()):
             break
     count = 0
@@ -505,7 +499,7 @@ def _recalculate(pkg: Package, sheets: list[str]) -> int:
 
 # --------------------------------------------------------------------------- public API
 def layout_of(fw: Framework) -> dict:
-    return {**DEFAULT_LAYOUT, **(getattr(fw, "layout", None) or {})}
+    return {**DEFAULT_LAYOUT, **(fw.layout or {})}
 
 
 def validate_template(pkg: Package, fw: Framework) -> list[str]:
@@ -543,9 +537,9 @@ def fill_workbook(
     written = 0
     for sheet in lay["function_sheets"]:
         xml = pkg.sheet_xml(sheet)
-        for req in [r for r in fw.requirements if r.sheet == sheet]:
+        for req in fw.requirements:
             inp = inputs.get(req.id)
-            if inp is None:
+            if req.sheet != sheet or inp is None:
                 continue
             if inp.not_applicable:
                 xml = _set_cell(xml, f"{doc_col}{req.row}", "N/A")

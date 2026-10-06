@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Audit view · {{ settings.app_name }}{% endblock %}
 {% block content %}
+{% from "macros.html" import maturity_chip, evidence_link %}
 <header class="page-head">
   <div class="eyebrow">Verification view · read-only · {{ org.name or "organisation not set" }} · CyFun 2025 {{ fw.level }}</div>
   <h1>Audit view</h1>
@@ -51,13 +52,13 @@
     <div class="audit-req-head">
       <a class="mono" href="/assessment/{{ r.id }}">{{ r.id }}</a> <span class="tag level-{{ r.level|lower }}">{{ r.level }}</span>{% if r.key_measure %} <span class="tag km">KM</span>{% endif %}{% if r.management_aspect %} <span class="tag ma">MA</span>{% endif %}
       <span class="scores">doc {% if res.not_applicable %}N/A{% else %}{{ res.doc|score(0) if res.doc is not none else "·" }}{% endif %} · impl {% if res.not_applicable %}N/A{% else %}{{ res.impl|score(0) if res.impl is not none else "·" }}{% endif %}</span>
-      {% if res.maturity is not none %}<span class="chip {{ res.maturity|status_word(summary.km_min if r.key_measure else summary.target) }}">{{ res.maturity|score }}</span>{% else %}<span class="chip none">not scored</span>{% endif %}
+      {{ maturity_chip(res.maturity, summary.km_min if r.key_measure else summary.target) }}
     </div>
     <p class="req-text">{{ r.text }}</p>
     {% if sc and sc.justification %}<p class="justification">{{ sc.justification|nl2br }}</p>{% else %}<p class="muted small">No justification recorded.</p>{% endif %}
     {% set origin = ai_origin.get(r.id) %}{% if origin %}<p class="muted small">Scores proposed by Claude ({{ origin.model }}) and accepted by {{ origin.accepted_by }} on {{ origin.accepted_at|date }}{{ ' after editing' if origin.edited_before_acceptance }}.</p>{% endif %}
     <div class="audit-cols">
-      <div><strong>Evidence</strong>{% set evs = evidence.get(r.id, []) %}{% if evs %}<ul class="plain-list small">{% for e in evs %}<li>{% if e.kind == 'file' %}<a href="/evidence/{{ e.id }}/download">{{ e.title }}</a>{% elif e.kind == 'link' %}<a href="{{ e.url }}" rel="noopener noreferrer" target="_blank">{{ e.title }}</a>{% elif e.kind == 'automated' and e.run_id %}<a href="{{ e.url }}">{{ e.title }}</a>{% else %}{{ e.title }}{% endif %} <span class="muted">{{ e.collected_on|date }}{% if e.sha256 %} · <span class="mono">{{ e.sha256[:12] }}</span>{% endif %}</span></li>{% endfor %}</ul>{% else %}<p class="muted small">none</p>{% endif %}</div>
+      <div><strong>Evidence</strong>{% set evs = evidence.get(r.id, []) %}{% if evs %}<ul class="plain-list small">{% for e in evs %}<li>{{ evidence_link(e) }} <span class="muted">{{ e.collected_on|date }}{% if e.sha256 %} · <span class="mono">{{ e.sha256[:12] }}</span>{% endif %}</span></li>{% endfor %}</ul>{% else %}<p class="muted small">none</p>{% endif %}</div>
       <div><strong>Documents</strong>{% set ds = documents.get(r.id, []) %}{% if ds %}<ul class="plain-list small">{% for d in ds %}<li>{{ d.title }} <span class="muted">{{ d.status }}{% if d.version %} v{{ d.version }}{% endif %}{% if d.approved_on %} · approved {{ d.approved_on|date }}{% endif %}</span></li>{% endfor %}</ul>{% else %}<p class="muted small">none</p>{% endif %}</div>
       <div><strong>Automated checks</strong>{% set cs = checks.get(r.id, []) %}{% if cs %}<ul class="plain-list small">{% for ch in cs %}<li><span class="chip {{ ch.status }}">{{ ch.status }}</span> {{ ch.title }}: {{ ch.summary }} <span class="muted">{{ ch.checked_at|date }}</span></li>{% endfor %}</ul>{% else %}<p class="muted small">none</p>{% endif %}</div>
     </div>

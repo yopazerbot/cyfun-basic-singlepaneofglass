@@ -121,25 +121,24 @@ class Pseudonymizer:
         self.reverse[token] = original
         return token
 
+    def _add_term(self, kind: str, name: str) -> None:
+        self._placeholder(kind, name)
+        self._terms.add(name)
+        self._pattern = None
+
     def add_person(self, name: str | None) -> None:
         name = (name or "").strip()
         if not name:
             return
         if "@" in name:
             self._placeholder("EMAIL", name)
-            return
-        if looks_like_person(name):
-            self._placeholder("PERSON", name)
-            self._terms.add(name)
-            self._pattern = None
+        elif looks_like_person(name):
+            self._add_term("PERSON", name)
 
     def add_device(self, name: str | None) -> None:
         name = (name or "").strip()
-        if len(name) < 4 or "@" in name:
-            return
-        self._placeholder("DEVICE", name)
-        self._terms.add(name)
-        self._pattern = None
+        if len(name) >= 4 and "@" not in name:
+            self._add_term("DEVICE", name)
 
     def add_account(self, value: str | None) -> None:
         value = (value or "").strip()
@@ -162,7 +161,7 @@ class Pseudonymizer:
 
     def text(self, value: str | None) -> str:
         if not value:
-            return value or ""
+            return ""
         if value.strip() in self._exact:
             return self.forward[value.strip()]
         out = EMAIL_RE.sub(lambda m: self._placeholder("EMAIL", m.group(0)), value)

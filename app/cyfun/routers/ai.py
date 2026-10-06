@@ -23,8 +23,7 @@ router = APIRouter(prefix="/ai", tags=["ai"])
 
 
 def panel_context(db: Session, rid: str, prop: AiProposal | None) -> dict:
-    fw = current_framework(db)
-    return {"prop": prop, "rid": rid, "score": db.get(Score, rid), "fw": fw, "ai": service.status(db, get_settings())}
+    return {"prop": prop, "rid": rid, "score": db.get(Score, rid), "fw": current_framework(db), "ai": service.status(db, get_settings())}
 
 
 @router.get("")
@@ -105,13 +104,9 @@ def review(request: Request, rid: str, user: User = Depends(require_admin), db: 
     return redirect(f"/assessment/{rid}#claude", msg=f"Claude is reviewing {rid}. The proposal appears on this page when it is ready.")
 
 
-def _proposal(db: Session, pid: int) -> AiProposal | None:
-    return db.get(AiProposal, pid)
-
-
 @router.get("/proposals/{pid}")
 def proposal_page(request: Request, pid: int, user: User = Depends(require_admin), db: Session = Depends(get_db)):
-    prop = _proposal(db, pid)
+    prop = db.get(AiProposal, pid)
     if prop is None:
         return redirect("/ai", err="Proposal not found.")
     ctx = panel_context(db, prop.requirement_id, prop)
@@ -121,7 +116,7 @@ def proposal_page(request: Request, pid: int, user: User = Depends(require_admin
 
 @router.get("/proposals/{pid}/panel")
 def proposal_panel(request: Request, pid: int, user: User = Depends(require_admin), db: Session = Depends(get_db)):
-    prop = _proposal(db, pid)
+    prop = db.get(AiProposal, pid)
     if prop is None:
         return redirect("/ai", err="Proposal not found.")
     service.recover_stale(db)
@@ -133,7 +128,7 @@ def proposal_panel(request: Request, pid: int, user: User = Depends(require_admi
 
 @router.post("/proposals/{pid}/accept")
 async def accept(request: Request, pid: int, user: User = Depends(require_admin), db: Session = Depends(get_db)):
-    prop = _proposal(db, pid)
+    prop = db.get(AiProposal, pid)
     if prop is None:
         return redirect("/ai", err="Proposal not found.")
     form = await request.form()
@@ -155,7 +150,7 @@ async def accept(request: Request, pid: int, user: User = Depends(require_admin)
 
 @router.post("/proposals/{pid}/reject")
 def reject(request: Request, pid: int, note: str = Form(""), user: User = Depends(require_admin), db: Session = Depends(get_db)):
-    prop = _proposal(db, pid)
+    prop = db.get(AiProposal, pid)
     if prop is None:
         return redirect("/ai", err="Proposal not found.")
     try:
