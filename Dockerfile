@@ -2,7 +2,7 @@
 # Runs as an unprivileged user; the only writable path is the DATA_DIR volume.
 # pip and the bundled wheels are removed after installation: the runtime needs neither,
 # and their vendored libraries would otherwise show up in vulnerability scans.
-FROM python:3.13-slim
+FROM python:3.14-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
